@@ -57,9 +57,7 @@ class PlannerEnv(Env):
             planner_output["{}".format(self.action_space_names[i])] = action[i]
         return planner_output
 
-    def _obstacle_point_overlap(obstalce: SingleObstacle, point: List){
-        
-    }
+    
 
     def step(self, action):
         # TODO: dont overlap robot position
@@ -77,9 +75,8 @@ class PlannerEnv(Env):
             new_width = randint(50,500)
             new_height = randint(50,500)
             new_obstacle = SingleObstacle(px, py, new_width, new_height)
-            while()
-            single_obstacle = 
-            obst_list.append(single_obstacle)
+            
+            obst_list.append(new_obstacle)
             self.env.obstacles = Obstacles(obst_list)
         
         self.env.robot.set(px=100*action["P_robot"], py=150*action["P_robot"], gx=100*action["P_goal"], gy=400*action["P_goal"],
