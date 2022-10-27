@@ -22,18 +22,18 @@ class CustomFeatureExtractor(BaseFeaturesExtractor):
         super(CustomFeatureExtractor, self).__init__(
             observation_space=observation_space, features_dim=features_dim)
 
-        n_input_channels = observation_space["lidar"].shape[0]
+        n_input_channels = 1
         self.cnn = nn.Sequential(
-            nn.Conv1d(1, 32, kernel_size=8, stride=4),
+            nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4),
             nn.ReLU(),
-            nn.Conv1d(32, 64, kernel_size=9, stride=4),
+            nn.Conv2d(32, 64, kernel_size=6, stride=4),
             nn.ReLU(),
-            nn.Conv1d(64, 128, kernel_size=6, stride=4),
+            nn.Conv2d(64, 128, kernel_size=3, stride=4),
             nn.ReLU(),
-            nn.Conv1d(128, 256, kernel_size=4, stride=4),
+            nn.Conv2d(128, 256, kernel_size=1, stride=4),
             nn.ReLU(),
             nn.Flatten(),
-            nn.Linear(1024, 32)
+            nn.Linear(256, 32)
 
         )
 

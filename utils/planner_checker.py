@@ -56,7 +56,7 @@ class PlannerChecker(object):
                         continue
                     self.visited[nx][ny] = True
                     queue.append((nx, ny, p[2] + 1))
-        return np.inf
+        return 2000
 
     def get_map_difficulity(self, obstacles: Obstacles, height: int, width: int, sx: int, sy: int, gx: int, gy: int) -> int:
         self.height = height

@@ -6,7 +6,7 @@ from utils.action import ActionXY
 
 
 class Agent(object):
-    def __init__(self, px=0, py=0, gx=0, gy=0, gt=0, vx=0, vy=0, w=0, theta=0, radius=None, config=None, section=None):
+    def __init__(self, px=0, py=0, gx=0, gy=0, gt=0, vx=0, vy=0, w=0, theta=0, radius=10, config=None, section=None):
         """
         Base class for robot and human. Have the physical attributes of an agent.
         """
@@ -21,7 +21,7 @@ class Agent(object):
         self.w = w
         self.theta = theta
 
-    def set(self, px, py, gx, gy, gt, vx, vy, w, theta, radius=None):
+    def set(self, px, py, gx, gy, gt, vx, vy, w, theta, radius=10):
         self.px = px
         self.py = py
         self.gx = gx
@@ -31,8 +31,7 @@ class Agent(object):
         self.vy = vy
         self.w = w
         self.theta = theta
-        if radius is not None:
-            self.radius = radius
+        self.radius = radius
 
     def get_position(self):
         return self.px, self.py

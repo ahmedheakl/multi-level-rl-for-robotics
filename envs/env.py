@@ -1,5 +1,4 @@
 
-
 from typing import Any, List
 from gym import Env, spaces
 from utils.action import *
@@ -14,6 +13,7 @@ import threading
 from policy.custom_policy import CustomFeatureExtractor
 from stable_baselines3 import PPO
 from utils.robot import Robot
+from utils.lidar_rings import LidarRings
 
 from utils.planner_checker import PlannerChecker
 import random
@@ -22,20 +22,15 @@ import random
 GREEN_COLOR = (50, 225, 30)
 BLUE_COLOR = (0, 0, 255)
 BLACK_COLOR = (0, 0, 0)
-SCREEN_WIDTH = 1280
+
+SCREEN_WIDTH = 720
 SCREEN_HEIGHT = 720
+
+# SCREEN_WIDTH = 1280
+# SCREEN_HEIGHT = 720
+
 MIN_SCREEN_WIDTH = 200
 MIN_SCREEN_HEIGHT = 200
-
-
-
-def clip(val, min_val, max_val):
-    if (val < min_val):
-        return min_val
-    if (val > max_val):
-        return max_val
-    return val
-
 
 class TestEnv(Env):
     def __init__(self,resizable=True) -> None:
@@ -45,32 +40,53 @@ class TestEnv(Env):
             low=-1, high=1, shape=(3,), dtype=np.float32)
         self.observation_space = spaces.Dict({
             'lidar': spaces.Box(low=-np.inf, high=np.inf,
-                                shape=(1080,), dtype=np.float32),
+                                shape=(64,64), dtype=np.float32),
             'robot': spaces.Box(low=-np.inf, high=np.inf, shape=(5,), dtype=np.float32)
         })
 
         obs_lst = Obstacles([SingleObstacle(0, 0, 100, 100), SingleObstacle(
             400, 400, 300, 300)])
         self.obstacles = obs_lst
+        self.robot = Robot()
         self.width = SCREEN_WIDTH
         self.height = SCREEN_HEIGHT
-        self.delta_t = 0.5
-        self.robot = Robot()
-        self.n_angles = 1080
-        self.lidarAngleIncrement = 0.00581718236208  # = 1/3 degrees
+        self.delta_t = 1
+        self.n_angles = 1024
+        self.lidarAngleIncrement = 0.00613592315153 # = 0.3515625 degrees
         self.lidarMinAngle = 0
-        self.lidarMaxAngle = 6.27543783188 + self.lidarAngleIncrement  # = 2*pi
+        self.lidarMaxAngle =   6.27705407684847 + self.lidarAngleIncrement  # = 2*pi
         self.lidarScan = None
         self.converterCMap2D = CMap2D()
         self.converterCMap2D.set_resolution(1.)
         self.viewer = None
-        self.currently_rendering_iteration = 0
-        self.success_time_steps = 0
-        self.avg_success_time = []
-        self.dist_to_goal = 0
-        self.episodes = 0
         self.reward = 0
-        self.passed = 0
+        self.planner_output = {}
+        self.total_reward = 0
+
+        """frequency of rendering per each x frames.
+        Defaults to 1 (render at each frame).
+        """
+        self.render_each = 1
+
+        """steps the agent took during the current episode.
+        re-initialzed between episodes.
+        """
+        self.current_episode_timesteps = 0
+
+        """max allowed timesteps the agent is allowed to take 
+        at each episode (should be set at the planner code)."""
+        self.max_episode_timesteps = 1e6
+
+        # TODO: solve the dividing by zero problem 
+        self.init_difficulty = PlannerChecker().get_map_difficulity(obstacles = obs_lst, height = self.height, width = self.width,
+                                                                     sx = self.robot.px, sy = self.robot.py, gx = self.robot.gx,
+                                                                    gy = self.robot.gy)
+        self.done = False
+
+        # define constants 
+        self.COLLISION_SCORE = -100
+        self.REACHED_GOAL_SCORE = 1800
+        
 
 
 
@@ -115,16 +131,22 @@ class TestEnv(Env):
         goal_in_baselink = apply_tf_to_pose(goal_in_world, world_in_baselink)
         robotstate_obs = np.hstack(
             [goal_in_baselink[:2], robotvel_in_baselink])
-        obs = {'lidar': self.lidar_scan, 'robot': robotstate_obs}
+        
+        lidar_rings = LidarRings(lidar_1D = self.lidar_scan , original_env_side = 720, pic_side = 64, env_size = 64*64, px = self.robot.px, py = self.robot.py)
+
+        self.dic = lidar_rings.extract_x_and_y()
+        self.pic = lidar_rings.generate_2d_lidar_pic(x = self.dic["x"], y = self.dic["y"])
+        obs = {'lidar': self.pic, 'robot': robotstate_obs}
 
         return obs
 
-    def render(self, close: Any = False, save_to_file: Any = False):
+    def render(self, close: Any = False, save_to_file: Any = False, show_score: Any = True):
         """Render robot and obstacles on an openGL window using gym viewer
 
         Args:
             close (bool, optional): flag to close the environment window. Defaults to False.
             save_to_file (bool, optional): flag to save render data to a file. Defaults to False.
+            show_score (boo, optional): flag to show reward on window. Defaults to True.
 
         Returns:
             bool: flag to check the status of the openGL window
@@ -150,11 +172,24 @@ class TestEnv(Env):
                 '0000', font_size=12,
                 x=20, y=WINDOW_H*2.5/40.00, anchor_x='left', anchor_y='center',
                 color=(255, 255, 255, 255))
+            self.iteration_label = pyglet.text.Label(
+                '0000', font_size=12,
+                x=20, y=WINDOW_H*1.6/40.00, anchor_x='left', anchor_y='center',
+                color=(255, 255, 255, 255))
             self.transform = rendering.Transform()
-            self.currently_rendering_iteration = 0
             self.image_lock = threading.Lock()
 
         def make_circle(c, r, res=10):
+            """Create circle points
+
+            Args:
+                c (list): center of the circle
+                r (float): radius of the circle
+                res (int, optional): resolution of points. Defaults to 10.
+
+            Returns:
+                list: vertices representing with desired resolution
+            """
             thetas = np.linspace(0, 2*np.pi, res+1)[:-1]
             verts = np.zeros((res, 2))
             verts[:, 0] = c[0] + r * np.cos(thetas)
@@ -162,7 +197,6 @@ class TestEnv(Env):
             return verts
 
         with self.image_lock:
-            self.currently_rendering_iteration += 1
             self.viewer.draw_circle(r=10, color=(0.3, 0.3, 0.3))
             win = self.viewer.window
             win.switch_to()
@@ -250,10 +284,12 @@ class TestEnv(Env):
             # --
             self.transform.disable()
             # TODO: Add text to the env
-            # self.score_label.text = ""
-            # if show_score:
-            #     self.score_label.text = "R {}".format(self.episode_reward)
-            # self.score_label.draw()
+            self.score_label.text = ""
+            if show_score:
+                self.score_label.text = "R {:0.4f}".format(self.reward)
+                self.iteration_label.text = "iter {}".format(self.current_episode_timesteps)
+            self.score_label.draw()
+            self.iteration_label.draw()
             win.flip()
             if save_to_file:
                 pyglet.image.get_buffer_manager().get_color_buffer().save(
@@ -310,48 +346,63 @@ class TestEnv(Env):
         Returns:
             dict : environment state as the agent observation
         """
+        print("step starting")
+        # if something happens, don't do another step
+        if self.done:
+            return self._make_obs(), self.reward, self.done, {'episode_number': 1}
+
+        # increase counters 
+        self.current_episode_timesteps += 1
+
+        # convert action
         action = self._get_action(action)
+
+        # add distance differential
         old_distance_to_goal = point_to_point_distance(
             (self.robot.px, self.robot.py), (self.robot.gx, self.robot.gy))
         self.robot.step(action, self.delta_t)
-        # print(f"Robot position: ({self.robot.px}, {self.robot.py})", end="")
-        reward = 0
 
         new_distance_to_goal = point_to_point_distance(
             (self.robot.px, self.robot.py), (self.robot.gx, self.robot.gy))
 
-        reward += (old_distance_to_goal - new_distance_to_goal)
-        self.success_time_steps += 1
-
-        done = self.robot.reached_destination()
-        reward += done * 100 
-        # print(
-        #     "Step:  {} --- Reward: {:.3f}".format(self.currently_rendering_iteration, reward))
+        self.reward += (old_distance_to_goal - new_distance_to_goal)
+        
+        """
+        Reward = distance differential - 100 * collion_flag + 1800 + goal_flag
+        distance differential = +/- for one step closer/away from goal
+        """
+        
+        # if collision detected, add -100 and raise done flag
         if (self.detect_collison() or self.passed_borders()):
             print("----------------COLLISION DETECTED-------------------")
-            # Might be better to add weight in future tests
-            reward = -100
-            done = True
+            self.reward += self.COLLISION_SCORE
+            self.done = True
+            self.success_flag = False
 
-        if (done == True):
-            if (self.robot.reached_destination()):
-                self.passed += 1
-                self.avg_success_time.append(self.success_time_steps)
-                self.success_time_steps = 0
-                self.dist_to_goal = 0
-        self.dist_to_goal = (point_to_point_distance((self.robot.px, self.robot.py), (self.robot.gx, self.robot.gy)))
+        # if reached goal, add 1800 and raise sucess/done flags
+        if not self.done and self.robot.reached_destination(): 
+                self.reward += 1800 # 1748 is the max reward it can get from following the longest path possible
+                self.done = True
+                self.success_flag = True
 
-        self.render()
-        self.reward = reward
-        return self._make_obs(), reward, done, {"episode_number": self.episodes}
+        if not self.done and self.current_episode_timesteps >= self.max_episode_timesteps:
+            self.done = True
+            self.success_flag = False
+
+        if self.current_episode_timesteps % self.render_each == 0:
+            self.render()
+        
+        self.total_reward += self.reward
+
+        print("step Ended")
+        return self._make_obs(), self.reward, self.done, {"episode_number": 1}
     def reset(self):
         """
         Reset robot state and generate new obstacles points
         Returns:
             dict: observation of the current environment state
         """
+        self.reward = 0
+        self.success_flag = False
         self.generate_obstacles_points()
-        self.robot = Robot()
-        self.robot.set(px=100, py=150, gx=100, gy=400, gt=0,
-                       vx=0, vy=0, w=0, theta=0, radius=20)
         return self._make_obs()

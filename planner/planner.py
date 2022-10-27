@@ -16,9 +16,11 @@ class CustomLSTM(BaseFeaturesExtractor):
         super(CustomLSTM, self).__init__(observation_space, features_dim)
         self.LSTM = nn.LSTM(input_size = features_dim, hidden_size = 16, num_layers  = 1)
 
+
     def forward(self, observations: th.Tensor) -> th.Tensor:
         th.tensor(observations)
-        return self.LSTM(observations)
+        self.LSTM_output, self.LSTM_hidden = self.LSTM(observations)
+        return self.LSTM_output + self.LSTM_hidden
 
 
 class CustomNetwork(nn.Module):
@@ -33,7 +35,7 @@ class CustomNetwork(nn.Module):
 
     def __init__(
         self,
-        feature_dim: int = 2,
+        feature_dim: int = 18,
         last_layer_dim_pi: int = 3,
         last_layer_dim_vf: int = 32,
     ):
