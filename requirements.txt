@@ -1,5 +1,4 @@
 gym==0.21.0
-gym_collision_avoidance==0.0.2.post2
 matplotlib==3.5.3
 numpy==1.23.1
 pyglet==1.5.26
