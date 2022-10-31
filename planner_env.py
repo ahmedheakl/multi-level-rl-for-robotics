@@ -1,5 +1,5 @@
 from typing import List
-from envs.env import TestEnv
+from envs.env import SCREEN_HEIGHT, SCREEN_WIDTH, TestEnv
 from gym import Env, spaces
 from obstacle.obstacles import Obstacles
 from obstacle.singleobstacle import SingleObstacle
@@ -26,7 +26,7 @@ class PlannerEnv(Env):
         self.env = TestEnv()
         self.episodes = 0
         self.current_difficulty = 0
-        self.desired_difficulty = 0
+        self.desired_difficulty = 1
         self.time_steps = 0
 
 
@@ -36,10 +36,14 @@ class PlannerEnv(Env):
         self.diff_checker = PlannerChecker()
 
         # define constants 
-        self.GAMMA_DIFFICULITY = 10
-        self.GAMMA_REWARD = 10
-        self.GAMMA_EPISODE = 10
+        self.alpha = 0.4
+        self.max_reward = 3600
+        self.terminal_state_flag = 0  #gamma
+        self.terminal_state_constant = 100
+        self.t_max = 100
         self.ADVANCE_PROBABILITY = 0.9
+
+        self.epsilon = 0.1
 
         
 
@@ -47,7 +51,7 @@ class PlannerEnv(Env):
         # TODO: write docstring
 
         # time_steps, robot_level, robot_reward, difficulty
-        print([self.robot_level, self.env.total_reward, self.current_difficulty])
+        print("teacher_obs = {}".format([self.robot_level, self.env.total_reward, self.current_difficulty]))
         return [self.robot_level, self.env.total_reward, self.current_difficulty]
 
     def _get_action(self, action):
@@ -63,22 +67,32 @@ class PlannerEnv(Env):
         planner_output = {}
         for i in range(len(action)):
             planner_output["{}".format(self.action_space_names[i])] = action[i]
+        print("teacher_action = {}".format(planner_output))
         return planner_output
 
     
 
     def step(self, action):
         
+        self.env.reset()
+
         action = self._get_action(action)
         self.env.planner_output = action
-        reward = - (self.GAMMA_DIFFICULITY / (self.current_difficulty + 1.0)
-                             + self.GAMMA_REWARD * (self.env.reward)/3600.0
-                             + self.GAMMA_EPISODE * (self.current_difficulty >= self.desired_difficulty)) # 3600 is the max reward
+        reward = ( (self.current_difficulty / self.desired_difficulty) * (self.env.total_reward/self.max_reward) )**self.alpha \
+                    + self.terminal_state_flag * (1-self.time_steps/self.t_max) * self.terminal_state_constant 
+                                             
 
-        self.env.robot.set(px=100*action["P_robot"], py=150*action["P_robot"], gx=100*action["P_goal"], gy=400*action["P_goal"],
+        px = np.clip(100*action["P_robot"], a_min = 0, a_max = 1280) 
+        py = np.clip(150*action["P_robot"], a_min = 0, a_max = 720) 
+        gx = np.clip(100*action["P_goal"], a_min = 0, a_max = 1280)
+        gy = np.clip(400*action["P_goal"], a_min = 0, a_max = 720) 
+        self.env.robot.set(px = px, py = py, gx = gx, gy = gy,
                         gt=0, vx=0, vy=0, w=0, theta=0, radius=20)
 
-        self.env.obstacles = Obstacles()
+        self.epsilon = int(self.epsilon)
+        self.env.obstacles.obstacles_list = [SingleObstacle(self.epsilon, 0, self.epsilon, SCREEN_HEIGHT),
+        SingleObstacle(0, -self.epsilon, SCREEN_WIDTH, self.epsilon), SingleObstacle(SCREEN_WIDTH, 0 , self.epsilon,SCREEN_HEIGHT),
+                                                        SingleObstacle(0, SCREEN_HEIGHT, SCREEN_WIDTH, self.epsilon)]
         for i in range(int(action["d_no.obstacles"])):
             #TODO: check how openGL renders dims
             nooverlap = False
@@ -117,7 +131,7 @@ class PlannerEnv(Env):
             model = PPO.load("agent_models/Agent_Model_{}".format(self.episodes), self.env)
             
         
-        model.learn(total_timesteps=1e9,  callback = RobotCallback(verbose=0, max_steps=1e3))
+        model.learn(total_timesteps=1e9,  callback = RobotCallback(verbose=0, max_steps=1e5))
         model.save("agent_models/Agent_Model_{}".format(self.episodes))
 
         if self.current_difficulty >= self.desired_difficulty:
@@ -173,7 +187,7 @@ if __name__ == '__main__':
     model = PPO(CustomActorCriticPolicy, planner_env , verbose=1)
     planner_iter = 3
     for i in range(planner_iter):
-        model.learn(total_timesteps=1)
+        model.learn(total_timesteps= 10000000 , callback = RobotCallback(verbose=0, max_steps=planner_env.t_max))
         model.save("planner_models/Planner_Model_{}".format(i))
     # env = TestEnv()
     # policy_kwargs = dict(features_extractor_class=CustomFeatureExtractor)

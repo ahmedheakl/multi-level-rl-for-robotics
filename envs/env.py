@@ -23,11 +23,11 @@ GREEN_COLOR = (50, 225, 30)
 BLUE_COLOR = (0, 0, 255)
 BLACK_COLOR = (0, 0, 0)
 
-SCREEN_WIDTH = 720
-SCREEN_HEIGHT = 720
-
-# SCREEN_WIDTH = 1280
+# SCREEN_WIDTH = 720
 # SCREEN_HEIGHT = 720
+
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
 
 MIN_SCREEN_WIDTH = 200
 MIN_SCREEN_HEIGHT = 200
@@ -84,8 +84,8 @@ class TestEnv(Env):
         self.done = False
 
         # define constants 
-        self.COLLISION_SCORE = -100
-        self.REACHED_GOAL_SCORE = 1800
+        self.COLLISION_SCORE = -25
+        self.REACHED_GOAL_SCORE = 100
         
 
 
@@ -346,7 +346,8 @@ class TestEnv(Env):
         Returns:
             dict : environment state as the agent observation
         """
-        print("step starting")
+        self.done = 0
+        obs = self._make_obs
         # if something happens, don't do another step
         if self.done:
             return self._make_obs(), self.reward, self.done, {'episode_number': 1}
@@ -364,8 +365,19 @@ class TestEnv(Env):
 
         new_distance_to_goal = point_to_point_distance(
             (self.robot.px, self.robot.py), (self.robot.gx, self.robot.gy))
-
-        self.reward += (old_distance_to_goal - new_distance_to_goal)
+        vx = action[0]
+        vy = action[1]
+        vel = (vx**2 + vy**2)**0.5
+        vel_min = 0.1
+        preferred_dist_ratio = 0.1
+        max_dist = 1468.6
+        dist_ratio = new_distance_to_goal / max_dist
+        vel_std_dev = 2.0
+        self.reward += (1 - dist_ratio**0.4) * (1-max(vel/vel_std_dev, vel_min))**(1/max(dist_ratio, preferred_dist_ratio))
+        # self.reward += (old_distance_to_goal - new_distance_to_goal)
+        # for i in range(len(obs["lidar"])):
+        #     if obs["lidar"][i] >= 0.2:
+        #         self.reward += -1
         
         """
         Reward = distance differential - 100 * collion_flag + 1800 + goal_flag
@@ -381,7 +393,7 @@ class TestEnv(Env):
 
         # if reached goal, add 1800 and raise sucess/done flags
         if not self.done and self.robot.reached_destination(): 
-                self.reward += 1800 # 1748 is the max reward it can get from following the longest path possible
+                self.reward += self.REACHED_GOAL_SCORE # 1748 is the max reward it can get from following the longest path possible
                 self.done = True
                 self.success_flag = True
 
@@ -394,7 +406,6 @@ class TestEnv(Env):
         
         self.total_reward += self.reward
 
-        print("step Ended")
         return self._make_obs(), self.reward, self.done, {"episode_number": 1}
     def reset(self):
         """

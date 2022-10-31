@@ -1,8 +1,10 @@
+from cmath import pi
 from math import cos, sin
 import numpy as np
 import cv2 as cv
 from PIL import Image
-        
+import scipy.ndimage as spi
+
 
 # the lidar 1D reading must be an perfect square number
 # the 1D lidar array should be arranged startig from the distance towards the positive x-axis
@@ -30,8 +32,8 @@ class LidarRings():
     def extract_x_and_y(self):
         for i in range(len(self.lidar_1D)):
             # print("iter {}".format(i))
-            self.x[i] = (self.lidar_1D[i] * self.angle_cos[i])
-            self.y[i] =  (self.lidar_1D[i] * self.angle_sin[i])
+            self.x[i] = np.clip((self.lidar_1D[i] * self.angle_cos[i]), a_min=0, a_max=720)
+            self.y[i] = np.clip((self.lidar_1D[i] * self.angle_sin[i]), a_min=0, a_max=720) 
             # print("angle {}".format(self.angle[i]*180/self.pi))
             # print("cos  = {}, sin = {}".format(self.angle_cos[i], self.angle_sin[i]))
             # print("x = {}, y = {}".format(self.x,self.y))
@@ -60,21 +62,17 @@ class LidarRings():
         for i in range(len(self.x)):
             if (self.x[i] >= 0 and self.y[i] >= 0):
                 if (self.x[i] <= self.env_side and self.y[i] <= self.env_side):
-                    self.pic[self.y[i]][self.x[i]] = 1
+                    self.pic[self.y[i]-1][self.x[i]-1] = 1 
         # print(self.x, self.y)
         copy = self.pic.copy()
         
         for i in range(self.env_side):
             self.pic[i] = copy[self.env_side-1-i]
-        # print(self.pic)
+        self.pic = 1-self.pic
         return self.pic
 
-    def generate_probabilistic_pic(self):
-
-        return 
-
-
-lidar_rings = LidarRings(lidar_1D = [1,1,1,1] , original_env_side = 5, pic_side = 3, env_size = 3*3, px = 1, py = 1)
+lidar_rings = LidarRings(lidar_1D = [1,1,0.5,3] , original_env_side = 10, pic_side = 5, env_size = 5*5, px = 3, py = 5)
 
 dic = lidar_rings.extract_x_and_y()
 pic = lidar_rings.generate_2d_lidar_pic(x = dic["x"], y = dic["y"])
+print(pic)
