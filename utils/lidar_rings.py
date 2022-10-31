@@ -1,9 +1,6 @@
 from cmath import pi
 from math import cos, sin
 import numpy as np
-import cv2 as cv
-from PIL import Image
-import scipy.ndimage as spi
 
 
 # the lidar 1D reading must be an perfect square number
