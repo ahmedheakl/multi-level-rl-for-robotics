@@ -2,7 +2,7 @@ from gym import Env, spaces
 from utils.action import *
 import random
 from obstacle.obstacles import Obstacles
-from obstacle.singleobstacle import SingleObstacle
+from obstacle.single_obstacle import SingleObstacle
 import numpy as np
 from numpy.linalg import norm
 from CMap2D import flatten_contours, render_contours_in_lidar, CMap2D, CSimAgent, fast_2f_norm

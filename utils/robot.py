@@ -2,8 +2,8 @@ from utils.agent import Agent
 
 
 class Robot(Agent):
-    def __init__(self, config=None, section=None):
-        super().__init__()
+    def __init__(self, *param, config=None, section=None):
+        super().__init__(*param)
 
     # def act(self, ob):
     #     if self.policy is None:

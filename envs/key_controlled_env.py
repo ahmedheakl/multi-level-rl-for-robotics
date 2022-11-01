@@ -2,7 +2,7 @@
 import pyglet
 from pyglet.gl import *
 from obstacle.obstacles import Obstacles
-from obstacle.singleobstacle import SingleObstacle
+from obstacle.single_obstacle import SingleObstacle
 from utils.action import ActionXY
 from gym import Env
 

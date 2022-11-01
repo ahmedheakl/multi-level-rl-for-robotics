@@ -3,13 +3,15 @@ from matplotlib import pyplot as plt
 from math import ceil
 
 
-def fast_lidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs):
-    rings = np.zeros(
-        (scans.shape[0], angle_levels, range_levels, 1), dtype=np.uint8
+def fast_lidar_to_rings(
+    scans, angle_levels, range_levels, range_level_mins, range_level_maxs
+):
+    rings = np.zeros((scans.shape[0], angle_levels, range_levels, 1), dtype=np.uint8)
+    clidar_to_rings(
+        scans, angle_levels, range_levels, range_level_mins, range_level_maxs, rings
     )
-    clidar_to_rings(scans, angle_levels, range_levels,
-                    range_level_mins, range_level_maxs, rings)
     return rings
+
 
 # cdef clidar_to_rings():
 
@@ -92,10 +94,10 @@ def generate_rings(
     )
     range_level_depths = expansion_curve / renormalisation_factor + min_resolution
     range_level_maxs = np.cumsum(range_level_depths) + min_dist
-    range_level_maxs = np.concatenate(
-        [[min_dist], range_level_maxs, [np.inf]]).astype(np.float32)
-    range_level_mins = np.concatenate(
-        [[0.0], range_level_maxs[:-1]]).astype(np.float32)
+    range_level_maxs = np.concatenate([[min_dist], range_level_maxs, [np.inf]]).astype(
+        np.float32
+    )
+    range_level_mins = np.concatenate([[0.0], range_level_maxs[:-1]]).astype(np.float32)
 
     if VISUALIZE:
         th = np.linspace(-7.0 / 8.0 * np.pi, 7.0 / 8.0 * np.pi, angle_levels)
@@ -122,7 +124,9 @@ def generate_rings(
         scans: ndarray (n, N_RAYS)   0-100 [m]
         rings: ndarray (n_scans, angle_levels, range_levels, n_channels)
         """
-        return fast_lidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs)
+        return fast_lidar_to_rings(
+            scans, angle_levels, range_levels, range_level_mins, range_level_maxs
+        )
 
     def old_lidar_to_rings(scans):
         """
@@ -151,8 +155,7 @@ def generate_rings(
             #             rings[:,j,:,CHANNEL] = np.sum(is_hit, axis=1)
             #             rings[:,j,:,CHANNEL] = 1 * np.all(is_unseen, axis=1) + 2 * np.any(is_hit, axis=1)
             rings[:, j, :, CHANNEL] = np.clip(
-                1 * np.any(is_unseen, axis=1) + 2 *
-                np.any(is_hit, axis=1), 0, 2
+                1 * np.any(is_unseen, axis=1) + 2 * np.any(is_hit, axis=1), 0, 2
             )
         return rings
 
@@ -167,7 +170,13 @@ def generate_rings(
         return scans
 
     def visualize_rings(
-        ring, scan=None, angle_min=0, angle_max=2 * np.pi, fig=None, ax=None, plot_regen=False
+        ring,
+        scan=None,
+        angle_min=0,
+        angle_max=2 * np.pi,
+        fig=None,
+        ax=None,
+        plot_regen=False,
     ):
         CHANNEL = 0
         th = np.linspace(angle_min, angle_max, angle_levels)
@@ -181,8 +190,7 @@ def generate_rings(
         ax.grid(False)
         ax.pcolormesh(thth, rr, ring[:, :, CHANNEL].T, cmap=plt.cm.Greys)
         if scan is not None:
-            scan_regen = rings_to_lidar(
-                ring[None, :, :, :], scan.shape[0])[0, :]
+            scan_regen = rings_to_lidar(ring[None, :, :, :], scan.shape[0])[0, :]
             scan_th = np.linspace(angle_min, angle_max, scan.shape[0])
             plt.plot(scan_th, scan, "r")
             if plot_regen:

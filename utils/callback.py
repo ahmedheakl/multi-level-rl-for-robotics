@@ -2,13 +2,15 @@ from typing import Any
 import gym
 from stable_baselines3.common.callbacks import BaseCallback
 
+
 class RobotCallback(BaseCallback):
     """
     A custom callback that derives from ``BaseCallback``.
 
     :param verbose: Verbosity level: 0 for no output, 1 for info messages, 2 for debug messages
     """
-    def __init__(self, max_steps = 1e6, verbose=0):
+
+    def __init__(self, max_steps=1e6, verbose=0):
         super(RobotCallback, self).__init__(verbose)
         self.max_steps = max_steps
         # Those variables will be accessible in the callback
@@ -53,10 +55,12 @@ class RobotCallback(BaseCallback):
 
         :return: (bool) If the callback returns False, training is aborted early.
         """
-        
-        self.done = self.training_env.get_attr('done')[0]
-        if (self.num_timesteps >= self.max_steps) or self.done:  
-            print("Abort_training")
+        thinking_emoji = "\U0001F914"
+        done = self.training_env.get_attr("actually_done")[0]  # type: ignore
+        if (self.num_timesteps >= self.max_steps) or done:
+            print(
+                f"{thinking_emoji} {thinking_emoji} Abort_training {thinking_emoji} {thinking_emoji}"
+            )
             return False
         return True
 
@@ -73,11 +77,10 @@ class RobotCallback(BaseCallback):
         pass
 
 
-
 # from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold, CallbackList, CheckpointCallback
 
 # def callback(save_freq, save_path, eval_env, env, reward_threshold, eval_freq):
-    
+
 #     checkpoint_callback = CheckpointCallback(save_freq, save_path)
 #     # Separate evaluation env
 #     eval_env = eval_env
@@ -90,5 +93,5 @@ class RobotCallback(BaseCallback):
 #                                  render = True)
 
 #     callback = CallbackList([checkpoint_callback, eval_callback])
-    
+
 #     return callback

@@ -1,4 +1,4 @@
-from obstacle.singleobstacle import SingleObstacle
+from obstacle.single_obstacle import SingleObstacle
 import abc
 import random
 
@@ -22,3 +22,8 @@ class Obstacles(object):
             obstacle_obj = SingleObstacle(
                 px=px, py=py, width=width, height=height)
             self.obstacles_list.append(obstacle_obj)
+            
+    def __add__(self, obstacle: SingleObstacle):
+        self.obstacles_list.append(obstacle)
+        return self
+
