@@ -1,0 +1,6 @@
+- maps: .pgm/yaml maps
+- models: pretrained models
+- test: test files using bash
+- envs:
+ * archiveenv: not sure
+ * 
