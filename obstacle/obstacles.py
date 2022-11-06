@@ -16,6 +16,7 @@ class Obstacles(object):
         contours = []
         for obstacle in self.obstacles_list:
             contours.append(obstacle.get_points())
+        contours = np.array(contours)
         n_total_vertices = int(
             np.sum([len(verts) for verts in contours]) + len(contours)
         )
@@ -23,7 +24,7 @@ class Obstacles(object):
         v = 0
         for idx, polygon in enumerate(contours):
             # add first vertex last to close polygon
-            for vertex in polygon + polygon[:1]:
+            for vertex in np.concatenate((polygon, polygon[:1]), axis=0):
                 flat_contours[v, :] = np.array([idx, vertex[0], vertex[1]])
                 v += 1
         return flat_contours, contours

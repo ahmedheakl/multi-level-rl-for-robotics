@@ -56,6 +56,14 @@ def parse_args() -> argparse.Namespace:
         help="path to output results for robot mode",
     )
 
+    parser.add_argument(
+        "--lidar_mode",
+        type=str,
+        choices=["flat", "rings"],
+        default="none",
+        help="mode to process lidar flat=1D, rings=2D",
+    )
+
     args = parser.parse_args()
 
     return args

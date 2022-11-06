@@ -21,10 +21,10 @@ class SingleObstacle(object):
         p4----p3
         """
         return [
-            (self.px, self.py),
-            (self.px + self.width, self.py),
-            (self.px + self.width, self.py + self.height),
             (self.px, self.py + self.height),
+            (self.px + self.width, self.py + self.height),
+            (self.px + self.width, self.py),
+            (self.px, self.py),
         ]
 
     def get_dimension(self) -> Tuple:

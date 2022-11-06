@@ -34,14 +34,13 @@ class RobotEnv(Env):
 
         self.obstacles = Obstacles()
         self.robot = Robot()
-        self.lidarScan = None
-        self.converterCMap2D = CMap2D()
-        self.converterCMap2D.set_resolution(1.0)
         self.viewer = None
 
         self.reward = 0
         self.episode_reward = 0
         self.episode_steps = 0
+        self.total_reward = 0
+        self.total_steps = 0
         self.success_flag = False
 
         self.done = False
@@ -104,12 +103,21 @@ class RobotEnv(Env):
         """
         self.reward = 0
         self.episode_steps += 1
+        self.total_steps += 1
 
         new_action = self._convert_action_to_ActionXY_format(action)
 
+        old_distance_to_goal = point_to_point_distance(
+            (self.robot.px, self.robot.py), (self.robot.gx, self.robot.gy)
+        )
         self.robot.step(new_action, self.delta_t)
+        new_distance_to_goal = point_to_point_distance(
+            (self.robot.px, self.robot.py), (self.robot.gx, self.robot.gy)
+        )
 
-        self.reward = self.__get_reward()
+        self.reward = self.__get_reward() + (
+            old_distance_to_goal - new_distance_to_goal
+        )
 
         self.episode_reward += self.reward
 
@@ -127,18 +135,7 @@ class RobotEnv(Env):
         Returns:
             float: reward
         """
-        distance_to_goal = point_to_point_distance(
-            (self.robot.px, self.robot.py), (self.robot.gx, self.robot.gy)
-        )
-        vx, vy = self.robot.vx, self.robot.vy
-        velolicty = (vx**2 + vy**2) ** 0.5
-        dist_ratio = distance_to_goal / self.maximum_distance
-
-        reward = (1 - dist_ratio**self.alpha) * (
-            1 - max(velolicty / self.velocity_std, self.minimum_distance)
-        ) ** (1 / max(dist_ratio, self.minimum_distance))
-
-        # if collision detected, add -100 and raise done flag
+        reward = 0.0
         if self.detect_collison():
             print("|--collision detected--|")
             reward += self.collision_score
@@ -146,7 +143,6 @@ class RobotEnv(Env):
             self.success_flag = False
             return reward
 
-        # if reached goal, add 1800 and raise sucess/done flags
         if self.robot.reached_destination():
             reward += self.reached_goal_score
             self.done = True
@@ -376,7 +372,7 @@ class RobotEnv(Env):
             win.flip()
             if save_to_file:
                 pyglet.image.get_buffer_manager().get_color_buffer().save(
-                    "/tmp/navreptrainenv{:05}.png".format(self.episode_steps)
+                    "output_data/env_render/{:05}.png".format(self.episode_steps)
                 )
             return self.viewer.isopen
 
@@ -414,6 +410,9 @@ class RobotEnv(Env):
             self.robot.set_goal_position([self.robot_goal_px, self.robot_goal_py])
             if self.is_initial_state:
                 self.results = []
+                self.total_reward = 0
+                self.total_steps = 0
+            self.total_reward += self.episode_reward
             self.success_flag = False
             self.is_initial_state = False
             self.episode_steps = 0

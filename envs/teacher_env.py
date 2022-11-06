@@ -154,7 +154,7 @@ class TeacherEnv(Env):
                     callback=RobotCallback(max_steps=self.max_robot_timesteps, verbose=0))
         
         print("saving model ...")
-        model_save_path = f"saved_models/robot/model_{int(time())}_{self.robot_level}"
+        model_save_path = f"output_data/saved_models/robot/model_{int(time())}_{self.robot_level}"
         self.previous_save_path = model_save_path
         model.save(model_save_path)
         

@@ -54,7 +54,8 @@ class RobotCallback(BaseCallback):
         :return: (bool) If the callback returns False, training is aborted early.
         """
         thinking_emoji = "\U0001F914"
-        if self.num_timesteps >= self.max_steps:
+        total_steps = self.training_env.get_attr(attr_name="total_steps")[0]  # type: ignore
+        if total_steps >= self.max_steps:
             print(
                 f"{thinking_emoji} {thinking_emoji} Abort_training {thinking_emoji} {thinking_emoji}"
             )

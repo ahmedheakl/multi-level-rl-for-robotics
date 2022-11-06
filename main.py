@@ -21,6 +21,10 @@ def main(args: argparse.Namespace) -> None:
 
         if args.render_each > -1:
             robot_config.set("render", "render_each", args.render_each)
+
+        if args.lidar_mode != "none":
+            teacher_config.set("env", "lidar_mode", str(args.lidar_mode))
+
         max_robot_steps = robot_config.getint("timesteps", "max_robot_steps")
         max_episode_timesteps = robot_config.getint("timesteps", "max_episode_steps")
         # fmt: off
