@@ -32,3 +32,6 @@ class SingleObstacle(object):
 
     def overlap(self, obstacle):
         raise NotImplementedError
+
+    def __str__(self) -> str:
+        return f"Obstacle: [{self.px}, {self.py}, {self.width}, {self.height}]"

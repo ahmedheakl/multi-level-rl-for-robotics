@@ -21,6 +21,12 @@ def main(args: argparse.Namespace) -> None:
 
         if args.render_each > -1:
             robot_config.set("render", "render_each", args.render_each)
+        max_robot_steps = robot_config.getint("timesteps", "max_robot_steps")
+        max_episode_timesteps = robot_config.getint("timesteps", "max_episode_steps")
+        # fmt: off
+        teacher_config.add_section("timesteps")
+        teacher_config.set("timesteps", "max_robot_timesteps", str(max_robot_steps))
+        teacher_config.set("timesteps", "max_episode_timesteps", str(max_episode_timesteps))
 
         planner_env = TeacherEnv(
             robot_config=robot_config,

@@ -4,7 +4,6 @@ from utils.action import *
 from obstacle.obstacles import Obstacles
 import numpy as np
 from CMap2D import (
-    flatten_contours,
     render_contours_in_lidar,
     CMap2D,
 )
@@ -43,7 +42,6 @@ class RobotEnv(Env):
         self.reward = 0
         self.episode_reward = 0
         self.episode_steps = 0
-        self.total_steps = 0
         self.success_flag = False
 
         self.done = False
@@ -75,9 +73,8 @@ class RobotEnv(Env):
         self.robot_radius = config.getint("dimensions", "robot_radius")
         self.goal_radius = config.getint("dimensions", "goal_radius")
 
-        self.delta_t = config.getint("time", "delta_t")
-        self.max_episode_steps = config.getint("time", "max_episode_steps")
-        self.max_steps = config.getint("time", "max_steps")
+        self.delta_t = config.getint("timesteps", "delta_t")
+        self.max_episode_steps = config.getint("timesteps", "max_episode_steps")
 
         self.n_angles = config.getint("lidar", "n_angles")
         self.lidar_angle_increment = config.getfloat("lidar", "lidar_angle_increment")
@@ -91,9 +88,10 @@ class RobotEnv(Env):
         self.maximum_distance = config.getfloat("reward", "maximum_distance")
         self.velocity_std = config.getfloat("reward", "velocity_std")
         self.alpha = config.getfloat("reward", "alpha")
-        self.epsilon = config.getfloat("reward", "epsilon")
 
         self.render_each = config.getint("render", "render_each")
+
+        self.epsilon = config.getint("env", "epsilon")
 
     def step(self, action: List):
         """Step into the new state using an action given by the agent model
@@ -106,7 +104,6 @@ class RobotEnv(Env):
         """
         self.reward = 0
         self.episode_steps += 1
-        self.total_steps += 1
 
         new_action = self._convert_action_to_ActionXY_format(action)
 
@@ -180,7 +177,7 @@ class RobotEnv(Env):
         self.robot.set_position([px, py])
         self.robot.set_goal_position([gx, gy])
 
-    def add_boarder_obstacles(self):
+    def add_boarder_obstacles(self) -> None:
         # fmt: off
         self.obstacles = Obstacles([
                 SingleObstacle(-self.epsilon, 0, self.epsilon, self.height),  # left obstacle
@@ -188,18 +185,6 @@ class RobotEnv(Env):
                 SingleObstacle(self.width, 0, self.epsilon, self.height),  # right obstacle
                 SingleObstacle(0, self.height, self.width, self.epsilon),  # top obstacle
         ])
-
-    def generate_obstacles_points(self) -> List:
-        """Get obstacle points as flattened contours
-
-        Returns:
-            list: contours of env obstacles
-        """
-        self.contours = []
-        for obstacle in self.obstacles.obstacles_list:
-            self.contours.append(obstacle.get_points())
-        self.flat_contours = flatten_contours(self.contours)
-        return self.contours
 
     def _make_obs(self):
         """Create agent observation from environment state and LiDAR
@@ -323,7 +308,7 @@ class RobotEnv(Env):
             rt = self.robot.theta
             self.transform.enable()  # applies T_sim_in_viewport to below coords (all in sim frame)
             # Map closed obstacles ---
-            self.obstacle_vertices = self.generate_obstacles_points()
+            self.obstacle_vertices = self.contours
             for poly in self.obstacle_vertices:
                 gl.glBegin(gl.GL_LINE_LOOP)
                 gl.glColor4f(obstcolor[0], obstcolor[1], obstcolor[2], 1)
@@ -331,27 +316,6 @@ class RobotEnv(Env):
                     gl.glVertex3f(vert[0], vert[1], 0)
                 gl.glEnd()
             # TODO: show lidar
-            px = self.robot.px
-            py = self.robot.py
-            angle = self.robot.theta
-            # LIDAR rays
-            scan = self.lidar_scan
-            lidar_angles = self.lidar_angles
-            x_ray_ends = px + scan * np.cos(lidar_angles)
-            y_ray_ends = py + scan * np.sin(lidar_angles)
-            is_in_fov = np.cos(lidar_angles - angle) >= 0.78
-            for ray_idx in range(len(scan)):
-                end_x = x_ray_ends[ray_idx]
-                end_y = y_ray_ends[ray_idx]
-                gl.glBegin(gl.GL_LINE_LOOP)
-                if is_in_fov[ray_idx]:
-                    gl.glColor4f(1.0, 1.0, 0.0, 0.1)
-                else:
-                    lidarcolor = np.array([1.0, 0.0, 0.0])
-                    gl.glColor4f(lidarcolor[0], lidarcolor[1], lidarcolor[2], 0.1)
-                gl.glVertex3f(px, py, 0)
-                gl.glVertex3f(end_x, end_y, 0)
-                gl.glEnd()
             # Agent body
             for n, agent in enumerate([self.robot]):
                 px = agent.px
@@ -448,13 +412,12 @@ class RobotEnv(Env):
             print("resting robot env ...")
             self.robot.set_position([self.robot_initial_px, self.robot_initial_py])
             self.robot.set_goal_position([self.robot_goal_px, self.robot_goal_py])
-            self.add_boarder_obstacles()
-
+            if self.is_initial_state:
+                self.results = []
             self.success_flag = False
-            self.is_initial_state = self.done * (not self.is_initial_state)
-            self.current_episode_timesteps = 0
+            self.is_initial_state = False
+            self.episode_steps = 0
             self.done = False
             self.episode_reward = 0
-            self.generate_obstacles_points()
-
+            self.flat_contours, self.contours = self.obstacles.get_flatten_contours()
         return self._make_obs()

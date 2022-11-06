@@ -1,29 +1,29 @@
 from obstacle.single_obstacle import SingleObstacle
 import abc
 import random
+import numpy as np
 
 
 class Obstacles(object):
     def __init__(self, obstacles_list=[]) -> None:
         self.obstacles_list = obstacles_list
 
-    @abc.abstractmethod
-    def generate_random_obstacles(self, number_of_obstacles=5, max_width=20, max_height=20, map_width=100, map_height=100):
-        current_obstacles = set()
-        for obstacle in range(number_of_obstacles):
-            while (len(current_obstacles) < obstacle+1):
-                cur_width = random.choice(1, max_width)
-                cur_height = random.choice(1, max_height)
-                cur_px = random.choice(map_height - max_height)
-                cur_py = random.choice(map_width - max_width)
-                current_obstacles.add([cur_px, cur_py, cur_width, cur_height])
-        while (len(current_obstacles) > 0):
-            px, py, width, height = current_obstacles.pop()
-            obstacle_obj = SingleObstacle(
-                px=px, py=py, width=width, height=height)
-            self.obstacles_list.append(obstacle_obj)
-            
     def __add__(self, obstacle: SingleObstacle):
         self.obstacles_list.append(obstacle)
         return self
 
+    def get_flatten_contours(self):
+        contours = []
+        for obstacle in self.obstacles_list:
+            contours.append(obstacle.get_points())
+        n_total_vertices = int(
+            np.sum([len(verts) for verts in contours]) + len(contours)
+        )
+        flat_contours = np.zeros((n_total_vertices, 3), dtype=np.float32)
+        v = 0
+        for idx, polygon in enumerate(contours):
+            # add first vertex last to close polygon
+            for vertex in polygon + polygon[:1]:
+                flat_contours[v, :] = np.array([idx, vertex[0], vertex[1]])
+                v += 1
+        return flat_contours, contours

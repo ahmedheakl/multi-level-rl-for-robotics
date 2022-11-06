@@ -1,5 +1,4 @@
-from typing import Any, Tuple
-import numpy as np
+from typing import Tuple
 
 
 def calculate_norm(point):

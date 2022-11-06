@@ -72,6 +72,7 @@ class TeacherEnv(Env):
         self.max_robot_episode_steps = config.getint(
             "timesteps", "max_episode_timesteps"
         )
+        self.max_robot_timesteps = config.getint("timesteps", "max_robot_timesteps")
 
         self.alpha = config.getfloat("reward", "alpha")
         self.terminal_state_reward = config.getint("reward", "terminal_state_reward")
@@ -99,6 +100,11 @@ class TeacherEnv(Env):
             self.robot_avg_reward = total_reward / len(self.robot_env.results)
             self.robot_avg_episode_steps = total_steps / len(self.robot_env.results)
             self.robot_success_rate = num_success / len(self.robot_env.results)
+            print(f"|-----------------------------------------|")
+            print(f"| avg_reward:   {self.robot_avg_reward:0.2f} |")
+            print(f"| avg_ep_steps: {self.robot_avg_episode_steps:0.2f} |")
+            print(f"| success_rate: {self.robot_success_rate:0.2f} |")
+            print(f"|-----------------------------------------|")
 
     def step(self, action) -> Tuple:
         """Take a step in the environment
@@ -110,16 +116,17 @@ class TeacherEnv(Env):
             tuple: observation, reward, done, info
         """
         self._get_robot_metrics()
-        self.robot_env.reset()
 
         action = self._convert_action_to_dict_format(action)
 
         px, py, gx, gy = self._get_robot_position_from_action(action)
 
         self.robot_env.set_robot_position(px=px, py=py, gx=gx, gy=gy)
+        self.robot_env.is_initial_state = True
+        self.robot_env.reset()
         import math
 
-        self.__generate_obstacles_points(
+        self._generate_obstacles_points(
             math.ceil(action["obstacles_count"] * self.max_obstacles_count)
         )
 
@@ -144,7 +151,7 @@ class TeacherEnv(Env):
 
         # fmt: off
         model.learn(total_timesteps=int(1e9), reset_num_timesteps=False,
-                    callback=RobotCallback(verbose=0, max_steps=self.max_robot_episode_steps))
+                    callback=RobotCallback(max_steps=self.max_robot_timesteps, verbose=0))
         
         print("saving model ...")
         model_save_path = f"saved_models/robot/model_{int(time())}_{self.robot_level}"
@@ -249,12 +256,13 @@ class TeacherEnv(Env):
         ) * self.terminal_state_reward
         return reward
 
-    def __generate_obstacles_points(self, obstacles_count: int) -> None:
+    def _generate_obstacles_points(self, obstacles_count: int) -> None:
         """Generate obstacles based on teacher action for next robot session
 
         Args:
             obstacles_count (int): number of obstacles
         """
+        self.robot_env.add_boarder_obstacles()
         for i in range(int(obstacles_count)):
             overlap = True
             new_obstacle = SingleObstacle()
