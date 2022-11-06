@@ -1,5 +1,4 @@
-saved_models/*
-examples/*
-.vscode/*
-__pycache__/*
-meow
+saved_models
+examples
+.vscode
+__pycache__
