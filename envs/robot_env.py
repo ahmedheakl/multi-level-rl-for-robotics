@@ -13,20 +13,15 @@ from utils.calculations import *
 import threading
 from agents.robot import Robot
 from obstacle.single_obstacle import SingleObstacle
-from utils.lidar_rings import LidarRings
-
-from utils.planner_checker import PlannerChecker
-import random
-from PIL import Image
-import argparse
-from utils.colors import *
+from configs.colors import *
+import configparser
 
 
 class RobotEnv(Env):
-    def __init__(self, config: argparse.Namespace, resizable=True) -> None:
+    def __init__(self, config: configparser.RawConfigParser) -> None:
         super(RobotEnv, self).__init__()
         self.action_space_names = ["ActionXY", "ActionRot"]
-        self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
         self.observation_space = spaces.Dict(
             {
                 "lidar": spaces.Box(
@@ -67,7 +62,12 @@ class RobotEnv(Env):
 
         self._configure(config=config)
 
-    def _configure(self, config: argparse.Namespace):
+    def _configure(self, config: configparser.RawConfigParser) -> None:
+        """Configure the environment using input config file
+
+        Args:
+            config (configparser.RawConfigParser): input config object
+        """
         self.config = config
 
         self.width = config.getint("dimensions", "width")
@@ -119,8 +119,7 @@ class RobotEnv(Env):
         self.results.append(
             [self.episode_reward, self.episode_steps, self.success_flag]
         )
-
-        if self.current_episode_timesteps % self.render_each == 0:
+        if self.episode_steps % self.render_each == 0:
             self.render()
 
         return self._make_obs(), self.reward, self.done, {}
@@ -428,16 +427,15 @@ class RobotEnv(Env):
             collision_flag |= self.robot.is_overlapped(obstacle=obstacle)
         return collision_flag
 
-    def _convert_action_to_ActionXY_format(self, action: List):
+    def _convert_action_to_ActionXY_format(self, action: List) -> ActionXY:
         """Convert action array into action object
 
         Args:
-            action (list): list of velocities given by agent model
+            action (List): list of velocities given by agent model
 
         Returns:
-            ActionXY : same action by given in object format
+            ActionXY: same action by given in object format
         """
-        real_angle = action[2] * np.pi  # -1, 1 -> -pi, pi
         return ActionXY(action[0], action[1], 0)
 
     def reset(self):

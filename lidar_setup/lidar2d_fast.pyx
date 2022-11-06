@@ -4,6 +4,10 @@ import numpy as np
 cimport numpy as np
 from libc.math cimport ceil as cceil
 
+
+DTYPE = np.float32
+ctypedef np.float32_t DTYPE_t
+
 def fast_lidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs):
     rings = np.zeros(
         (scans.shape[1], angle_levels, range_levels, 1), dtype=np.uint8

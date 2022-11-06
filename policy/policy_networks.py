@@ -1,29 +1,11 @@
 import gym
 import torch.nn as nn
 import torch as th
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 from stable_baselines3.common.policies import ActorCriticPolicy
 
-class CustomLSTM(BaseFeaturesExtractor):
-    """
-    :param observation_space: (gym.Space)
-    :param features_dim: (int) Number of features extracted.
-        This corresponds to the number of unit for the last layer.
-    """
 
-    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 2):
-        super(CustomLSTM, self).__init__(observation_space, features_dim)
-        self.LSTM = nn.LSTM(input_size = features_dim, hidden_size = 16, num_layers  = 1)
-
-
-    def forward(self, observations: th.Tensor) -> th.Tensor:
-        th.tensor(observations)
-        self.LSTM_output, self.LSTM_hidden = self.LSTM(observations)
-        return self.LSTM_output + self.LSTM_hidden
-
-
-class CustomNetwork(nn.Module):
+class LinearPolicyNetwork(nn.Module):
     """
     Custom network for policy and value function.
     It receives as input the features extracted by the feature extractor.
@@ -39,7 +21,7 @@ class CustomNetwork(nn.Module):
         last_layer_dim_pi: int = 3,
         last_layer_dim_vf: int = 32,
     ):
-        super(CustomNetwork, self).__init__()
+        super(LinearPolicyNetwork, self).__init__()
 
         # IMPORTANT:
         # Save output dimensions, used to create the distributions
@@ -48,17 +30,25 @@ class CustomNetwork(nn.Module):
 
         # Policy network
         self.policy_net = nn.Sequential(
-            nn.Linear(feature_dim, 128), nn.ReLU(),
-            nn.Linear(128, 64), nn.ReLU(),
-            nn.Linear(64, 32), nn.ReLU(),
-            nn.Linear(32, last_layer_dim_pi), nn.ReLU()
+            nn.Linear(feature_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, last_layer_dim_pi),
+            nn.ReLU(),
         )
         # Value network
         self.value_net = nn.Sequential(
-            nn.Linear(feature_dim, 128), nn.ReLU(),
-            nn.Linear(128, 64), nn.ReLU(),
-            nn.Linear(64, 32), nn.ReLU(),
-            nn.Linear(32, last_layer_dim_vf), nn.ReLU()
+            nn.Linear(feature_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, last_layer_dim_vf),
+            nn.ReLU(),
         )
 
     def forward(self, features: th.Tensor) -> Tuple[th.Tensor, th.Tensor]:
@@ -75,11 +65,11 @@ class CustomNetwork(nn.Module):
         return self.value_net(features)
 
 
-class CustomActorCriticPolicy(ActorCriticPolicy):
+class LinearActorCriticPolicy(ActorCriticPolicy):
     def __init__(
         self,
-        observation_space: gym.spaces.Space,
-        action_space: gym.spaces.Space,
+        observation_space: gym.spaces.Space,  # type: ignore
+        action_space: gym.spaces.Space,  # type: ignore
         lr_schedule: Callable[[float], float],
         net_arch: Optional[List[Union[int, Dict[str, List[int]]]]] = None,
         activation_fn: Type[nn.Module] = nn.Tanh,
@@ -87,7 +77,7 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
         **kwargs,
     ):
 
-        super(CustomActorCriticPolicy, self).__init__(
+        super(LinearActorCriticPolicy, self).__init__(
             observation_space,
             action_space,
             lr_schedule,
@@ -101,4 +91,4 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
         self.ortho_init = False
 
     def _build_mlp_extractor(self) -> None:
-        self.mlp_extractor = CustomNetwork(self.features_dim)
+        self.mlp_extractor = LinearPolicyNetwork(self.features_dim)

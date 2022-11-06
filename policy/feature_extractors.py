@@ -1,17 +1,32 @@
-from turtle import done
+import gym
+import torch.nn as nn
+import torch as th
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+from typing import Callable, Dict, List, Optional, Tuple, Type, Union
+from stable_baselines3.common.policies import ActorCriticPolicy
+
+
+class LSTMFeatureExtractor(BaseFeaturesExtractor):
+    """
+    :param observation_space: (gym.Space)
+    :param features_dim: (int) Number of features extracted.
+        This corresponds to the number of unit for the last layer.
+    """
+
+    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 2):  # type: ignore
+        super(LSTMFeatureExtractor, self).__init__(observation_space, features_dim)
+        self.LSTM = nn.LSTM(input_size=features_dim, hidden_size=16, num_layers=1)
+
+    def forward(self, observations: th.Tensor) -> th.Tensor:
+        th.tensor(observations)
+        self.LSTM_output, self.LSTM_hidden = self.LSTM(observations)
+        return self.LSTM_output + self.LSTM_hidden
+
+
 import torch as th
 import gym.spaces
 import torch.nn as nn
-from stable_baselines3.ppo.ppo import PPO
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
-
-GREEN_COLOR = (50, 225, 30)
-BLUE_COLOR = (0, 0, 255)
-BLACK_COLOR = (0, 0, 0)
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 720
-MIN_SCREEN_WIDTH = 200
-MIN_SCREEN_HEIGHT = 200
 
 
 class Robot2DFeatureExtractor(BaseFeaturesExtractor):
@@ -80,7 +95,7 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
         total_concat_size = 0
         # We need to know size of the output of this extractor,
         # so go over all the spaces and compute output feature sizes
-        for key, subspace in observation_space.spaces.items(): # type: ignore
+        for key, subspace in observation_space.spaces.items():  # type: ignore
             if key == "image":
                 # We will just downsample one channel of the image by 4x4 and flatten.
                 # Assume the image is single-channel (subspace.shape[0] == 0)
@@ -101,6 +116,6 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
 
         # self.extractors contain nn.Modules that do all the processing.
         for key, extractor in self.extractors.items():
-            encoded_tensor_list.append(extractor(observations[key])) # type: ignore
+            encoded_tensor_list.append(extractor(observations[key]))  # type: ignore
         # Return a (B, self._features_dim) PyTorch tensor, where B is batch dimension.
         return th.cat(encoded_tensor_list, dim=1)

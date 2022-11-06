@@ -1321,6 +1321,15 @@ typedef npy_double __pyx_t_5numpy_double_t;
  * ctypedef npy_cfloat      cfloat_t
  */
 typedef npy_longdouble __pyx_t_5numpy_longdouble_t;
+
+/* "lidar2d_fast.pyx":9
+ * 
+ * DTYPE = np.float32
+ * ctypedef np.float32_t DTYPE_t             # <<<<<<<<<<<<<<
+ * 
+ * def fast_lidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs):
+ */
+typedef __pyx_t_5numpy_float32_t __pyx_t_12lidar2d_fast_DTYPE_t;
 /* Declarations.proto */
 #if CYTHON_CCOMPLEX
   #ifdef __cplusplus
@@ -2386,6 +2395,7 @@ static const char __pyx_k_step[] = "step";
 static const char __pyx_k_stop[] = "stop";
 static const char __pyx_k_test[] = "__test__";
 static const char __pyx_k_ASCII[] = "ASCII";
+static const char __pyx_k_DTYPE[] = "DTYPE";
 static const char __pyx_k_class[] = "__class__";
 static const char __pyx_k_dtype[] = "dtype";
 static const char __pyx_k_error[] = "error";
@@ -2411,6 +2421,7 @@ static const char __pyx_k_struct[] = "struct";
 static const char __pyx_k_unpack[] = "unpack";
 static const char __pyx_k_update[] = "update";
 static const char __pyx_k_CHANNEL[] = "CHANNEL";
+static const char __pyx_k_float32[] = "float32";
 static const char __pyx_k_fortran[] = "fortran";
 static const char __pyx_k_memview[] = "memview";
 static const char __pyx_k_n_scans[] = "n_scans";
@@ -2490,6 +2501,7 @@ static PyObject *__pyx_kp_s_Can_only_create_a_buffer_that_is;
 static PyObject *__pyx_kp_s_Cannot_assign_to_read_only_memor;
 static PyObject *__pyx_kp_s_Cannot_create_writable_memory_vi;
 static PyObject *__pyx_kp_s_Cannot_index_with_type_s;
+static PyObject *__pyx_n_s_DTYPE;
 static PyObject *__pyx_n_s_Ellipsis;
 static PyObject *__pyx_kp_s_Empty_shape_tuple_for_cython_arr;
 static PyObject *__pyx_n_s_ImportError;
@@ -2530,6 +2542,7 @@ static PyObject *__pyx_n_s_enumerate;
 static PyObject *__pyx_n_s_error;
 static PyObject *__pyx_n_s_fast_lidar_to_rings;
 static PyObject *__pyx_n_s_flags;
+static PyObject *__pyx_n_s_float32;
 static PyObject *__pyx_n_s_format;
 static PyObject *__pyx_n_s_fortran;
 static PyObject *__pyx_n_u_fortran;
@@ -2689,12 +2702,12 @@ static PyObject *__pyx_codeobj__25;
 static PyObject *__pyx_codeobj__32;
 /* Late includes */
 
-/* "lidar2d_fast.pyx":7
- * from libc.math cimport ceil as cceil
+/* "lidar2d_fast.pyx":11
+ * ctypedef np.float32_t DTYPE_t
  * 
  * def fast_lidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs):             # <<<<<<<<<<<<<<
  *     rings = np.zeros(
- *         (scans.shape[0], angle_levels, range_levels, 1), dtype=np.uint8
+ *         (scans.shape[1], angle_levels, range_levels, 1), dtype=np.uint8
  */
 
 /* Python wrapper */
@@ -2741,29 +2754,29 @@ static PyObject *__pyx_pw_12lidar2d_fast_1fast_lidar_to_rings(PyObject *__pyx_se
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_angle_levels)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("fast_lidar_to_rings", 1, 5, 5, 1); __PYX_ERR(0, 7, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("fast_lidar_to_rings", 1, 5, 5, 1); __PYX_ERR(0, 11, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_range_levels)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("fast_lidar_to_rings", 1, 5, 5, 2); __PYX_ERR(0, 7, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("fast_lidar_to_rings", 1, 5, 5, 2); __PYX_ERR(0, 11, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
         if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_range_level_mins)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("fast_lidar_to_rings", 1, 5, 5, 3); __PYX_ERR(0, 7, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("fast_lidar_to_rings", 1, 5, 5, 3); __PYX_ERR(0, 11, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  4:
         if (likely((values[4] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_range_level_maxs)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("fast_lidar_to_rings", 1, 5, 5, 4); __PYX_ERR(0, 7, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("fast_lidar_to_rings", 1, 5, 5, 4); __PYX_ERR(0, 11, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "fast_lidar_to_rings") < 0)) __PYX_ERR(0, 7, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "fast_lidar_to_rings") < 0)) __PYX_ERR(0, 11, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 5) {
       goto __pyx_L5_argtuple_error;
@@ -2782,7 +2795,7 @@ static PyObject *__pyx_pw_12lidar2d_fast_1fast_lidar_to_rings(PyObject *__pyx_se
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("fast_lidar_to_rings", 1, 5, 5, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 7, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("fast_lidar_to_rings", 1, 5, 5, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 11, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("lidar2d_fast.fast_lidar_to_rings", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -2810,32 +2823,32 @@ static PyObject *__pyx_pf_12lidar2d_fast_fast_lidar_to_rings(CYTHON_UNUSED PyObj
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("fast_lidar_to_rings", 0);
 
-  /* "lidar2d_fast.pyx":8
+  /* "lidar2d_fast.pyx":12
  * 
  * def fast_lidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs):
  *     rings = np.zeros(             # <<<<<<<<<<<<<<
- *         (scans.shape[0], angle_levels, range_levels, 1), dtype=np.uint8
+ *         (scans.shape[1], angle_levels, range_levels, 1), dtype=np.uint8
  *     )
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 8, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_zeros); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 8, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_zeros); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "lidar2d_fast.pyx":9
+  /* "lidar2d_fast.pyx":13
  * def fast_lidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs):
  *     rings = np.zeros(
- *         (scans.shape[0], angle_levels, range_levels, 1), dtype=np.uint8             # <<<<<<<<<<<<<<
+ *         (scans.shape[1], angle_levels, range_levels, 1), dtype=np.uint8             # <<<<<<<<<<<<<<
  *     )
  *     clidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs, rings)
  */
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_scans, __pyx_n_s_shape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 9, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_scans, __pyx_n_s_shape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 13, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_3 = __Pyx_GetItemInt(__pyx_t_1, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 9, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_GetItemInt(__pyx_t_1, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 13, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = PyTuple_New(4); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 9, __pyx_L1_error)
+  __pyx_t_1 = PyTuple_New(4); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 13, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_GIVEREF(__pyx_t_3);
   PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_t_3);
@@ -2850,44 +2863,44 @@ static PyObject *__pyx_pf_12lidar2d_fast_fast_lidar_to_rings(CYTHON_UNUSED PyObj
   PyTuple_SET_ITEM(__pyx_t_1, 3, __pyx_int_1);
   __pyx_t_3 = 0;
 
-  /* "lidar2d_fast.pyx":8
+  /* "lidar2d_fast.pyx":12
  * 
  * def fast_lidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs):
  *     rings = np.zeros(             # <<<<<<<<<<<<<<
- *         (scans.shape[0], angle_levels, range_levels, 1), dtype=np.uint8
+ *         (scans.shape[1], angle_levels, range_levels, 1), dtype=np.uint8
  *     )
  */
-  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 8, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_GIVEREF(__pyx_t_1);
   PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "lidar2d_fast.pyx":9
+  /* "lidar2d_fast.pyx":13
  * def fast_lidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs):
  *     rings = np.zeros(
- *         (scans.shape[0], angle_levels, range_levels, 1), dtype=np.uint8             # <<<<<<<<<<<<<<
+ *         (scans.shape[1], angle_levels, range_levels, 1), dtype=np.uint8             # <<<<<<<<<<<<<<
  *     )
  *     clidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs, rings)
  */
-  __pyx_t_1 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 9, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 13, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 9, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 13, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_uint8); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 9, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_uint8); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 13, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_dtype, __pyx_t_5) < 0) __PYX_ERR(0, 9, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_dtype, __pyx_t_5) < 0) __PYX_ERR(0, 13, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
-  /* "lidar2d_fast.pyx":8
+  /* "lidar2d_fast.pyx":12
  * 
  * def fast_lidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs):
  *     rings = np.zeros(             # <<<<<<<<<<<<<<
- *         (scans.shape[0], angle_levels, range_levels, 1), dtype=np.uint8
+ *         (scans.shape[1], angle_levels, range_levels, 1), dtype=np.uint8
  *     )
  */
-  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_3, __pyx_t_1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 8, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_3, __pyx_t_1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
@@ -2895,14 +2908,14 @@ static PyObject *__pyx_pf_12lidar2d_fast_fast_lidar_to_rings(CYTHON_UNUSED PyObj
   __pyx_v_rings = __pyx_t_5;
   __pyx_t_5 = 0;
 
-  /* "lidar2d_fast.pyx":11
- *         (scans.shape[0], angle_levels, range_levels, 1), dtype=np.uint8
+  /* "lidar2d_fast.pyx":15
+ *         (scans.shape[1], angle_levels, range_levels, 1), dtype=np.uint8
  *     )
  *     clidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs, rings)             # <<<<<<<<<<<<<<
  *     return rings
  * 
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_clidar_to_rings); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 11, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_clidar_to_rings); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 15, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_t_3 = NULL;
   __pyx_t_6 = 0;
@@ -2919,7 +2932,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_fast_lidar_to_rings(CYTHON_UNUSED PyObj
   #if CYTHON_FAST_PYCALL
   if (PyFunction_Check(__pyx_t_1)) {
     PyObject *__pyx_temp[7] = {__pyx_t_3, __pyx_v_scans, __pyx_v_angle_levels, __pyx_v_range_levels, __pyx_v_range_level_mins, __pyx_v_range_level_maxs, __pyx_v_rings};
-    __pyx_t_5 = __Pyx_PyFunction_FastCall(__pyx_t_1, __pyx_temp+1-__pyx_t_6, 6+__pyx_t_6); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 11, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyFunction_FastCall(__pyx_t_1, __pyx_temp+1-__pyx_t_6, 6+__pyx_t_6); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 15, __pyx_L1_error)
     __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
     __Pyx_GOTREF(__pyx_t_5);
   } else
@@ -2927,13 +2940,13 @@ static PyObject *__pyx_pf_12lidar2d_fast_fast_lidar_to_rings(CYTHON_UNUSED PyObj
   #if CYTHON_FAST_PYCCALL
   if (__Pyx_PyFastCFunction_Check(__pyx_t_1)) {
     PyObject *__pyx_temp[7] = {__pyx_t_3, __pyx_v_scans, __pyx_v_angle_levels, __pyx_v_range_levels, __pyx_v_range_level_mins, __pyx_v_range_level_maxs, __pyx_v_rings};
-    __pyx_t_5 = __Pyx_PyCFunction_FastCall(__pyx_t_1, __pyx_temp+1-__pyx_t_6, 6+__pyx_t_6); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 11, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyCFunction_FastCall(__pyx_t_1, __pyx_temp+1-__pyx_t_6, 6+__pyx_t_6); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 15, __pyx_L1_error)
     __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
     __Pyx_GOTREF(__pyx_t_5);
   } else
   #endif
   {
-    __pyx_t_2 = PyTuple_New(6+__pyx_t_6); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 11, __pyx_L1_error)
+    __pyx_t_2 = PyTuple_New(6+__pyx_t_6); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 15, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     if (__pyx_t_3) {
       __Pyx_GIVEREF(__pyx_t_3); PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_t_3); __pyx_t_3 = NULL;
@@ -2956,14 +2969,14 @@ static PyObject *__pyx_pf_12lidar2d_fast_fast_lidar_to_rings(CYTHON_UNUSED PyObj
     __Pyx_INCREF(__pyx_v_rings);
     __Pyx_GIVEREF(__pyx_v_rings);
     PyTuple_SET_ITEM(__pyx_t_2, 5+__pyx_t_6, __pyx_v_rings);
-    __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_1, __pyx_t_2, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 11, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_1, __pyx_t_2, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 15, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   }
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
-  /* "lidar2d_fast.pyx":12
+  /* "lidar2d_fast.pyx":16
  *     )
  *     clidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs, rings)
  *     return rings             # <<<<<<<<<<<<<<
@@ -2975,12 +2988,12 @@ static PyObject *__pyx_pf_12lidar2d_fast_fast_lidar_to_rings(CYTHON_UNUSED PyObj
   __pyx_r = __pyx_v_rings;
   goto __pyx_L0;
 
-  /* "lidar2d_fast.pyx":7
- * from libc.math cimport ceil as cceil
+  /* "lidar2d_fast.pyx":11
+ * ctypedef np.float32_t DTYPE_t
  * 
  * def fast_lidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs):             # <<<<<<<<<<<<<<
  *     rings = np.zeros(
- *         (scans.shape[0], angle_levels, range_levels, 1), dtype=np.uint8
+ *         (scans.shape[1], angle_levels, range_levels, 1), dtype=np.uint8
  */
 
   /* function exit code */
@@ -2999,7 +3012,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_fast_lidar_to_rings(CYTHON_UNUSED PyObj
   return __pyx_r;
 }
 
-/* "lidar2d_fast.pyx":15
+/* "lidar2d_fast.pyx":19
  * 
  * # cdef clidar_to_rings():
  * def clidar_to_rings(             # <<<<<<<<<<<<<<
@@ -3055,35 +3068,35 @@ static PyObject *__pyx_pw_12lidar2d_fast_3clidar_to_rings(PyObject *__pyx_self, 
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_angle_levels)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("clidar_to_rings", 1, 6, 6, 1); __PYX_ERR(0, 15, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("clidar_to_rings", 1, 6, 6, 1); __PYX_ERR(0, 19, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_range_levels)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("clidar_to_rings", 1, 6, 6, 2); __PYX_ERR(0, 15, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("clidar_to_rings", 1, 6, 6, 2); __PYX_ERR(0, 19, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
         if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_range_level_mins)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("clidar_to_rings", 1, 6, 6, 3); __PYX_ERR(0, 15, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("clidar_to_rings", 1, 6, 6, 3); __PYX_ERR(0, 19, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  4:
         if (likely((values[4] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_range_level_maxs)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("clidar_to_rings", 1, 6, 6, 4); __PYX_ERR(0, 15, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("clidar_to_rings", 1, 6, 6, 4); __PYX_ERR(0, 19, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  5:
         if (likely((values[5] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_rings)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("clidar_to_rings", 1, 6, 6, 5); __PYX_ERR(0, 15, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("clidar_to_rings", 1, 6, 6, 5); __PYX_ERR(0, 19, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "clidar_to_rings") < 0)) __PYX_ERR(0, 15, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "clidar_to_rings") < 0)) __PYX_ERR(0, 19, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 6) {
       goto __pyx_L5_argtuple_error;
@@ -3095,16 +3108,16 @@ static PyObject *__pyx_pw_12lidar2d_fast_3clidar_to_rings(PyObject *__pyx_self, 
       values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
       values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
     }
-    __pyx_v_scans = __Pyx_PyObject_to_MemoryviewSlice_d_dc_nn___pyx_t_5numpy_float32_t(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_scans.memview)) __PYX_ERR(0, 16, __pyx_L3_error)
-    __pyx_v_angle_levels = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_angle_levels == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 17, __pyx_L3_error)
-    __pyx_v_range_levels = __Pyx_PyInt_As_int(values[2]); if (unlikely((__pyx_v_range_levels == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 18, __pyx_L3_error)
-    __pyx_v_range_level_mins = __Pyx_PyObject_to_MemoryviewSlice_dc_nn___pyx_t_5numpy_float32_t(values[3], PyBUF_WRITABLE); if (unlikely(!__pyx_v_range_level_mins.memview)) __PYX_ERR(0, 19, __pyx_L3_error)
-    __pyx_v_range_level_maxs = __Pyx_PyObject_to_MemoryviewSlice_dc_nn___pyx_t_5numpy_float32_t(values[4], PyBUF_WRITABLE); if (unlikely(!__pyx_v_range_level_maxs.memview)) __PYX_ERR(0, 20, __pyx_L3_error)
-    __pyx_v_rings = __Pyx_PyObject_to_MemoryviewSlice_d_d_d_dc_nn___pyx_t_5numpy_uint8_t(values[5], PyBUF_WRITABLE); if (unlikely(!__pyx_v_rings.memview)) __PYX_ERR(0, 21, __pyx_L3_error)
+    __pyx_v_scans = __Pyx_PyObject_to_MemoryviewSlice_d_dc_nn___pyx_t_5numpy_float32_t(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_scans.memview)) __PYX_ERR(0, 20, __pyx_L3_error)
+    __pyx_v_angle_levels = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_angle_levels == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 21, __pyx_L3_error)
+    __pyx_v_range_levels = __Pyx_PyInt_As_int(values[2]); if (unlikely((__pyx_v_range_levels == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 22, __pyx_L3_error)
+    __pyx_v_range_level_mins = __Pyx_PyObject_to_MemoryviewSlice_dc_nn___pyx_t_5numpy_float32_t(values[3], PyBUF_WRITABLE); if (unlikely(!__pyx_v_range_level_mins.memview)) __PYX_ERR(0, 23, __pyx_L3_error)
+    __pyx_v_range_level_maxs = __Pyx_PyObject_to_MemoryviewSlice_dc_nn___pyx_t_5numpy_float32_t(values[4], PyBUF_WRITABLE); if (unlikely(!__pyx_v_range_level_maxs.memview)) __PYX_ERR(0, 24, __pyx_L3_error)
+    __pyx_v_rings = __Pyx_PyObject_to_MemoryviewSlice_d_d_d_dc_nn___pyx_t_5numpy_uint8_t(values[5], PyBUF_WRITABLE); if (unlikely(!__pyx_v_rings.memview)) __PYX_ERR(0, 25, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("clidar_to_rings", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 15, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("clidar_to_rings", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 19, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("lidar2d_fast.clidar_to_rings", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -3159,7 +3172,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("clidar_to_rings", 0);
 
-  /* "lidar2d_fast.pyx":27
+  /* "lidar2d_fast.pyx":31
  *     rings: ndarray (n_scans, angle_levels, range_levels, n_channels)
  *     """
  *     cdef int n_scans = scans.shape[0]             # <<<<<<<<<<<<<<
@@ -3168,7 +3181,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
  */
   __pyx_v_n_scans = (__pyx_v_scans.shape[0]);
 
-  /* "lidar2d_fast.pyx":28
+  /* "lidar2d_fast.pyx":32
  *     """
  *     cdef int n_scans = scans.shape[0]
  *     cdef int n_rays = scans.shape[1]             # <<<<<<<<<<<<<<
@@ -3177,7 +3190,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
  */
   __pyx_v_n_rays = (__pyx_v_scans.shape[1]);
 
-  /* "lidar2d_fast.pyx":29
+  /* "lidar2d_fast.pyx":33
  *     cdef int n_scans = scans.shape[0]
  *     cdef int n_rays = scans.shape[1]
  *     cdef int CHANNEL = 0             # <<<<<<<<<<<<<<
@@ -3186,7 +3199,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
  */
   __pyx_v_CHANNEL = 0;
 
-  /* "lidar2d_fast.pyx":30
+  /* "lidar2d_fast.pyx":34
  *     cdef int n_rays = scans.shape[1]
  *     cdef int CHANNEL = 0
  *     cdef np.float32_t downsample_factor = n_rays * 1.0 / angle_levels  # >= 1             # <<<<<<<<<<<<<<
@@ -3196,11 +3209,11 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
   __pyx_t_1 = (__pyx_v_n_rays * 1.0);
   if (unlikely(__pyx_v_angle_levels == 0)) {
     PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-    __PYX_ERR(0, 30, __pyx_L1_error)
+    __PYX_ERR(0, 34, __pyx_L1_error)
   }
   __pyx_v_downsample_factor = (__pyx_t_1 / __pyx_v_angle_levels);
 
-  /* "lidar2d_fast.pyx":42
+  /* "lidar2d_fast.pyx":46
  *     cdef np.float32_t dist
  *     cdef int cell_value
  *     for angle_idx in range(angle_levels):             # <<<<<<<<<<<<<<
@@ -3212,7 +3225,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
   for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
     __pyx_v_angle_idx = __pyx_t_4;
 
-    /* "lidar2d_fast.pyx":44
+    /* "lidar2d_fast.pyx":48
  *     for angle_idx in range(angle_levels):
  *         # generate ray indices corresponding to current angle level
  *         ray_idx_start = int(cceil(angle_idx * downsample_factor))             # <<<<<<<<<<<<<<
@@ -3221,7 +3234,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
  */
     __pyx_v_ray_idx_start = ((int)ceil((__pyx_v_angle_idx * __pyx_v_downsample_factor)));
 
-    /* "lidar2d_fast.pyx":45
+    /* "lidar2d_fast.pyx":49
  *         # generate ray indices corresponding to current angle level
  *         ray_idx_start = int(cceil(angle_idx * downsample_factor))
  *         ray_idx_end = int(cceil((angle_idx + 1) * downsample_factor))             # <<<<<<<<<<<<<<
@@ -3230,7 +3243,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
  */
     __pyx_v_ray_idx_end = ((int)ceil(((__pyx_v_angle_idx + 1) * __pyx_v_downsample_factor)));
 
-    /* "lidar2d_fast.pyx":46
+    /* "lidar2d_fast.pyx":50
  *         ray_idx_start = int(cceil(angle_idx * downsample_factor))
  *         ray_idx_end = int(cceil((angle_idx + 1) * downsample_factor))
  *         for range_idx in range(range_levels):             # <<<<<<<<<<<<<<
@@ -3242,7 +3255,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
     for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
       __pyx_v_range_idx = __pyx_t_7;
 
-      /* "lidar2d_fast.pyx":47
+      /* "lidar2d_fast.pyx":51
  *         ray_idx_end = int(cceil((angle_idx + 1) * downsample_factor))
  *         for range_idx in range(range_levels):
  *             r_min = range_level_mins[range_idx]             # <<<<<<<<<<<<<<
@@ -3257,11 +3270,11 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
       } else if (unlikely(__pyx_t_8 >= __pyx_v_range_level_mins.shape[0])) __pyx_t_9 = 0;
       if (unlikely(__pyx_t_9 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_9);
-        __PYX_ERR(0, 47, __pyx_L1_error)
+        __PYX_ERR(0, 51, __pyx_L1_error)
       }
       __pyx_v_r_min = (*((__pyx_t_5numpy_float32_t *) ( /* dim=0 */ ((char *) (((__pyx_t_5numpy_float32_t *) __pyx_v_range_level_mins.data) + __pyx_t_8)) )));
 
-      /* "lidar2d_fast.pyx":48
+      /* "lidar2d_fast.pyx":52
  *         for range_idx in range(range_levels):
  *             r_min = range_level_mins[range_idx]
  *             r_max = range_level_maxs[range_idx]             # <<<<<<<<<<<<<<
@@ -3276,11 +3289,11 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
       } else if (unlikely(__pyx_t_8 >= __pyx_v_range_level_maxs.shape[0])) __pyx_t_9 = 0;
       if (unlikely(__pyx_t_9 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_9);
-        __PYX_ERR(0, 48, __pyx_L1_error)
+        __PYX_ERR(0, 52, __pyx_L1_error)
       }
       __pyx_v_r_max = (*((__pyx_t_5numpy_float32_t *) ( /* dim=0 */ ((char *) (((__pyx_t_5numpy_float32_t *) __pyx_v_range_level_maxs.data) + __pyx_t_8)) )));
 
-      /* "lidar2d_fast.pyx":49
+      /* "lidar2d_fast.pyx":53
  *             r_min = range_level_mins[range_idx]
  *             r_max = range_level_maxs[range_idx]
  *             for scan_idx in range(n_scans):             # <<<<<<<<<<<<<<
@@ -3292,7 +3305,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
       for (__pyx_t_11 = 0; __pyx_t_11 < __pyx_t_10; __pyx_t_11+=1) {
         __pyx_v_scan_idx = __pyx_t_11;
 
-        /* "lidar2d_fast.pyx":51
+        /* "lidar2d_fast.pyx":55
  *             for scan_idx in range(n_scans):
  *                 # initialize value of cell at (angle_idx, range_idx)
  *                 cell_value = 0             # <<<<<<<<<<<<<<
@@ -3301,7 +3314,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
  */
         __pyx_v_cell_value = 0;
 
-        /* "lidar2d_fast.pyx":53
+        /* "lidar2d_fast.pyx":57
  *                 cell_value = 0
  *                 # check if any relevant rays hit cell or fall short
  *                 for ray_idx in range(ray_idx_start, ray_idx_end):             # <<<<<<<<<<<<<<
@@ -3313,7 +3326,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
         for (__pyx_t_14 = __pyx_v_ray_idx_start; __pyx_t_14 < __pyx_t_13; __pyx_t_14+=1) {
           __pyx_v_ray_idx = __pyx_t_14;
 
-          /* "lidar2d_fast.pyx":54
+          /* "lidar2d_fast.pyx":58
  *                 # check if any relevant rays hit cell or fall short
  *                 for ray_idx in range(ray_idx_start, ray_idx_end):
  *                     dist = scans[scan_idx, ray_idx]             # <<<<<<<<<<<<<<
@@ -3333,11 +3346,11 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
           } else if (unlikely(__pyx_t_15 >= __pyx_v_scans.shape[1])) __pyx_t_16 = 1;
           if (unlikely(__pyx_t_16 != -1)) {
             __Pyx_RaiseBufferIndexError(__pyx_t_16);
-            __PYX_ERR(0, 54, __pyx_L1_error)
+            __PYX_ERR(0, 58, __pyx_L1_error)
           }
           __pyx_v_dist = (*((__pyx_t_5numpy_float32_t *) ( /* dim=1 */ ((char *) (((__pyx_t_5numpy_float32_t *) ( /* dim=0 */ (__pyx_v_scans.data + __pyx_t_8 * __pyx_v_scans.strides[0]) )) + __pyx_t_15)) )));
 
-          /* "lidar2d_fast.pyx":55
+          /* "lidar2d_fast.pyx":59
  *                 for ray_idx in range(ray_idx_start, ray_idx_end):
  *                     dist = scans[scan_idx, ray_idx]
  *                     if dist == 0:             # <<<<<<<<<<<<<<
@@ -3347,7 +3360,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
           __pyx_t_17 = ((__pyx_v_dist == 0.0) != 0);
           if (__pyx_t_17) {
 
-            /* "lidar2d_fast.pyx":56
+            /* "lidar2d_fast.pyx":60
  *                     dist = scans[scan_idx, ray_idx]
  *                     if dist == 0:
  *                         continue             # <<<<<<<<<<<<<<
@@ -3356,7 +3369,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
  */
             goto __pyx_L9_continue;
 
-            /* "lidar2d_fast.pyx":55
+            /* "lidar2d_fast.pyx":59
  *                 for ray_idx in range(ray_idx_start, ray_idx_end):
  *                     dist = scans[scan_idx, ray_idx]
  *                     if dist == 0:             # <<<<<<<<<<<<<<
@@ -3365,7 +3378,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
  */
           }
 
-          /* "lidar2d_fast.pyx":58
+          /* "lidar2d_fast.pyx":62
  *                         continue
  *                     # if a ray hits the cell the value is 2
  *                     if r_min <= dist and dist < r_max:             # <<<<<<<<<<<<<<
@@ -3383,7 +3396,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
           __pyx_L13_bool_binop_done:;
           if (__pyx_t_17) {
 
-            /* "lidar2d_fast.pyx":59
+            /* "lidar2d_fast.pyx":63
  *                     # if a ray hits the cell the value is 2
  *                     if r_min <= dist and dist < r_max:
  *                         cell_value = 2             # <<<<<<<<<<<<<<
@@ -3392,7 +3405,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
  */
             __pyx_v_cell_value = 2;
 
-            /* "lidar2d_fast.pyx":60
+            /* "lidar2d_fast.pyx":64
  *                     if r_min <= dist and dist < r_max:
  *                         cell_value = 2
  *                         break             # <<<<<<<<<<<<<<
@@ -3401,7 +3414,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
  */
             goto __pyx_L10_break;
 
-            /* "lidar2d_fast.pyx":58
+            /* "lidar2d_fast.pyx":62
  *                         continue
  *                     # if a ray hits the cell the value is 2
  *                     if r_min <= dist and dist < r_max:             # <<<<<<<<<<<<<<
@@ -3410,7 +3423,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
  */
           }
 
-          /* "lidar2d_fast.pyx":62
+          /* "lidar2d_fast.pyx":66
  *                         break
  *                     # if a ray falls short of the cell the value is at least 1
  *                     if dist < r_min:             # <<<<<<<<<<<<<<
@@ -3420,7 +3433,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
           __pyx_t_17 = ((__pyx_v_dist < __pyx_v_r_min) != 0);
           if (__pyx_t_17) {
 
-            /* "lidar2d_fast.pyx":63
+            /* "lidar2d_fast.pyx":67
  *                     # if a ray falls short of the cell the value is at least 1
  *                     if dist < r_min:
  *                         cell_value = 1             # <<<<<<<<<<<<<<
@@ -3429,7 +3442,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
  */
             __pyx_v_cell_value = 1;
 
-            /* "lidar2d_fast.pyx":64
+            /* "lidar2d_fast.pyx":68
  *                     if dist < r_min:
  *                         cell_value = 1
  *                         continue             # <<<<<<<<<<<<<<
@@ -3437,7 +3450,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
  */
             goto __pyx_L9_continue;
 
-            /* "lidar2d_fast.pyx":62
+            /* "lidar2d_fast.pyx":66
  *                         break
  *                     # if a ray falls short of the cell the value is at least 1
  *                     if dist < r_min:             # <<<<<<<<<<<<<<
@@ -3449,7 +3462,7 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
         }
         __pyx_L10_break:;
 
-        /* "lidar2d_fast.pyx":65
+        /* "lidar2d_fast.pyx":69
  *                         cell_value = 1
  *                         continue
  *                 rings[scan_idx, angle_idx, range_idx, CHANNEL] = cell_value             # <<<<<<<<<<<<<<
@@ -3477,14 +3490,14 @@ static PyObject *__pyx_pf_12lidar2d_fast_2clidar_to_rings(CYTHON_UNUSED PyObject
         } else if (unlikely(__pyx_t_20 >= __pyx_v_rings.shape[3])) __pyx_t_12 = 3;
         if (unlikely(__pyx_t_12 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_12);
-          __PYX_ERR(0, 65, __pyx_L1_error)
+          __PYX_ERR(0, 69, __pyx_L1_error)
         }
         *((__pyx_t_5numpy_uint8_t *) ( /* dim=3 */ ((char *) (((__pyx_t_5numpy_uint8_t *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_rings.data + __pyx_t_15 * __pyx_v_rings.strides[0]) ) + __pyx_t_8 * __pyx_v_rings.strides[1]) ) + __pyx_t_19 * __pyx_v_rings.strides[2]) )) + __pyx_t_20)) )) = __pyx_v_cell_value;
       }
     }
   }
 
-  /* "lidar2d_fast.pyx":15
+  /* "lidar2d_fast.pyx":19
  * 
  * # cdef clidar_to_rings():
  * def clidar_to_rings(             # <<<<<<<<<<<<<<
@@ -18346,6 +18359,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_s_Cannot_assign_to_read_only_memor, __pyx_k_Cannot_assign_to_read_only_memor, sizeof(__pyx_k_Cannot_assign_to_read_only_memor), 0, 0, 1, 0},
   {&__pyx_kp_s_Cannot_create_writable_memory_vi, __pyx_k_Cannot_create_writable_memory_vi, sizeof(__pyx_k_Cannot_create_writable_memory_vi), 0, 0, 1, 0},
   {&__pyx_kp_s_Cannot_index_with_type_s, __pyx_k_Cannot_index_with_type_s, sizeof(__pyx_k_Cannot_index_with_type_s), 0, 0, 1, 0},
+  {&__pyx_n_s_DTYPE, __pyx_k_DTYPE, sizeof(__pyx_k_DTYPE), 0, 0, 1, 1},
   {&__pyx_n_s_Ellipsis, __pyx_k_Ellipsis, sizeof(__pyx_k_Ellipsis), 0, 0, 1, 1},
   {&__pyx_kp_s_Empty_shape_tuple_for_cython_arr, __pyx_k_Empty_shape_tuple_for_cython_arr, sizeof(__pyx_k_Empty_shape_tuple_for_cython_arr), 0, 0, 1, 0},
   {&__pyx_n_s_ImportError, __pyx_k_ImportError, sizeof(__pyx_k_ImportError), 0, 0, 1, 1},
@@ -18386,6 +18400,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_error, __pyx_k_error, sizeof(__pyx_k_error), 0, 0, 1, 1},
   {&__pyx_n_s_fast_lidar_to_rings, __pyx_k_fast_lidar_to_rings, sizeof(__pyx_k_fast_lidar_to_rings), 0, 0, 1, 1},
   {&__pyx_n_s_flags, __pyx_k_flags, sizeof(__pyx_k_flags), 0, 0, 1, 1},
+  {&__pyx_n_s_float32, __pyx_k_float32, sizeof(__pyx_k_float32), 0, 0, 1, 1},
   {&__pyx_n_s_format, __pyx_k_format, sizeof(__pyx_k_format), 0, 0, 1, 1},
   {&__pyx_n_s_fortran, __pyx_k_fortran, sizeof(__pyx_k_fortran), 0, 0, 1, 1},
   {&__pyx_n_u_fortran, __pyx_k_fortran, sizeof(__pyx_k_fortran), 0, 1, 0, 1},
@@ -18460,7 +18475,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {0, 0, 0, 0, 0, 0, 0}
 };
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 42, __pyx_L1_error)
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 46, __pyx_L1_error)
   __pyx_builtin_ImportError = __Pyx_GetBuiltinName(__pyx_n_s_ImportError); if (!__pyx_builtin_ImportError) __PYX_ERR(1, 944, __pyx_L1_error)
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(2, 134, __pyx_L1_error)
   __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) __PYX_ERR(2, 149, __pyx_L1_error)
@@ -18695,29 +18710,29 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__21);
   __Pyx_GIVEREF(__pyx_tuple__21);
 
-  /* "lidar2d_fast.pyx":7
- * from libc.math cimport ceil as cceil
+  /* "lidar2d_fast.pyx":11
+ * ctypedef np.float32_t DTYPE_t
  * 
  * def fast_lidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs):             # <<<<<<<<<<<<<<
  *     rings = np.zeros(
- *         (scans.shape[0], angle_levels, range_levels, 1), dtype=np.uint8
+ *         (scans.shape[1], angle_levels, range_levels, 1), dtype=np.uint8
  */
-  __pyx_tuple__22 = PyTuple_Pack(6, __pyx_n_s_scans, __pyx_n_s_angle_levels, __pyx_n_s_range_levels, __pyx_n_s_range_level_mins, __pyx_n_s_range_level_maxs, __pyx_n_s_rings); if (unlikely(!__pyx_tuple__22)) __PYX_ERR(0, 7, __pyx_L1_error)
+  __pyx_tuple__22 = PyTuple_Pack(6, __pyx_n_s_scans, __pyx_n_s_angle_levels, __pyx_n_s_range_levels, __pyx_n_s_range_level_mins, __pyx_n_s_range_level_maxs, __pyx_n_s_rings); if (unlikely(!__pyx_tuple__22)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__22);
   __Pyx_GIVEREF(__pyx_tuple__22);
-  __pyx_codeobj__23 = (PyObject*)__Pyx_PyCode_New(5, 0, 6, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__22, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_lidar_setup_lidar2d_fast_pyx, __pyx_n_s_fast_lidar_to_rings, 7, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__23)) __PYX_ERR(0, 7, __pyx_L1_error)
+  __pyx_codeobj__23 = (PyObject*)__Pyx_PyCode_New(5, 0, 6, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__22, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_lidar_setup_lidar2d_fast_pyx, __pyx_n_s_fast_lidar_to_rings, 11, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__23)) __PYX_ERR(0, 11, __pyx_L1_error)
 
-  /* "lidar2d_fast.pyx":15
+  /* "lidar2d_fast.pyx":19
  * 
  * # cdef clidar_to_rings():
  * def clidar_to_rings(             # <<<<<<<<<<<<<<
  *     np.float32_t[:, ::1] scans,
  *     int angle_levels,
  */
-  __pyx_tuple__24 = PyTuple_Pack(20, __pyx_n_s_scans, __pyx_n_s_angle_levels, __pyx_n_s_range_levels, __pyx_n_s_range_level_mins, __pyx_n_s_range_level_maxs, __pyx_n_s_rings, __pyx_n_s_n_scans, __pyx_n_s_n_rays, __pyx_n_s_CHANNEL, __pyx_n_s_downsample_factor, __pyx_n_s_ray_idx_start, __pyx_n_s_ray_idx_end, __pyx_n_s_angle_idx, __pyx_n_s_range_idx, __pyx_n_s_scan_idx, __pyx_n_s_ray_idx, __pyx_n_s_r_min, __pyx_n_s_r_max, __pyx_n_s_dist, __pyx_n_s_cell_value); if (unlikely(!__pyx_tuple__24)) __PYX_ERR(0, 15, __pyx_L1_error)
+  __pyx_tuple__24 = PyTuple_Pack(20, __pyx_n_s_scans, __pyx_n_s_angle_levels, __pyx_n_s_range_levels, __pyx_n_s_range_level_mins, __pyx_n_s_range_level_maxs, __pyx_n_s_rings, __pyx_n_s_n_scans, __pyx_n_s_n_rays, __pyx_n_s_CHANNEL, __pyx_n_s_downsample_factor, __pyx_n_s_ray_idx_start, __pyx_n_s_ray_idx_end, __pyx_n_s_angle_idx, __pyx_n_s_range_idx, __pyx_n_s_scan_idx, __pyx_n_s_ray_idx, __pyx_n_s_r_min, __pyx_n_s_r_max, __pyx_n_s_dist, __pyx_n_s_cell_value); if (unlikely(!__pyx_tuple__24)) __PYX_ERR(0, 19, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__24);
   __Pyx_GIVEREF(__pyx_tuple__24);
-  __pyx_codeobj__25 = (PyObject*)__Pyx_PyCode_New(6, 0, 20, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__24, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_lidar_setup_lidar2d_fast_pyx, __pyx_n_s_clidar_to_rings, 15, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__25)) __PYX_ERR(0, 15, __pyx_L1_error)
+  __pyx_codeobj__25 = (PyObject*)__Pyx_PyCode_New(6, 0, 20, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__24, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_lidar_setup_lidar2d_fast_pyx, __pyx_n_s_clidar_to_rings, 19, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__25)) __PYX_ERR(0, 19, __pyx_L1_error)
 
   /* "View.MemoryView":287
  *         return self.name
@@ -19076,7 +19091,8 @@ static CYTHON_SMALL_CODE int __pyx_pymod_exec_lidar2d_fast(PyObject *__pyx_pyini
 #endif
 {
   PyObject *__pyx_t_1 = NULL;
-  static PyThread_type_lock __pyx_t_2[8];
+  PyObject *__pyx_t_2 = NULL;
+  static PyThread_type_lock __pyx_t_3[8];
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -19194,39 +19210,54 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_1) < 0) __PYX_ERR(0, 3, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "lidar2d_fast.pyx":7
- * from libc.math cimport ceil as cceil
+  /* "lidar2d_fast.pyx":8
+ * 
+ * 
+ * DTYPE = np.float32             # <<<<<<<<<<<<<<
+ * ctypedef np.float32_t DTYPE_t
+ * 
+ */
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 8, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_float32); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 8, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_DTYPE, __pyx_t_2) < 0) __PYX_ERR(0, 8, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+
+  /* "lidar2d_fast.pyx":11
+ * ctypedef np.float32_t DTYPE_t
  * 
  * def fast_lidar_to_rings(scans, angle_levels, range_levels, range_level_mins, range_level_maxs):             # <<<<<<<<<<<<<<
  *     rings = np.zeros(
- *         (scans.shape[0], angle_levels, range_levels, 1), dtype=np.uint8
+ *         (scans.shape[1], angle_levels, range_levels, 1), dtype=np.uint8
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_12lidar2d_fast_1fast_lidar_to_rings, NULL, __pyx_n_s_lidar2d_fast); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 7, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_fast_lidar_to_rings, __pyx_t_1) < 0) __PYX_ERR(0, 7, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_12lidar2d_fast_1fast_lidar_to_rings, NULL, __pyx_n_s_lidar2d_fast); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 11, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_fast_lidar_to_rings, __pyx_t_2) < 0) __PYX_ERR(0, 11, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "lidar2d_fast.pyx":15
+  /* "lidar2d_fast.pyx":19
  * 
  * # cdef clidar_to_rings():
  * def clidar_to_rings(             # <<<<<<<<<<<<<<
  *     np.float32_t[:, ::1] scans,
  *     int angle_levels,
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_12lidar2d_fast_3clidar_to_rings, NULL, __pyx_n_s_lidar2d_fast); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 15, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_clidar_to_rings, __pyx_t_1) < 0) __PYX_ERR(0, 15, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_12lidar2d_fast_3clidar_to_rings, NULL, __pyx_n_s_lidar2d_fast); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 19, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_clidar_to_rings, __pyx_t_2) < 0) __PYX_ERR(0, 19, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "lidar2d_fast.pyx":1
  * # distutils: language=c++             # <<<<<<<<<<<<<<
  * 
  * import numpy as np
  */
-  __pyx_t_1 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 1, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_test, __pyx_t_1) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_2 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 1, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_test, __pyx_t_2) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "View.MemoryView":210
  *         info.obj = self
@@ -19235,10 +19266,10 @@ if (!__Pyx_RefNanny) {
  * 
  *     def __dealloc__(array self):
  */
-  __pyx_t_1 = __pyx_capsule_create(((void *)(&__pyx_array_getbuffer)), ((char *)"getbuffer(obj, view, flags)")); if (unlikely(!__pyx_t_1)) __PYX_ERR(2, 210, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem((PyObject *)__pyx_array_type->tp_dict, __pyx_n_s_pyx_getbuffer, __pyx_t_1) < 0) __PYX_ERR(2, 210, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_2 = __pyx_capsule_create(((void *)(&__pyx_array_getbuffer)), ((char *)"getbuffer(obj, view, flags)")); if (unlikely(!__pyx_t_2)) __PYX_ERR(2, 210, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  if (PyDict_SetItem((PyObject *)__pyx_array_type->tp_dict, __pyx_n_s_pyx_getbuffer, __pyx_t_2) < 0) __PYX_ERR(2, 210, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_array_type);
 
   /* "View.MemoryView":287
@@ -19248,12 +19279,12 @@ if (!__Pyx_RefNanny) {
  * cdef strided = Enum("<strided and direct>") # default
  * cdef indirect = Enum("<strided and indirect>")
  */
-  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__26, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(2, 287, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__26, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(2, 287, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
   __Pyx_XGOTREF(generic);
-  __Pyx_DECREF_SET(generic, __pyx_t_1);
-  __Pyx_GIVEREF(__pyx_t_1);
-  __pyx_t_1 = 0;
+  __Pyx_DECREF_SET(generic, __pyx_t_2);
+  __Pyx_GIVEREF(__pyx_t_2);
+  __pyx_t_2 = 0;
 
   /* "View.MemoryView":288
  * 
@@ -19262,12 +19293,12 @@ if (!__Pyx_RefNanny) {
  * cdef indirect = Enum("<strided and indirect>")
  * 
  */
-  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__27, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(2, 288, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__27, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(2, 288, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
   __Pyx_XGOTREF(strided);
-  __Pyx_DECREF_SET(strided, __pyx_t_1);
-  __Pyx_GIVEREF(__pyx_t_1);
-  __pyx_t_1 = 0;
+  __Pyx_DECREF_SET(strided, __pyx_t_2);
+  __Pyx_GIVEREF(__pyx_t_2);
+  __pyx_t_2 = 0;
 
   /* "View.MemoryView":289
  * cdef generic = Enum("<strided and direct or indirect>")
@@ -19276,12 +19307,12 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  */
-  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__28, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(2, 289, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__28, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(2, 289, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
   __Pyx_XGOTREF(indirect);
-  __Pyx_DECREF_SET(indirect, __pyx_t_1);
-  __Pyx_GIVEREF(__pyx_t_1);
-  __pyx_t_1 = 0;
+  __Pyx_DECREF_SET(indirect, __pyx_t_2);
+  __Pyx_GIVEREF(__pyx_t_2);
+  __pyx_t_2 = 0;
 
   /* "View.MemoryView":292
  * 
@@ -19290,12 +19321,12 @@ if (!__Pyx_RefNanny) {
  * cdef indirect_contiguous = Enum("<contiguous and indirect>")
  * 
  */
-  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__29, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(2, 292, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__29, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(2, 292, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
   __Pyx_XGOTREF(contiguous);
-  __Pyx_DECREF_SET(contiguous, __pyx_t_1);
-  __Pyx_GIVEREF(__pyx_t_1);
-  __pyx_t_1 = 0;
+  __Pyx_DECREF_SET(contiguous, __pyx_t_2);
+  __Pyx_GIVEREF(__pyx_t_2);
+  __pyx_t_2 = 0;
 
   /* "View.MemoryView":293
  * 
@@ -19304,12 +19335,12 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  */
-  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__30, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(2, 293, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__30, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(2, 293, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
   __Pyx_XGOTREF(indirect_contiguous);
-  __Pyx_DECREF_SET(indirect_contiguous, __pyx_t_1);
-  __Pyx_GIVEREF(__pyx_t_1);
-  __pyx_t_1 = 0;
+  __Pyx_DECREF_SET(indirect_contiguous, __pyx_t_2);
+  __Pyx_GIVEREF(__pyx_t_2);
+  __pyx_t_2 = 0;
 
   /* "View.MemoryView":317
  * 
@@ -19327,15 +19358,15 @@ if (!__Pyx_RefNanny) {
  *     PyThread_allocate_lock(),
  *     PyThread_allocate_lock(),
  */
-  __pyx_t_2[0] = PyThread_allocate_lock();
-  __pyx_t_2[1] = PyThread_allocate_lock();
-  __pyx_t_2[2] = PyThread_allocate_lock();
-  __pyx_t_2[3] = PyThread_allocate_lock();
-  __pyx_t_2[4] = PyThread_allocate_lock();
-  __pyx_t_2[5] = PyThread_allocate_lock();
-  __pyx_t_2[6] = PyThread_allocate_lock();
-  __pyx_t_2[7] = PyThread_allocate_lock();
-  memcpy(&(__pyx_memoryview_thread_locks[0]), __pyx_t_2, sizeof(__pyx_memoryview_thread_locks[0]) * (8));
+  __pyx_t_3[0] = PyThread_allocate_lock();
+  __pyx_t_3[1] = PyThread_allocate_lock();
+  __pyx_t_3[2] = PyThread_allocate_lock();
+  __pyx_t_3[3] = PyThread_allocate_lock();
+  __pyx_t_3[4] = PyThread_allocate_lock();
+  __pyx_t_3[5] = PyThread_allocate_lock();
+  __pyx_t_3[6] = PyThread_allocate_lock();
+  __pyx_t_3[7] = PyThread_allocate_lock();
+  memcpy(&(__pyx_memoryview_thread_locks[0]), __pyx_t_3, sizeof(__pyx_memoryview_thread_locks[0]) * (8));
 
   /* "View.MemoryView":551
  *         info.obj = self
@@ -19344,10 +19375,10 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  */
-  __pyx_t_1 = __pyx_capsule_create(((void *)(&__pyx_memoryview_getbuffer)), ((char *)"getbuffer(obj, view, flags)")); if (unlikely(!__pyx_t_1)) __PYX_ERR(2, 551, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem((PyObject *)__pyx_memoryview_type->tp_dict, __pyx_n_s_pyx_getbuffer, __pyx_t_1) < 0) __PYX_ERR(2, 551, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_2 = __pyx_capsule_create(((void *)(&__pyx_memoryview_getbuffer)), ((char *)"getbuffer(obj, view, flags)")); if (unlikely(!__pyx_t_2)) __PYX_ERR(2, 551, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  if (PyDict_SetItem((PyObject *)__pyx_memoryview_type->tp_dict, __pyx_n_s_pyx_getbuffer, __pyx_t_2) < 0) __PYX_ERR(2, 551, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_memoryview_type);
 
   /* "View.MemoryView":997
@@ -19357,10 +19388,10 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  */
-  __pyx_t_1 = __pyx_capsule_create(((void *)(&__pyx_memoryview_getbuffer)), ((char *)"getbuffer(obj, view, flags)")); if (unlikely(!__pyx_t_1)) __PYX_ERR(2, 997, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem((PyObject *)__pyx_memoryviewslice_type->tp_dict, __pyx_n_s_pyx_getbuffer, __pyx_t_1) < 0) __PYX_ERR(2, 997, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_2 = __pyx_capsule_create(((void *)(&__pyx_memoryview_getbuffer)), ((char *)"getbuffer(obj, view, flags)")); if (unlikely(!__pyx_t_2)) __PYX_ERR(2, 997, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  if (PyDict_SetItem((PyObject *)__pyx_memoryviewslice_type->tp_dict, __pyx_n_s_pyx_getbuffer, __pyx_t_2) < 0) __PYX_ERR(2, 997, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   PyType_Modified(__pyx_memoryviewslice_type);
 
   /* "(tree fragment)":1
@@ -19368,10 +19399,10 @@ if (!__Pyx_RefNanny) {
  *     cdef object __pyx_PickleError
  *     cdef object __pyx_result
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_15View_dot_MemoryView_1__pyx_unpickle_Enum, NULL, __pyx_n_s_View_MemoryView); if (unlikely(!__pyx_t_1)) __PYX_ERR(2, 1, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_pyx_unpickle_Enum, __pyx_t_1) < 0) __PYX_ERR(2, 1, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_15View_dot_MemoryView_1__pyx_unpickle_Enum, NULL, __pyx_n_s_View_MemoryView); if (unlikely(!__pyx_t_2)) __PYX_ERR(2, 1, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_pyx_unpickle_Enum, __pyx_t_2) < 0) __PYX_ERR(2, 1, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "(tree fragment)":11
  *         __pyx_unpickle_Enum__set_state(<Enum> __pyx_result, __pyx_state)
@@ -19386,6 +19417,7 @@ if (!__Pyx_RefNanny) {
   goto __pyx_L0;
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
   if (__pyx_m) {
     if (__pyx_d) {
       __Pyx_AddTraceback("init lidar2d_fast", __pyx_clineno, __pyx_lineno, __pyx_filename);

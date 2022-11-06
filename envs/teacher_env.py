@@ -1,50 +1,42 @@
-from typing import List, Tuple, Any
+from typing import List, Tuple
 from envs.robot_env import RobotEnv
 from gym import Env, spaces
-from obstacle.obstacles import Obstacles
 from obstacle.single_obstacle import SingleObstacle
 import numpy as np
 from utils.calculations import *
-from policy.robot_feature_extractor import Robot1DFeatureExtractor
+from policy.feature_extractors import Robot1DFeatureExtractor
 from stable_baselines3.ppo.ppo import PPO
 from random import randint, random, uniform
-from planner.planner import CustomActorCriticPolicy
-from planner.planner import CustomLSTM
 from utils.planner_checker import PlannerChecker
 from callbacks.robot_callback import RobotCallback
-from agents.robot import Robot
 from time import time
+import configparser
+from envs.env_encoders import RobotEnv1DPlayer, RobotEnv2DPlayer
 
-# TODO: scale the number_of_obstacles from [0, 1] to [0, max_allowed_obstacles]
 # TODO: scale the observation space to [0,1]
 
 
 class TeacherEnv(Env):
-    ALPHA = 0.4
-    MAX_REWARD = 3600
-    TERMINAL_STATE_REWARD = 100
-    MAX_TIMESTEPS = 100
-    ADVANCE_PROBABILITY = 0.9
-    BASE_DIFFICULTY = 590
-    MAX_STEPS_FOR_ROBOT_EPISODE = 1e5
-    MAX_OBSTACLES_COUNT = 10
+    def __init__(
+        self,
+        robot_config: configparser.RawConfigParser,
+        teacher_config: configparser.RawConfigParser,
+        robot_output_dir: str,
+    ) -> None:
 
-    def __init__(self) -> None:
         super(TeacherEnv, self).__init__()
         self.action_space_names = ["robot_position", "goal_position", "obstacles_count"]
         self.action_space = spaces.Box(
             low=0.01, high=0.99, shape=(3,), dtype=np.float32
         )
-
         # [time_steps, robot_level, robot_reward, current_difficulity]
         self.observation_space = spaces.Box(
             low=-1000, high=1000, shape=(5,), dtype=np.float32
         )
 
-        self.env = RobotEnv()
+        self.robot_output_dir = robot_output_dir
         self.episodes = 0
         self.current_difficulty = 0
-        self.desired_difficulty = 1
         self.time_steps = 0
         self.robot_level = 0
         self.done = 0
@@ -60,21 +52,53 @@ class TeacherEnv(Env):
         self.robot_success_rate = 0
         self.robot_avg_episode_steps = 0
 
+        self._configure(config=teacher_config)
+
+        if self.lidar_mode == "flat":
+            self.robot_env = RobotEnv1DPlayer(config=robot_config)
+        elif self.lidar_mode == "rings":
+            self.robot_env = RobotEnv2DPlayer(config=robot_config)
+        else:
+            raise ValueError(f"Lidar mode {self.lidar_mode} is not avaliable")
+
+    def _configure(self, config: configparser.RawConfigParser) -> None:
+        """Configure the environment using input config file
+
+        Args:
+            config (configparser.RawConfigParser): input config object
+        """
+        self.config = config
+
+        self.max_robot_episode_steps = config.getint(
+            "timesteps", "max_episode_timesteps"
+        )
+
+        self.alpha = config.getfloat("reward", "alpha")
+        self.terminal_state_reward = config.getint("reward", "terminal_state_reward")
+        self.max_robot_episode_reward = config.getint("reward", "max_reward")
+        self.base_difficulty = config.getint("reward", "base_difficulty")
+        # start with base difficulty
+        self.desired_difficulty = self.base_difficulty
+
+        self.advance_probability = config.getfloat("env", "advance_probability")
+        self.max_obstacles_count = config.getint("env", "max_obstacles_count")
+        self.lidar_mode = config.get("env", "lidar_mode")
+
     def _get_robot_metrics(self):
-        if len(self.env.results) > 0:
+        if len(self.robot_env.results) > 0:
             total_reward = 0
             total_steps = 0
             num_success = 0
             # sample = [episode_reward, episode_steps, success_flag]
-            for sample in self.env.results:
+            for sample in self.robot_env.results:
                 episode_reward, episode_steps, success_flag = sample
                 total_reward += episode_reward
                 total_steps += episode_steps
                 num_success += success_flag
             self.robot_success_flag = num_success > 0
-            self.robot_avg_reward = total_reward / len(self.env.results)
-            self.robot_avg_episode_steps = total_steps / len(self.env.results)
-            self.robot_success_rate = num_success / len(self.env.results)
+            self.robot_avg_reward = total_reward / len(self.robot_env.results)
+            self.robot_avg_episode_steps = total_steps / len(self.robot_env.results)
+            self.robot_success_rate = num_success / len(self.robot_env.results)
 
     def step(self, action) -> Tuple:
         """Take a step in the environment
@@ -86,38 +110,41 @@ class TeacherEnv(Env):
             tuple: observation, reward, done, info
         """
         self._get_robot_metrics()
-        self.env.reset()
+        self.robot_env.reset()
 
         action = self._convert_action_to_dict_format(action)
 
         px, py, gx, gy = self._get_robot_position_from_action(action)
 
-        self.env.set_robot_position(px=px, py=py, gx=gx, gy=gy)
+        self.robot_env.set_robot_position(px=px, py=py, gx=gx, gy=gy)
         import math
 
         self.__generate_obstacles_points(
-            math.ceil(action["obstacles_count"] * self.MAX_OBSTACLES_COUNT)
+            math.ceil(action["obstacles_count"] * self.max_obstacles_count)
         )
 
         args_list = list(map(int, [px, py, gx, gy]))
         self.current_difficulty = self.checker.get_map_difficulity(
-            self.env.obstacles, RobotEnv.WIDTH, RobotEnv.HEIGHT, *args_list
+            self.robot_env.obstacles,
+            self.robot_env.width,
+            self.robot_env.height,
+            *args_list,
         )
 
-        self.desired_difficulty = self.BASE_DIFFICULTY * (1.15) ** self.episodes
+        self.desired_difficulty = self.base_difficulty * (1.15) ** self.episodes
 
         policy_kwargs = dict(features_extractor_class=Robot1DFeatureExtractor)
 
         if self.robot_level == 0:
             # fmt: off
-            model = PPO("MultiInputPolicy", self.env, policy_kwargs=policy_kwargs, verbose=2)
+            model = PPO("MultiInputPolicy", self.robot_env, policy_kwargs=policy_kwargs, verbose=2)
         else:
             print("loading model ...")
-            model = PPO.load(self.previous_save_path, self.env)
+            model = PPO.load(self.previous_save_path, self.robot_env)
 
         # fmt: off
         model.learn(total_timesteps=int(1e9), reset_num_timesteps=False,
-                    callback=RobotCallback(verbose=0, max_steps=self.MAX_STEPS_FOR_ROBOT_EPISODE))
+                    callback=RobotCallback(verbose=0, max_steps=self.max_robot_episode_steps))
         
         print("saving model ...")
         model_save_path = f"saved_models/robot/model_{int(time())}_{self.robot_level}"
@@ -134,7 +161,7 @@ class TeacherEnv(Env):
         self.time_steps += 1
         
         # Flag to advance to next level
-        advance_flag = uniform(0, 1) <= self.ADVANCE_PROBABILITY
+        advance_flag = uniform(0, 1) <= self.advance_probability
         self.robot_level = (self.robot_level + advance_flag) * advance_flag
 
         return self._make_obs(), reward, self.done, {"episodes_count": self.episodes}
@@ -187,20 +214,24 @@ class TeacherEnv(Env):
             Tuple: clipped positions
         """
         px = np.clip(
-            RobotEnv.WIDTH * action["robot_position"], a_min=0, a_max=RobotEnv.WIDTH - 2
+            self.robot_env.width * action["robot_position"],
+            a_min=0,
+            a_max=self.robot_env.width - 2,
         )  # type: ignore
         py = np.clip(
-            RobotEnv.HEIGHT * action["robot_position"],
+            self.robot_env.height * action["robot_position"],
             a_min=0,
-            a_max=RobotEnv.HEIGHT - 2,
+            a_max=self.robot_env.width - 2,
         )
         gx = np.clip(
-            RobotEnv.WIDTH * action["goal_position"], a_min=0, a_max=RobotEnv.WIDTH - 2
+            self.robot_env.width * action["goal_position"],
+            a_min=0,
+            a_max=self.robot_env.width - 2,
         )
         gy = np.clip(
-            RobotEnv.HEIGHT * action["goal_position"],
+            self.robot_env.height * action["goal_position"],
             a_min=0,
-            a_max=RobotEnv.HEIGHT - 2,
+            a_max=self.robot_env.height - 2,
         )
         return px, py, gx, gy
 
@@ -212,10 +243,10 @@ class TeacherEnv(Env):
         """
         reward = (
             (self.current_difficulty / self.desired_difficulty)
-            * (self.robot_avg_reward / self.MAX_REWARD)
-        ) ** self.ALPHA + self.terminal_state_flag * (
-            1 - self.time_steps / self.MAX_TIMESTEPS
-        ) * self.TERMINAL_STATE_REWARD
+            * (self.robot_avg_reward / self.max_robot_episode_reward)
+        ) ** self.alpha + self.terminal_state_flag * (
+            1 - self.time_steps / self.max_robot_episode_steps
+        ) * self.terminal_state_reward
         return reward
 
     def __generate_obstacles_points(self, obstacles_count: int) -> None:
@@ -228,26 +259,15 @@ class TeacherEnv(Env):
             overlap = True
             new_obstacle = SingleObstacle()
             while overlap:
-                px = randint(0, RobotEnv.WIDTH)
-                py = randint(0, RobotEnv.HEIGHT)
+                px = randint(0, self.robot_env.width)
+                py = randint(0, self.robot_env.height)
                 new_width = randint(50, 500)
                 new_height = randint(50, 500)
                 new_obstacle = SingleObstacle(px, py, new_width, new_height)
-                overlap = self.env.robot.is_overlapped(new_obstacle)
-            self.env.obstacles += new_obstacle
+                overlap = self.robot_env.robot.is_overlapped(new_obstacle)
+            self.robot_env.obstacles += new_obstacle
 
     def reset(self):
         self.time_steps = 0
         self.done = 0
         return self._make_obs()
-
-
-if __name__ == "__main__":
-    planner_env = TeacherEnv()
-    policy_kwargs = {
-        "features_extractor_class": CustomLSTM,
-        "features_extractor_kwargs": dict(features_dim=2),
-    }
-    model = PPO(CustomActorCriticPolicy, planner_env, verbose=1)
-    model.learn(total_timesteps=int(1e7))
-    model.save(f"saved_models/teacher/model_{int(time())}")

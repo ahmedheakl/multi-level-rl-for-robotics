@@ -1,36 +1,44 @@
 from envs.teacher_env import TeacherEnv
 from time import time
-from planner.planner import CustomActorCriticPolicy
-from planner.planner import CustomLSTM
-from stable_baselines3 import PPO  # type: ignore
-import sys
+from policy.policy_networks import LinearActorCriticPolicy
+from policy.feature_extractors import LSTMFeatureExtractor
+from stable_baselines3.ppo.ppo import PPO
+import configparser
 import argparse
+from utils.parser import parse_args
 
 
 def main(args: argparse.Namespace) -> None:
-    assert args.train_env_mode in [
-        "teacher",
-        "robot",
-    ], f"input mode '{args.train_env_mode}' is not available"
 
-    print(f">>>>>>>>>> Start training {args.train_env_mode} ... ")
+    print(f">>> Start training {args.env_mode} ... ")
 
-    if args.train_env_mode == "teacher":
-        planner_env = TeacherEnv()
+    if args.env_mode == "teacher":
+        robot_config = configparser.RawConfigParser()
+        robot_config.read(args.robot_config_path)
+
+        teacher_config = configparser.RawConfigParser()
+        teacher_config.read(args.teacher_config_path)
+
+        if args.render_each > -1:
+            robot_config.set("render", "render_each", args.render_each)
+
+        planner_env = TeacherEnv(
+            robot_config=robot_config,
+            teacher_config=teacher_config,
+            robot_output_dir=args.robot_output_dir,
+        )
         policy_kwargs = {
-            "features_extractor_class": CustomLSTM,
+            "features_extractor_class": LSTMFeatureExtractor,
             "features_extractor_kwargs": dict(features_dim=2),
         }
-        model = PPO(CustomActorCriticPolicy, planner_env, verbose=1)
+        # TODO: add LSTM to teacher
+        model = PPO(LinearActorCriticPolicy, planner_env, verbose=1)
         model.learn(total_timesteps=int(1e7))
-        model.save(f"saved_models/teacher/model_{int(time())}")
+        model.save(f"{args.teacher_output_dir}/model_{int(time())}")
+    else:
+        raise NotImplementedError("robot training is not implemented")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Parse arguments")
-    parser.add_argument("--env_config", type=str, default="configs/robot_env.config")
-    parser.add_argument("--mode", type=str, default="train")
-    parser.add_argument("--train_env_mode", type=str, default="teacher")
-    parser.add_argument("--render_each", type=int, default=1)
-    args = parser.parse_args()
+    args = parse_args()
     main(args=args)

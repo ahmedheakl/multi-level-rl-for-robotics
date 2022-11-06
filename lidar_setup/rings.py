@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from lidar2d_fast import fast_lidar_to_rings
+from lidar_setup.lidar2d_fast import fast_lidar_to_rings
 
 
 def generate_rings(
@@ -39,7 +39,7 @@ def generate_rings(
     )
     range_level_depths = expansion_curve / renormalisation_factor + min_resolution
     range_level_maxs = np.cumsum(range_level_depths) + min_dist
-    range_level_maxs = np.concatenate([[min_dist], range_level_maxs, [np.inf]]).astype(  # type: ignore
+    range_level_maxs = np.concatenate([[min_dist], range_level_maxs, [np.inf]]).astype(
         np.float32
     )
     range_level_mins = np.concatenate([[0.0], range_level_maxs[:-1]]).astype(np.float32)
@@ -53,7 +53,7 @@ def generate_rings(
             plt.axvline(x)
         plt.figure("rings")
         for i, r in enumerate(range_level_maxs[:-1]):
-            plt.gca().add_artist(plt.Circle((0, 0), r, color="k", fill=False))  # type: ignore
+            plt.gca().add_artist(plt.Circle((0, 0), r, color="k", fill=False))
         for i in range(angle_levels):
             plt.plot(
                 [min_dist * np.cos(th), r * np.cos(th)],
@@ -61,9 +61,8 @@ def generate_rings(
                 "k",
             )
             plt.axis("equal")
-        plt.gca().add_artist(plt.Circle((1, 1), 0.3, color="r", zorder=3))  # type: ignore
+        plt.gca().add_artist(plt.Circle((1, 1), 0.3, color="r", zorder=3))
         plt.tight_layout()
-        plt.show()
 
     def lidar_to_rings(scans):
         """
@@ -187,7 +186,6 @@ if __name__ == "__main__":
     ring_def = generate_rings(VISUALIZE=True)
     # linear ramp
     scans = np.ones((1, 1080)) * (np.arange(1080) / 1080.0 * 25.0)[None, :]
-    print(scans.shape)
     rings = ring_def["lidar_to_rings"](scans.astype(np.float32))
     plt.ion()
     ring_def["visualize_rings"](rings[0, :, :, :], scan=scans[0])
