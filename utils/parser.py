@@ -1,4 +1,5 @@
 import argparse
+from rich_argparse import RichHelpFormatter
 
 
 def parse_args() -> argparse.Namespace:
@@ -12,6 +13,7 @@ def parse_args() -> argparse.Namespace:
         prog="Parse arguments",
         description="Parse arguments to train teacher/robot environment",
         epilog="Enjoy the training! \N{slightly smiling face}",
+        formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
         "--robot_config",
@@ -40,7 +42,6 @@ def parse_args() -> argparse.Namespace:
         "--render_each",
         type=int,
         default=-1,
-        choices=range(1, 101),
         help="the frequency of rendering for robot environment",
     )
     parser.add_argument(
@@ -53,7 +54,7 @@ def parse_args() -> argparse.Namespace:
         "--teacher_output_dir",
         type=str,
         default="saved_models/teacher",
-        help="path to output results for robot mode",
+        help="path to output results for teacher mode",
     )
 
     parser.add_argument(

@@ -8,7 +8,6 @@ class ObstaclesTest(unittest.TestCase):
     def test_flatten_contours_single_point(self):
         obstacels_obj = Obstacles([SingleObstacle(0, 0, 10, 10)])
         value = obstacels_obj.get_flatten_contours()[0]
-        print(value)
         expected = np.array(
             [[0, 0, 10], [0, 10, 10], [0, 10, 0], [0, 0, 0], [0, 0, 10]]
         )
