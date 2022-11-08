@@ -1,0 +1,45 @@
+[build-system]
+requires      = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "highrl"
+version = "0.0.1"
+description = "Two level RL for robots navigation"
+readme = "README.md"
+authors = [{ name = "Ahmed Heakl", email = "ahmed.heakl@ejust.edu.eg" }]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+requires-python = ">=3.7"
+dynamic = ["dependencies"]
+keywords = ["reinforcement learning", "robots", "robot navigation", "hierarchical reinforcement learning"]
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+
+    [project.optional-dependencies]
+    build = ["build", "twine"]
+    dev   = ["black", "bumpver"]
+
+    [project.scripts]
+    highrl = "highrl.__main__:main"
+
+
+[tool.bumpver]
+current_version = "0.0.1"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message  = "bump version {old_version} -> {new_version}"
+commit          = true
+tag             = true
+push            = false
+
+    [tool.bumpver.file_patterns]
+    "pyproject.toml" = [
+        'current_version = "{version}"',
+        'version = "{version}"',
+    ]
+    "src/highrl/__init__.py" = ["{version}"]
+    "src/highrl/__main__.py" = ["- heakl-pycalc v{version}"]

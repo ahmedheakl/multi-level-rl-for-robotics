@@ -1,5 +1,6 @@
-saved_models
-.vscode
-__pycache__
-build
-example.py
+src/highrl/build
+src/highrl/output_data
+src/highrl.egg-info
+*__pycache__
+.tox
+UNKNOWN.egg-info

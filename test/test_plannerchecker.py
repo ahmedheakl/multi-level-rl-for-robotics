@@ -1,7 +1,7 @@
 import unittest
-from utils.planner_checker import PlannerChecker
-from obstacle.obstacles import Obstacles
-from obstacle.single_obstacle import SingleObstacle
+from highrl.utils.planner_checker import PlannerChecker
+from highrl.obstacle.obstacles import Obstacles
+from highrl.obstacle.single_obstacle import SingleObstacle
 
 
 class PlannerCheckerTest(unittest.TestCase):
