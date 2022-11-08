@@ -1,8 +1,9 @@
 from obstacle.obstacles import Obstacles
-import numpy as np
 
 
 class PlannerChecker:
+    INF = 2000
+
     def __init__(self, height=0, width=0):
         self.dx = [-1, -1, -1, 0, 0, 1, 1, 1]
         self.dy = [-1, 0, 1, -1, 1, -1, 0, 1]
@@ -53,7 +54,7 @@ class PlannerChecker:
                         continue
                     self.visited[nx][ny] = True
                     queue.append((nx, ny, p[2] + 1))
-        return 2000
+        return self.INF
 
     def get_map_difficulity(
         self,

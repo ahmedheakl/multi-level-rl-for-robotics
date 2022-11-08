@@ -377,14 +377,16 @@ class RobotEnv(Env):
             return self.viewer.isopen
 
     def detect_collison(self):
-        """Detect if the agent has collided with any obstacle
+        """Detect if the robot has collided with any obstacle
 
         Returns:
             bool: flag to check collisions
         """
         collision_flag = False
         for obstacle in self.obstacles.obstacles_list:
-            collision_flag |= self.robot.is_overlapped(obstacle=obstacle)
+            collision_flag |= self.robot.is_overlapped(
+                obstacle=obstacle, check_target="robot"
+            )
         return collision_flag
 
     def _convert_action_to_ActionXY_format(self, action: List) -> ActionXY:
@@ -408,11 +410,12 @@ class RobotEnv(Env):
             print("resting robot env ...")
             self.robot.set_position([self.robot_initial_px, self.robot_initial_py])
             self.robot.set_goal_position([self.robot_goal_px, self.robot_goal_py])
+            self.total_reward += self.episode_reward
             if self.is_initial_state:
                 self.results = []
                 self.total_reward = 0
                 self.total_steps = 0
-            self.total_reward += self.episode_reward
+
             self.success_flag = False
             self.is_initial_state = False
             self.episode_steps = 0

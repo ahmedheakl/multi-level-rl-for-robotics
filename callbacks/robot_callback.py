@@ -33,7 +33,6 @@ class RobotCallback(BaseCallback):
         """
         This method is called before the first rollout starts.
         """
-
         pass
 
     def _on_rollout_start(self) -> None:

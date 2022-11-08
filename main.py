@@ -39,10 +39,10 @@ def main(args: argparse.Namespace) -> None:
         )
         policy_kwargs = {
             "features_extractor_class": LSTMFeatureExtractor,
-            "features_extractor_kwargs": dict(features_dim=2),
+            "features_extractor_kwargs": dict(features_dim=5),
         }
         # TODO: add LSTM to teacher
-        model = PPO(LinearActorCriticPolicy, planner_env, verbose=1)
+        model = PPO(LinearActorCriticPolicy, planner_env, verbose=1 , policy_kwargs = policy_kwargs)
         model.learn(total_timesteps=int(1e7))
         model.save(f"{args.teacher_output_dir}/model_{int(time())}")
     else:
