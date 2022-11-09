@@ -5,7 +5,7 @@ name: test
 
 on:
   push:
-    branches: ["main", "refactoring"]
+    branches: ["main", "refactoring", "release"]
   pull_request:
     branches: ["main", "refactoring"]
 
@@ -35,4 +35,4 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with unittest
         run: |
-          python -m unittest discover
+          python -m unittest discover test
