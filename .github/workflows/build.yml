@@ -5,7 +5,7 @@ name: build
 
 on:
   push:
-    branches: ["release"]
+    branches: []
 
 permissions:
   contents: read
@@ -39,6 +39,7 @@ jobs:
         run: |
           apt install patchelf
           patchelf --version
+          pip install twine build auditwheel
       - name: Build library
         run: |
           python3 -m build
