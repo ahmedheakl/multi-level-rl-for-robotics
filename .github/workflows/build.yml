@@ -25,4 +25,4 @@ jobs:
           USERNAME: ${{secrets.PYPI_USERNAME}}
         run: |
           python -m pip install --upgrade pip
-          sudo docker run -e USERNAME="$env:USERNAME" -it highrl:0.0.1 .
+          sudo docker run -e USERNAME="$env:USERNAME" .
