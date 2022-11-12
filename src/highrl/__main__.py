@@ -20,7 +20,7 @@ Do not forget to specify the output dir for models saving
     
 Version
 ------------------
- - highrl v0.0.2
+ - highrl v0.0.1
 """
 
 
