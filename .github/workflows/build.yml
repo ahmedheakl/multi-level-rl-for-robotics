@@ -21,6 +21,7 @@ jobs:
         with:
           python-version: "3.8"
       - name: Install dependencies
+        env:
+          USERNAME: ${{secrets.PYPI_USERNAME}}
         run: |
-          echo ${PYPI_USERNAME}
-          echo ${PYPI_PASSWORD}
+          echo "$env:USERNAME"
