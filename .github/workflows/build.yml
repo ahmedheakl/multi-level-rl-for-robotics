@@ -24,4 +24,5 @@ jobs:
         env:
           USERNAME: ${{secrets.PYPI_USERNAME}}
         run: |
-          echo $env:USERNAME
+          python -m pip install --upgrade pip
+          sudo docker run -e USERNAME="$env:USERNAME" -it highrl:0.0.1 .
