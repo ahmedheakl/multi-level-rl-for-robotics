@@ -1,1 +1,2 @@
-__version__ = "0.0.1"
+# Version of highrl package
+__version__ = "0.0.3"
