@@ -2,9 +2,13 @@ src/highrl/build
 src/highrl/output_data
 src/highrl.egg-info
 *__pycache__
+__pycache__
 .tox
 UNKNOWN.egg-info
 dist
 .vscode
 .pypirc
-old_dist
+output_data
+.vscode
+build
+Dockerfile
