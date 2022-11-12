@@ -46,11 +46,11 @@ jobs:
           mv wheelhouse/* dist
           rm dist/*-cp38-cp38-linux_x86_64.whl
           ls dist/
-      - name:
-        env:
+      - name: Upload and check
+        with: 
           - USERNAME: ${{secrets.PYPI_USERNAME}}
           - PASSWORD: ${{secrets.PYPI_PASSWORD}}
         run: |
           twine check dist/*
-          twine upload dist/* --username "$env:USERNAME" --password "$env:PASSWORD"
+          twine upload dist/* --username $USERNAME --password $PASSWORD
         
