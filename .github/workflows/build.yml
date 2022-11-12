@@ -22,5 +22,28 @@ jobs:
           python-version: "3.8"
       - name: Install dependencies
         run: |
-          sudo apt install patchelf -y 
-          patchelf --version
+          python -m pip install --upgrade pip
+          pip install flake8
+          pip install -r requirements.txt
+          pip install -e .
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Test with unittest
+        run: |
+          python -m unittest discover test
+      - name: Install build dependencies
+        run: |
+          sudo apt install patchelf -y
+          pip install build twine wheel auditwheel
+      - name: build and check 
+        run: |
+          python -m build
+          auditwheel repair --plat manylinux_2_17_x86_64 dist/highrl-0.0.1-cp38-cp38-linux_86_64.whl
+          mv wheelhouse/* dist
+          rm dist/*-cp38-cp38-linux_x86_64.whl
+          ls dist/
+          twine check dist/*
