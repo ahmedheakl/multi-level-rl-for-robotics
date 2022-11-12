@@ -39,11 +39,18 @@ jobs:
         run: |
           sudo apt install patchelf -y
           pip install build twine wheel auditwheel
-      - name: build and check 
+      - name: Build distribution 
         run: |
           python -m build
           auditwheel repair --plat manylinux_2_17_x86_64 dist/highrl-0.0.1-cp38-cp38-linux_x86_64.whl
           mv wheelhouse/* dist
           rm dist/*-cp38-cp38-linux_x86_64.whl
           ls dist/
+      - name:
+        env:
+          - USERNAME: ${{secrets.PYPI_USERNAME}}
+          - PASSWORD: ${{secrets.PYPI_PASSWORD}}
+        run: |
           twine check dist/*
+          twine upload dist/* --username "$env:USERNAME" --password "$env:PASSWORD"
+        
