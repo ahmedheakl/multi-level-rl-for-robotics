@@ -4,3 +4,7 @@ src/highrl.egg-info
 *__pycache__
 .tox
 UNKNOWN.egg-info
+dist
+.vscode
+.pypirc
+old_dist

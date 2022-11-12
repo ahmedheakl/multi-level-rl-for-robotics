@@ -38,7 +38,6 @@ epsilon = 1
 
 # ---------------------TEAHCER CONFIGURATIONS-----------------#
 teacher_config_str = """
-
 [reward]
 alpha = 0.4
 terminal_state_reward = 100

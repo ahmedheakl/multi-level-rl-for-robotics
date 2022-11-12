@@ -15,12 +15,12 @@ Or just run the following to the default
 
 Do not forget to specify the output dir for models saving
 
-    $ highrl --outp
+    $ highrl --output_dir=<your-ouput-dir>
     
     
 Version
 ------------------
- - highrl v0.0.1
+ - highrl v0.0.2
 """
 
 

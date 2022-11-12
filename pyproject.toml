@@ -1,5 +1,5 @@
 [build-system]
-requires      = ["setuptools>=61.0.0", "wheel"]
+requires      = ["setuptools>=61.0.0", "wheel", "Cython", "numpy"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -42,4 +42,4 @@ push            = false
         'version = "{version}"',
     ]
     "src/highrl/__init__.py" = ["{version}"]
-    "src/highrl/__main__.py" = ["- heakl-pycalc v{version}"]
+    "src/highrl/__main__.py" = ["- highrl v{version}"]

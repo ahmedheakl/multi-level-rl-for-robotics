@@ -4,7 +4,6 @@ from numpy.linalg import norm
 import abc
 
 from highrl.obstacle.single_obstacle import SingleObstacle
-from highrl.utils.calculations import point_to_obstacle_distance
 from highrl.utils.action import ActionXY
 
 
@@ -22,8 +21,6 @@ class Agent(object):
         theta=0,
         radius=20,
         goal_radius=10,
-        config=None,
-        section=None,
     ):
         """
         Base class for robot and human. Have the physical attributes of an agent.
@@ -85,13 +82,6 @@ class Agent(object):
         self.vx = velocity[0]
         self.vy = velocity[1]
         self.w = velocity[2]
-
-    @abc.abstractmethod
-    def act(self, ob):
-        """
-        Compute state using received observation and pass it to policy
-        """
-        return
 
     def check_validity(self, action):
         assert isinstance(action, ActionXY)

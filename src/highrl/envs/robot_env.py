@@ -3,10 +3,8 @@ from gym import Env, spaces
 from highrl.utils.action import *
 from highrl.obstacle.obstacles import Obstacles
 import numpy as np
-from CMap2D import (
-    render_contours_in_lidar,
-    CMap2D,
-)
+from CMap2D import render_contours_in_lidar
+
 from pose2d import apply_tf_to_vel, inverse_pose2d, apply_tf_to_pose
 from highrl.utils.calculations import *
 import threading
