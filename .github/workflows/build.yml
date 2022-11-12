@@ -24,4 +24,4 @@ jobs:
         env:
           USERNAME: ${{secrets.PYPI_USERNAME}}
         run: |
-          echo "$env:USERNAME"
+          echo $env:USERNAME
