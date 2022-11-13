@@ -9,9 +9,9 @@ goal_radius = 10
 [timesteps]
 delta_t = 1
 # 1e3
-max_episode_steps = 10
+max_episode_steps = 10000
 # 1e5
-max_robot_steps = 100
+max_robot_steps = 1000000
 
 [lidar]
 n_angles = 1080
@@ -28,12 +28,15 @@ maximum_distance = 1470
 velocity_std = 2.0
 alpha = 0.4
 
-
 [render]
 render_each = 1
 
 [env]
 epsilon = 1
+
+[statistics]
+collect_statistics = True
+scenario = train
 """
 
 # ---------------------TEAHCER CONFIGURATIONS-----------------#
@@ -43,11 +46,19 @@ alpha = 0.4
 terminal_state_reward = 100
 max_reward = 3600
 base_difficulty = 590
-
+overlap_goal_penality = -100
+infinite_difficulty_penality = -1000
+too_close_to_goal_penality = -50
 
 [env]
 advance_probability = 0.9
-max_obstacles_count = 10
+max_hard_obstacles_count = 2
+max_medium_obstacles_count = 5
+max_small_obstacles_count = 7
 # {flat: 1D, rings: 2D}
 lidar_mode = flat
+
+[statistics]
+scenario = train
+collect_statistics = True
 """

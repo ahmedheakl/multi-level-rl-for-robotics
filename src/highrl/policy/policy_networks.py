@@ -17,8 +17,8 @@ class LinearPolicyNetwork(nn.Module):
 
     def __init__(
         self,
-        feature_dim: int = 18,
-        last_layer_dim_pi: int = 3,
+        feature_dim: int = 16,
+        last_layer_dim_pi: int = 7,
         last_layer_dim_vf: int = 32,
     ):
         super(LinearPolicyNetwork, self).__init__()
@@ -91,4 +91,4 @@ class LinearActorCriticPolicy(ActorCriticPolicy):
         self.ortho_init = False
 
     def _build_mlp_extractor(self) -> None:
-        self.mlp_extractor = LinearPolicyNetwork(self.features_dim)
+        self.mlp_extractor = LinearPolicyNetwork()
