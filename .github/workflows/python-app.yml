@@ -5,9 +5,9 @@ name: test
 
 on:
   push:
-    branches: ["main", "refactoring"]
+    branches: ["main", "refactoring", "merging"]
   pull_request:
-    branches: ["main", "refactoring"]
+    branches: ["main", "refactoring", "merging"]
 
 permissions:
   contents: read

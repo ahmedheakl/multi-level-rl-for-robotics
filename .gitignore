@@ -12,3 +12,7 @@ output_data
 .vscode
 build
 Dockerfile
+lidar2d_fast.cpp
+lidar2d_fast.html
+robot_logs.csv
+src/lidar2d_fast.cpython-38-x86_64-linux-gnu.so
