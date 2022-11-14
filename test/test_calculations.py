@@ -1,6 +1,6 @@
 import math
 import unittest
-from utils.calculations import *
+from highrl.utils.calculations import *
 
 
 class TestCalculations(unittest.TestCase):

@@ -1,5 +1,14 @@
-saved_models
-.vscode
+src/highrl/build
+src/highrl/output_data
+src/highrl.egg-info
+*__pycache__
 __pycache__
+.tox
+UNKNOWN.egg-info
+dist
+.vscode
+.pypirc
+output_data
 build
-example.py
+lidar2d_fast.cpp
+lidar2d_fast.html

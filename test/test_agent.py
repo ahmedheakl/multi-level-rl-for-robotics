@@ -1,9 +1,9 @@
 import unittest
-from agents.agent import Agent
-from utils.action import ActionXY
+from highrl.agents.agent import Agent
+from highrl.utils.action import ActionXY
 import numpy as np
-from obstacle.single_obstacle import SingleObstacle
-from agents.robot import Robot
+from highrl.obstacle.single_obstacle import SingleObstacle
+from highrl.agents.robot import Robot
 
 
 class AgentTest(unittest.TestCase):

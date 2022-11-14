@@ -1,0 +1,46 @@
+[build-system]
+requires      = ["setuptools>=61.0.0", "wheel", "Cython", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "highrl"
+version = "0.0.4"
+description = "Two level RL for robots navigation"
+readme = "README.md"
+authors = [{ name = "Ahmed Heakl", email = "ahmed.heakl@ejust.edu.eg" }]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+requires-python = ">=3.7"
+keywords = ["reinforcement learning", "robots", "robot navigation", "hierarchical reinforcement learning"]
+dynamic = ["dependencies"]
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+
+    [project.optional-dependencies]
+    build = ["build", "twine"]
+    dev   = ["black", "bumpver"]
+
+    [project.scripts]
+    highrl = "highrl.__main__:main"
+
+    [project.urls]
+    repository = "https://github.com/ahmedheakl/multi-level-rl-for-robotics"
+
+
+[tool.bumpver]
+current_version = "0.0.4"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message  = "bump version {old_version} -> {new_version}"
+
+    [tool.bumpver.file_patterns]
+    "pyproject.toml" = [
+        'current_version = "{version}"',
+        'version = "{version}"',
+    ]
+    "src/highrl/__init__.py" = ["{version}"]
+    "src/highrl/__main__.py" = ["- highrl v{version}"]
+    ".github/workflows/build.yml" = ["          auditwheel repair --plat manylinux_2_17_x86_64 dist/highrl-{version}-cp38-cp38-linux_x86_64.whl"]

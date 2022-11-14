@@ -1,6 +1,6 @@
 import unittest
-from obstacle.obstacles import Obstacles
-from obstacle.single_obstacle import SingleObstacle
+from highrl.obstacle.obstacles import Obstacles
+from highrl.obstacle.single_obstacle import SingleObstacle
 import numpy as np
 
 
