@@ -9,6 +9,6 @@ dist
 .vscode
 .pypirc
 output_data
-.vscode
 build
-Dockerfile
+lidar2d_fast.cpp
+lidar2d_fast.html

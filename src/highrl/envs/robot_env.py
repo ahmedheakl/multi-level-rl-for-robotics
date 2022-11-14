@@ -12,7 +12,8 @@ from highrl.agents.robot import Robot
 from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.configs.colors import *
 import configparser
-
+import pandas as pd 
+import time
 
 class RobotEnv(Env):
     def __init__(self, config: configparser.RawConfigParser) -> None:
@@ -57,6 +58,22 @@ class RobotEnv(Env):
 
         self._configure(config=config)
 
+        self.episode_statistics = None
+        if self.collect_statistics:
+            self.episode_statistics = pd.DataFrame(
+                columns=[
+                    "total_steps",
+                    "episode_steps",
+                    "scenario",
+                    "damage",
+                    "goal_reached",
+                    "total_reward",
+                    "episode_reward",
+                    "reward",
+                    "wall_time",
+                ]
+            )
+
     def _configure(self, config: configparser.RawConfigParser) -> None:
         """Configure the environment using input config file
 
@@ -89,6 +106,8 @@ class RobotEnv(Env):
         self.render_each = config.getint("render", "render_each")
 
         self.epsilon = config.getint("env", "epsilon")
+        self.collect_statistics = config.getboolean("statistics", "collect_statistics")
+        self.scenario = config.get("statistics", "scenario")
 
     def step(self, action: List):
         """Step into the new state using an action given by the agent model
@@ -124,6 +143,20 @@ class RobotEnv(Env):
         )
         if self.episode_steps % self.render_each == 0:
             self.render()
+        # log data
+        if self.done:
+            if self.collect_statistics:
+                self.episode_statistics.loc[len(self.episode_statistics)] = [  # type: ignore
+                    self.total_steps,
+                    self.episode_steps,
+                    "robot_env_" + self.scenario,
+                    100 if self.detect_collison() else 0,
+                    self.robot.reached_destination(),
+                    self.total_reward,
+                    self.episode_reward,
+                    self.reward,
+                    time.time(),
+                ]
 
         return self._make_obs(), self.reward, self.done, {}
 
@@ -406,11 +439,12 @@ class RobotEnv(Env):
             print("resting robot env ...")
             self.robot.set_position([self.robot_initial_px, self.robot_initial_py])
             self.robot.set_goal_position([self.robot_goal_px, self.robot_goal_py])
+            self.total_reward += self.episode_reward
             if self.is_initial_state:
                 self.results = []
                 self.total_reward = 0
                 self.total_steps = 0
-            self.total_reward += self.episode_reward
+
             self.success_flag = False
             self.is_initial_state = False
             self.episode_steps = 0
