@@ -1,5 +1,5 @@
 import unittest
-from highrl.utils.planner_checker import PlannerChecker
+from highrl.utils.planner_checker import PlannerChecker, get_region_coordinates
 from highrl.obstacle.obstacles import Obstacles
 from highrl.obstacle.single_obstacle import SingleObstacle
 
@@ -63,11 +63,11 @@ class PlannerCheckerTest(unittest.TestCase):
         expected = 7
         self.assertEqual(expected, value, msg=f"Expected: {expected}, Found: {value}")
 
-    # 0 1 2 3 4 5 6
-    # 0 . . . . . . .
-    # 1 . . . . . . .
-    # 2 . . . . . . .
-    # 3 . . . . . . .
-    # 4 . . . . . . .
-    # 5 . . . . . . .
-    # 6 . . . . . . .
+    
+    def get_current_coords(self):
+        print("GONNE HERE")
+        value = sorted(get_region_coordinates(harmonic_number=1, eps=1, coords=[2, 3, 4, 5]))
+        expected = sorted([[3.5, 5.5], [4.5, 4.5], [1.5, 3.5], [2.5, 2.5]])
+        for p in range(len(expected)):
+            self.assertListEqual(expected[p], value[p], msg=f"Expected:\n{expected[p]}\nFound:\n{value[p]}")
+        

@@ -71,3 +71,31 @@ class PlannerChecker:
         self.visited = []
         self.map = []
         return self.difficulity
+
+from typing import Tuple, List, Union
+def get_region_coordinates(harmonic_number: int, eps: float, coords: List[Union[int, float]]) -> List[float]:
+    px, py, gx, gy = coords
+    slope = (gy - py) / (gx - px)
+    intercept = (gx*py - gy*px) / (gx-py)
+    shift_amount = eps * harmonic_number
+    left_line = lambda x: [slope * x + (intercept + shift_amount), x]
+    right_line = lambda x: [slope * x + (intercept - shift_amount), x]
+    """
+    p1-----p2
+    |       |
+    |       |
+    p3-----p4
+    """
+    x1: float = (1 / slope) * ((gx*py - gy*gx) / (px - gx) - shift_amount / 2)   
+    x2: float = (1 / slope) * ((gx*py - gy*gx) / (px - gx) + shift_amount / 2)  
+    x3: float = (1 / slope) * ((gy*px - px*py) / (gx - px) - shift_amount / 2)
+    x4: float = (1 / slope) * ((gy*px - px*py) / (gx - px) - shift_amount / 2)     
+    x_coords = [x1, x2, x3, x4]
+    points = [right_line(x_coords[i]) if i&1 else left_line(x_coords[i]) for i in range(4)]
+    return points
+    
+    
+    
+    
+def convex_hull_difficulty(obstacles: Obstacles) -> float:
+    pass
