@@ -12,8 +12,9 @@ from highrl.agents.robot import Robot
 from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.configs.colors import *
 import configparser
-import pandas as pd 
+import pandas as pd
 import time
+
 
 class RobotEnv(Env):
     def __init__(self, config: configparser.RawConfigParser) -> None:

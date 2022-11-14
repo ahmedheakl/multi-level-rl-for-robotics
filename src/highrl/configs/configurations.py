@@ -9,9 +9,9 @@ goal_radius = 10
 [timesteps]
 delta_t = 1
 # 1e3
-max_episode_steps = 10000
+max_episode_steps = 1000
 # 1e5
-max_robot_steps = 1000000
+max_robot_steps = 100000
 
 [lidar]
 n_angles = 1080

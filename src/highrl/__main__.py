@@ -67,7 +67,7 @@ def main() -> None:
             "features_extractor_kwargs": dict(features_dim=5),
         }
         logpath = os.path.join(args.teacher_logs_path, "teacher_logs.csv")
-        model = PPO(LinearActorCriticPolicy, planner_env, verbose=1 , policy_kwargs = policy_kwargs)
+        model = PPO(LinearActorCriticPolicy, planner_env, verbose=1 , policy_kwargs = policy_kwargs, tensorboard_log= "./tensorboard/teacher")
         callback = TeacherLogCallback(train_env = planner_env, logpath=logpath, eval_freq=1, verbose=0)
         model.learn(total_timesteps=int(1e7),  callback=callback)
         model.save(f"{args.teacher_models_dir}/model_{int(time())}")

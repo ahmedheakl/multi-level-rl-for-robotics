@@ -217,10 +217,14 @@ class TeacherEnv(Env):
             self.robot_id += 1
             # fmt: off
             print("initiating model ...")
-            model = PPO("MultiInputPolicy", self.robot_env, policy_kwargs=policy_kwargs, verbose=2)
+            model = PPO("MultiInputPolicy", self.robot_env, policy_kwargs=policy_kwargs, verbose=2, tensorboard_log= "./tensorboard/robot")
         else:
             print("loading model ...")
-            model = PPO.load(self.previous_save_path, self.robot_env)
+            model = PPO.load(
+                self.previous_save_path,
+                self.robot_env,
+                tensorboard_log="./tensorboard/",
+            )
 
         # fmt: off
         log_callback =  RobotLogCallback(train_env = self.robot_env, logpath="robot_logs.csv", eval_freq=100, verbose=0)
