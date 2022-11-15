@@ -162,6 +162,7 @@ class TeacherEnv(Env):
         """
         self.time_steps += 1
         self._get_robot_metrics()
+        reward = 0
 
         action = self._convert_action_to_dict_format(action)
 

@@ -1,5 +1,5 @@
 import unittest
-from highrl.utils.planner_checker import PlannerChecker, get_region_coordinates
+from highrl.utils.planner_checker import PlannerChecker, get_region_coordinates, check_valid_path_existance
 from highrl.obstacle.obstacles import Obstacles
 from highrl.obstacle.single_obstacle import SingleObstacle
 
@@ -64,10 +64,30 @@ class PlannerCheckerTest(unittest.TestCase):
         self.assertEqual(expected, value, msg=f"Expected: {expected}, Found: {value}")
 
     
-    def get_current_coords(self):
-        print("GONNE HERE")
-        value = sorted(get_region_coordinates(harmonic_number=1, eps=1, coords=[2, 3, 4, 5]))
+    def test_region_coords(self):
+        value = sorted(get_region_coordinates(harmonic_number=1, eps=1, coords=[2, 3, 4, 5])[0])
         expected = sorted([[3.5, 5.5], [4.5, 4.5], [1.5, 3.5], [2.5, 2.5]])
         for p in range(len(expected)):
-            self.assertListEqual(expected[p], value[p], msg=f"Expected:\n{expected[p]}\nFound:\n{value[p]}")
+            self.assertListEqual(expected[p], value[p], msg=f"\nExpected:\n{expected[p]}\nFound:\n{value[p]}")
+            
+    def test_region_lines(self):
+        _, lines = get_region_coordinates(harmonic_number=1, eps=1, coords=[2, 3, 4, 5])
+        input_coords = [3.5, 3.5, 4.5, 2.5]
+        expected = [5.5, 5.5, 4.5, 2.5]
+        points = [lines[i](input_coords[i])[1] for i in range(len(lines))]
+        self.assertListEqual(expected, points, msg=f"\nExpected:\n{expected}\nFound:\n{points}")
+        
+    def test_valid_path_existance_true(self):
+        _, lines = get_region_coordinates(harmonic_number=1, eps=1, coords=[2, 3, 4, 5])
+        obstacles = Obstacles([SingleObstacle(1, 4, 2, 1)])
+        value = check_valid_path_existance(obstacles, lines, 1280, 720)
+        expected = True
+        self.assertEqual(expected, value, msg=f"\nExpected: {expected} || Found: {value}")
+    
+    def test_valid_path_existance_false(self):
+        _, lines = get_region_coordinates(harmonic_number=1, eps=1, coords=[2, 3, 4, 5])
+        obstacles = Obstacles([SingleObstacle(1, 4, 3.5, 0.5)])
+        value = check_valid_path_existance(obstacles, lines, 1280, 720)
+        expected = False
+        self.assertEqual(expected, value, msg=f"\nExpected: {expected} || Found: {value}")
         
