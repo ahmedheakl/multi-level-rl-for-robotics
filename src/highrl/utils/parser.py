@@ -5,7 +5,7 @@ import os
 from configparser import RawConfigParser
 from highrl.configs import robot_config_str, teacher_config_str
 from typing import Tuple
-
+import getpass
 
 def parse_args() -> argparse.Namespace:
     """Crease argument parser interface
@@ -119,7 +119,7 @@ def handle_output_dir(args: argparse.Namespace) -> argparse.Namespace:
     Returns:
         argparse.Namespace: args namespace with adjusted output path.
     """
-    username = os.getlogin()
+    username = getpass.getuser()
     if args.output_dir == "desktop":
         args.output_dir = f"/home/{username}/Desktop"
     else:
