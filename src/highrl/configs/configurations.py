@@ -9,9 +9,9 @@ goal_radius = 10
 [timesteps]
 delta_t = 1
 # 1e3
-max_episode_steps = 10000
+max_episode_steps = 100
 # 1e5
-max_robot_steps = 1000000
+max_session_steps = 1000
 
 [lidar]
 n_angles = 1080
@@ -30,6 +30,7 @@ alpha = 0.4
 
 [render]
 render_each = 1
+save_to_file = False
 
 [env]
 epsilon = 1
@@ -61,4 +62,7 @@ lidar_mode = flat
 [statistics]
 scenario = train
 collect_statistics = True
+
+[timesteps]
+max_sessions = 10
 """

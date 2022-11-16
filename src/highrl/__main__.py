@@ -31,7 +31,11 @@ from highrl.policy.policy_networks import LinearActorCriticPolicy
 from highrl.policy.feature_extractors import LSTMFeatureExtractor
 from stable_baselines3.ppo.ppo import PPO
 from highrl.utils.parser import parse_args, generate_agents_config, handle_output_dir
-from highrl.callbacks.teacher_callback import TeacherLogCallback
+from highrl.callbacks.teacher_callback import (
+    TeacherLogCallback,
+    TeacherMaxStepsCallback,
+)
+from stable_baselines3.common.callbacks import CallbackList
 
 
 def main() -> None:
@@ -49,28 +53,31 @@ def main() -> None:
         if args.lidar_mode != "none":
             teacher_config.set("env", "lidar_mode", str(args.lidar_mode))
 
-        max_robot_steps = robot_config.getint("timesteps", "max_robot_steps")
+        max_robot_steps = robot_config.getint("timesteps", "max_session_steps")
         max_episode_timesteps = robot_config.getint("timesteps", "max_episode_steps")
+        max_sessions = teacher_config.getint("timesteps", "max_sessions")
         # fmt: off
-        teacher_config.add_section("timesteps")
-        teacher_config.set("timesteps", "max_robot_timesteps", str(max_robot_steps))
+        teacher_config.set("timesteps", "max_session_timesteps", str(max_robot_steps))
         teacher_config.set("timesteps", "max_episode_timesteps", str(max_episode_timesteps))
 
         args = handle_output_dir(args=args)
         planner_env = TeacherEnv(
             robot_config=robot_config,
             teacher_config=teacher_config,
-            robot_output_dir=args.robot_models_path,
+            args = args
         )
         policy_kwargs = {
             "features_extractor_class": LSTMFeatureExtractor,
             "features_extractor_kwargs": dict(features_dim=5),
         }
         logpath = os.path.join(args.teacher_logs_path, "teacher_logs.csv")
-        model = PPO(LinearActorCriticPolicy, planner_env, verbose=1 , policy_kwargs = policy_kwargs)
-        callback = TeacherLogCallback(train_env = planner_env, logpath=logpath, eval_freq=1, verbose=0)
+        model = PPO(LinearActorCriticPolicy, planner_env, verbose=1 , policy_kwargs = policy_kwargs,
+        learning_rate=0.0001, batch_size=16)
+        teacher_log_callback = TeacherLogCallback(train_env = planner_env, logpath=logpath, eval_freq=1, verbose=0)
+        teacher_max_steps_callback = TeacherMaxStepsCallback(max_steps = max_sessions)
+        callback = CallbackList([teacher_log_callback, teacher_max_steps_callback])
         model.learn(total_timesteps=int(1e7),  callback=callback)
-        model.save(f"{args.teacher_models_dir}/model_{int(time())}")
+        model.save(f"{args.teacher_models_path}/model_{int(time())}")
     else:
         raise NotImplementedError("robot training is not implemented")
 
