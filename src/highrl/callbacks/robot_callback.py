@@ -176,6 +176,7 @@ def print_statistics_10K(S, elapsed, verbose):
 
 
 def run_n_episodes(model, env, n):
+    env.episode_statistics["scenario"] = "robot_env_test"
     for i in range(n):
         obs = env.reset()
         done = False

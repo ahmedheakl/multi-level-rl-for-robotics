@@ -119,7 +119,7 @@ def handle_output_dir(args: argparse.Namespace) -> argparse.Namespace:
     Returns:
         argparse.Namespace: args namespace with adjusted output path.
     """
-    username = os.listdir("/home")[0]
+    username = os.getlogin()
     if args.output_dir == "desktop":
         args.output_dir = f"/home/{username}/Desktop"
     else:
