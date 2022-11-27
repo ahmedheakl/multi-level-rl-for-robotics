@@ -44,6 +44,10 @@ highrl -h # get available arguments
 highrl --render-each=50 --output-dir=~/Desktop
 ```
 
+<p align="center">
+  <img height="300" width="500" src="https://github.com/ahmedheakl/multi-level-rl-for-robotics/blob/main/imgs/highrl-img.png">
+</p>
+
 
 ## Contributing
 
