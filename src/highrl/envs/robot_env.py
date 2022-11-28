@@ -106,6 +106,7 @@ class RobotEnv(Env):
         self.render_each = config.getint("render", "render_each")
 
         self.epsilon = config.getint("env", "epsilon")
+        
         self.collect_statistics = config.getboolean("statistics", "collect_statistics")
         self.scenario = config.get("statistics", "scenario")
 

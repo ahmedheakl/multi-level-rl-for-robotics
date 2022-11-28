@@ -36,3 +36,10 @@ class Obstacles(object):
             raise StopIteration
         self.num += 1
         return self.obstacles_list[self.num - 1]
+
+    def __str__(self):
+        ret = "[\n"
+        for obstacle in self.obstacles_list:
+            ret += f"{obstacle}\n"
+        ret += "]"
+        return ret
