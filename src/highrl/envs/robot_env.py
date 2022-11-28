@@ -137,14 +137,13 @@ class RobotEnv(Env):
         )
 
         self.episode_reward += self.reward
-
-        self.results.append(
-            [self.episode_reward, self.episode_steps, self.success_flag]
-        )
         if self.episode_steps % self.render_each == 0:
             self.render()
         # log data
         if self.done:
+            self.results.append(
+                [self.episode_reward, self.episode_steps, self.success_flag]
+            )
             if self.collect_statistics:
                 self.episode_statistics.loc[len(self.episode_statistics)] = [  # type: ignore
                     self.total_steps,

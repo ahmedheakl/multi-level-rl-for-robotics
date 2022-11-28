@@ -1,3 +1,3 @@
-from highrl.utils.planner_checker import get_region_coordinates
-
-print(get_region_coordinates(1, 1, [2, 3, 4, 5])[1][1](3.5))
+import numpy as np
+x = np.array([[1,2], [1.5, 2]])
+print(np.max(x, axis=0), np.min(x, axis=0))
