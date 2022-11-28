@@ -12,11 +12,16 @@ from highrl.agents.robot import Robot
 from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.configs.colors import *
 import configparser
-import pandas as pd 
+import pandas as pd
 import time
+import argparse
+from os import path
+
 
 class RobotEnv(Env):
-    def __init__(self, config: configparser.RawConfigParser) -> None:
+    def __init__(
+        self, config: configparser.RawConfigParser, args: argparse.Namespace
+    ) -> None:
         super(RobotEnv, self).__init__()
         self.action_space_names = ["ActionXY", "ActionRot"]
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
@@ -34,7 +39,7 @@ class RobotEnv(Env):
         self.obstacles = Obstacles()
         self.robot = Robot()
         self.viewer = None
-
+        self.args = args
         self.reward = 0
         self.episode_reward = 0
         self.episode_steps = 0
@@ -104,6 +109,7 @@ class RobotEnv(Env):
         self.alpha = config.getfloat("reward", "alpha")
 
         self.render_each = config.getint("render", "render_each")
+        self.save_to_file = config.getboolean("render", "save_to_file")
 
         self.epsilon = config.getint("env", "epsilon")
         
@@ -139,7 +145,7 @@ class RobotEnv(Env):
 
         self.episode_reward += self.reward
         if self.episode_steps % self.render_each == 0:
-            self.render()
+            self.render(save_to_file=self.save_to_file)
         # log data
         if self.done:
             self.results.append(
@@ -403,7 +409,10 @@ class RobotEnv(Env):
             win.flip()
             if save_to_file:
                 pyglet.image.get_buffer_manager().get_color_buffer().save(
-                    "output_data/env_render/{:05}.png".format(self.episode_steps)
+                    path.join(
+                        self.args.env_render_path,
+                        "{:08}.png".format(self.episode_steps),
+                    )
                 )
             return self.viewer.isopen
 

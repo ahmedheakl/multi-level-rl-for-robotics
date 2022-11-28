@@ -3,6 +3,7 @@ import numpy as np
 from highrl.lidar_setup.rings import generate_rings
 from highrl.envs.robot_env import RobotEnv
 import configparser
+import argparse
 
 _L = 1080  # lidar size
 _RS = 5  # robotstate size
@@ -60,9 +61,11 @@ class RingsLidarEncoder:
 
 
 class RobotEnv1DPlayer(RobotEnv):
-    def __init__(self, config: configparser.RawConfigParser) -> None:
+    def __init__(
+        self, config: configparser.RawConfigParser, args: argparse.Namespace
+    ) -> None:
         self.encoder = FlatLidarEncoder()
-        super().__init__(config)
+        super().__init__(config, args)
 
         self.observation_space = self.encoder.observation_space
 
@@ -79,9 +82,11 @@ class RobotEnv1DPlayer(RobotEnv):
 
 
 class RobotEnv2DPlayer(RobotEnv):
-    def __init__(self, config: configparser.RawConfigParser) -> None:
+    def __init__(
+        self, config: configparser.RawConfigParser, args: argparse.Namespace
+    ) -> None:
         self.encoder = FlatLidarEncoder()
-        super().__init__(config)
+        super().__init__(config, args)
 
         self.observation_space = self.encoder.observation_space
 

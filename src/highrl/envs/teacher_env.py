@@ -21,7 +21,8 @@ from highrl.callbacks.robot_callback import (
 )
 from stable_baselines3.common.callbacks import CallbackList
 from prettytable import PrettyTable
-
+import argparse
+from os import path
 # TODO: scale the observation space to [0,1]
 
 
@@ -32,7 +33,7 @@ class TeacherEnv(Env):
         self,
         robot_config: configparser.RawConfigParser,
         teacher_config: configparser.RawConfigParser,
-        robot_output_dir: str,
+        args: argparse.Namespace,
     ) -> None:
 
         super(TeacherEnv, self).__init__()
@@ -52,8 +53,7 @@ class TeacherEnv(Env):
         self.observation_space = spaces.Box(
             low=-1000, high=1000, shape=(6,), dtype=np.float32
         )
-
-        self.robot_output_dir = robot_output_dir
+        self.args = args
         self.episodes = 0
         self.difficulty_area = 0
         self.difficulty_obs = 0
@@ -85,9 +85,9 @@ class TeacherEnv(Env):
             )
 
         if self.lidar_mode == "flat":
-            self.robot_env = RobotEnv1DPlayer(config=robot_config)
+            self.robot_env = RobotEnv1DPlayer(config=robot_config, args=self.args)
         elif self.lidar_mode == "rings":
-            self.robot_env = RobotEnv2DPlayer(config=robot_config)
+            self.robot_env = RobotEnv2DPlayer(config=robot_config, args=self.args)
         else:
             raise ValueError(f"Lidar mode {self.lidar_mode} is not avaliable")
 
@@ -102,7 +102,7 @@ class TeacherEnv(Env):
         self.max_robot_episode_steps = config.getint(
             "timesteps", "max_episode_timesteps"
         )
-        self.max_robot_timesteps = config.getint("timesteps", "max_robot_timesteps")
+        self.max_session_timesteps = config.getint("timesteps", "max_session_timesteps")
 
         self.alpha = config.getfloat("reward", "alpha")
         self.terminal_state_reward = config.getint("reward", "terminal_state_reward")
@@ -206,7 +206,9 @@ class TeacherEnv(Env):
             return self._make_obs(), reward, self.done, {}
 
         if self.robot_env.robot.is_robot_close_to_goal(min_dist=1000):
-            reward = self.too_close_to_goal_penality
+            too_close_to_goal_penality = self.too_close_to_goal_penality
+        else:
+            too_close_to_goal_penality = 0
 
         self.desired_difficulty = self.base_difficulty * (1.15) ** self.episodes
 
@@ -222,22 +224,25 @@ class TeacherEnv(Env):
             model = PPO.load(self.previous_save_path, self.robot_env)
 
         # fmt: off
-        log_callback =  RobotLogCallback(train_env = self.robot_env, logpath="robot_logs.csv", eval_freq=100, verbose=0)
-        robot_callback = RobotMaxStepsCallback(max_steps=self.max_robot_timesteps, verbose=0)
+        logpath = path.join(self.args.robot_logs_path, "robot_logs.csv")
+        eval_logpath = path.join(self.args.robot_logs_path, "robot_eval_logs.csv")
+        eval_model_save_path = path.join(self.args.robot_models_path, "test/best_tested_robot_model")
+        log_callback =  RobotLogCallback(train_env = self.robot_env, logpath= logpath, eval_freq=100, verbose=0)
+        robot_callback = RobotMaxStepsCallback(max_steps=self.max_session_timesteps, verbose=0)
         eval_callback = RobotEvalCallback(eval_env = self.robot_env,
         n_eval_episodes=10,
-        logpath="robot_logs_eval.csv",
-        savepath=None,
-        eval_freq=100000,
+        logpath=eval_logpath,
+        savepath=eval_model_save_path,
+        eval_freq=self.max_session_timesteps,
         verbose=1,
-        render=False,
+        render=True,
     )
         callback = CallbackList([log_callback, robot_callback, eval_callback])
         model.learn(total_timesteps=int(1e9), reset_num_timesteps=False,
                     callback=callback)
         
         print("saving model ...")
-        model_save_path = f"output_data/saved_models/robot/model_{int(time())}_{self.robot_level}"
+        model_save_path = path.join(self.args.robot_models_path, f"train/model_{int(time())}_{self.robot_level}")
         self.previous_save_path = model_save_path
         model.save(model_save_path)
         
@@ -353,7 +358,7 @@ class TeacherEnv(Env):
             ** self.alpha
             + (
                 self.terminal_state_flag
-                * (1 - self.time_steps / self.max_robot_episode_steps)
+                * (1 - self.robot_env.episode_steps / self.max_robot_episode_steps)
                 * self.terminal_state_reward
             )
             + (self.difficulty_area - self.desired_difficulty) * self.gamma
