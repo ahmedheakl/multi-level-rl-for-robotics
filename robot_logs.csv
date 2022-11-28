@@ -1,2 +1,0 @@
-,total_steps,episode_steps,scenario,damage,goal_reached,total_reward,episode_reward,reward,wall_time
-0,6756,6756,robot_env_train,100,False,0,1142.4707243026385,-23.703230446837495,1669591682.1311421

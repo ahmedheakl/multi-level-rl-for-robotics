@@ -3,6 +3,7 @@ src/highrl/output_data
 src/highrl.egg-info
 *__pycache__
 __pycache__
+test/__pycache__
 .tox
 UNKNOWN.egg-info
 dist
