@@ -7,9 +7,10 @@ from typing import Tuple, List, Union, Callable
 
 INF = 921600 # w * h = 1280 * 720
 
+
 def get_region_coordinates(
     harmonic_number: int, eps: int, coords: List[Union[int, float]]
-) -> Tuple[List[List[int]], List[Callable[[float], List[float]]]]:
+) -> Tuple[List[List[float]], List[Callable[[float], List[float]]]]:
     """Calculates the boundaries for the current harmonic
 
     Args:
@@ -52,14 +53,14 @@ def get_region_coordinates(
     x4: float = scale_factor * (bottom_intercept - (intercept + shift_amount))
     x_coords = [x1, x2, x3, x4]
     points = [
-        list(map(int, right_line(x_coords[i]))) if ((i & 1) ^ (i >> 1)) else list(map(int, left_line(x_coords[i])))
+        right_line(x_coords[i]) if ((i & 1) ^ (i >> 1)) else left_line(x_coords[i])
         for i in range(4)
     ]
     lines = [left_line, top_line, right_line, bottom_line]
     return points, lines
 
 
-def check_if_point_inside_polygen(p: List[int], coords: List[List[int]]) -> bool:
+def check_if_point_inside_polygen(p: List[int], coords: List[List[float]]) -> bool:
     """Check if the input point is inside input polygen
 
     Args:
@@ -83,7 +84,7 @@ def check_if_point_inside_polygen(p: List[int], coords: List[List[int]]) -> bool
     return vertical_check and horizontal_check
 
 
-def check_valid_point(p: List[int], width: int, height: int) -> bool:
+def check_valid_point(p: List[float], width: int, height: int) -> bool:
     """check if input point is within input constraints
 
     Args:
@@ -99,7 +100,7 @@ def check_valid_point(p: List[int], width: int, height: int) -> bool:
 
 def check_valid_path_existance(
     obstacles: Obstacles,
-    coords: List[List[int]],
+    coords: List[List[float]],
     width: int,
     height: int,
     robot_pos: List[int],
@@ -124,8 +125,8 @@ def check_valid_path_existance(
     dy = [-1, 0, 1, -1, 1, -1, 0, 1]
     num_dirs = 8
     # initialization
-    px, py = map(int, robot_pos)
-    gx, gy = map(int, goal_pos)
+    px, py = robot_pos
+    gx, gy = goal_pos
     env_map = []
     for x in range(width + 1):
         current = []
@@ -141,6 +142,7 @@ def check_valid_path_existance(
             if check_if_point_inside_polygen(p, coords):
                 x, y = p
                 env_map[x][y] = "X"
+    # print(env_map)
     # bfs
     queue = [[px, py]]
     while len(queue) > 0:

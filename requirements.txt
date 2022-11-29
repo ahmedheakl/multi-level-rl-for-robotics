@@ -1,7 +1,6 @@
 Cython==0.29.32
 gym==0.21.0
-highrl.egg==info
-numpy==1.17.4
+numpy==1.23.5
 pandas==1.5.1
 prettytable==3.5.0
 pyglet==1.5.26
