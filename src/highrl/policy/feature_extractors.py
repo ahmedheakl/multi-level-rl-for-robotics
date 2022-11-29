@@ -13,7 +13,7 @@ class LSTMFeatureExtractor(BaseFeaturesExtractor):
         This corresponds to the number of unit for the last layer.
     """
 
-    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 5):  # type: ignore
+    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 6):  # type: ignore
         super(LSTMFeatureExtractor, self).__init__(observation_space, features_dim)
         self.LSTM = nn.LSTM(input_size=features_dim, hidden_size=16, num_layers=1)
 

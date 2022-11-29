@@ -20,7 +20,7 @@ Do not forget to specify the output dir for models saving
     
 Version
 ------------------
- - highrl v0.0.5
+ - highrl v0.1.0
 """
 
 
@@ -68,7 +68,7 @@ def main() -> None:
         )
         policy_kwargs = {
             "features_extractor_class": LSTMFeatureExtractor,
-            "features_extractor_kwargs": dict(features_dim=5),
+            "features_extractor_kwargs": dict(features_dim=6),
         }
         logpath = os.path.join(args.teacher_logs_path, "teacher_logs.csv")
         model = PPO(LinearActorCriticPolicy, planner_env, verbose=1 , policy_kwargs = policy_kwargs,

@@ -3,6 +3,7 @@ src/highrl/output_data
 src/highrl.egg-info
 *__pycache__
 __pycache__
+test/__pycache__
 .tox
 UNKNOWN.egg-info
 dist
@@ -10,5 +11,8 @@ dist
 .pypirc
 output_data
 build
-lidar2d_fast.cpp
-lidar2d_fast.html
+cython_packages/*.cpp
+cython_packages/*.c
+cython_packages/*.html
+diff.py
+robot_logs.csv

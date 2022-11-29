@@ -7,7 +7,7 @@ from highrl.utils.calculations import *
 from highrl.policy.feature_extractors import Robot1DFeatureExtractor
 from stable_baselines3.ppo.ppo import PPO
 from random import randint, random, uniform
-from highrl.utils.planner_checker import PlannerChecker
+from highrl.utils.planner_checker import convex_hull_difficulty
 from highrl.callbacks.robot_callback import RobotMaxStepsCallback
 from time import time
 import configparser
@@ -20,14 +20,14 @@ from highrl.callbacks.robot_callback import (
     RobotEvalCallback,
 )
 from stable_baselines3.common.callbacks import CallbackList
-from os import path
+from prettytable import PrettyTable
 import argparse
-
+from os import path
 # TODO: scale the observation space to [0,1]
 
 
 class TeacherEnv(Env):
-    INF_DIFFICULTY = 2000
+    INF_DIFFICULTY = 921600 # w * h = 1280 * 720
 
     def __init__(
         self,
@@ -49,13 +49,14 @@ class TeacherEnv(Env):
         self.action_space = spaces.Box(
             low=0.01, high=0.99, shape=(7,), dtype=np.float32
         )
-        # [time_steps, robot_level, robot_reward, current_difficulity]
+        # [time_steps, robot_level, robot_reward, difficulty_area, difficulty_obs]
         self.observation_space = spaces.Box(
-            low=-1000, high=1000, shape=(5,), dtype=np.float32
+            low=-1000, high=1000, shape=(6,), dtype=np.float32
         )
         self.args = args
         self.episodes = 0
-        self.current_difficulty = 0
+        self.difficulty_area = 0
+        self.difficulty_obs = 0
         self.time_steps = 0
         self.robot_level = 0
         self.done = 0
@@ -64,8 +65,6 @@ class TeacherEnv(Env):
 
         self.terminal_state_flag = 0
         self.gamma = 1
-
-        self.checker = PlannerChecker()
 
         self.robot_avg_reward = 0
         self.robot_success_rate = 0
@@ -146,11 +145,10 @@ class TeacherEnv(Env):
             self.robot_avg_reward = total_reward / len(self.robot_env.results)
             self.robot_avg_episode_steps = total_steps / len(self.robot_env.results)
             self.robot_success_rate = num_success / len(self.robot_env.results)
-            print(f"|------------------------------|")
-            print(f"| avg_reward:   {self.robot_avg_reward:0.2f}  |")
-            print(f"| avg_ep_steps: {self.robot_avg_episode_steps:0.2f} |")
-            print(f"| success_rate: {self.robot_success_rate:0.2f}  |")
-            print(f"|------------------------------|")
+            print("======== Session Results ========")
+            results_table = PrettyTable(field_names=["avg_reward", "avg_ep_steps", "success_rate"])
+            results_table.add_row([f"{self.robot_avg_reward:0.2f}", f"{self.robot_avg_episode_steps:0.2f}", f"{self.robot_success_rate:0.2f}"])
+            print(results_table)
 
     def step(self, action) -> Tuple:
         """Take a step in the environment
@@ -163,6 +161,7 @@ class TeacherEnv(Env):
         """
         self.time_steps += 1
         self._get_robot_metrics()
+        reward = 0
 
         action = self._convert_action_to_dict_format(action)
 
@@ -190,14 +189,13 @@ class TeacherEnv(Env):
         )
         self.robot_env.reset()
 
-        args_list = list(map(int, [px, py, gx, gy]))
-        self.current_difficulty = self.checker.get_map_difficulity(
+        self.difficulty_area, self.difficulty_obs = convex_hull_difficulty(
             self.robot_env.obstacles,
+            self.robot_env.robot,
             self.robot_env.width,
-            self.robot_env.height,
-            *args_list,
+            self.robot_env.height
         )
-        if self.current_difficulty >= self.INF_DIFFICULTY:
+        if self.difficulty_area >= self.INF_DIFFICULTY:
             reward = self.infinite_difficulty_penality
             self.done = True
             return self._make_obs(), reward, self.done, {}
@@ -248,8 +246,8 @@ class TeacherEnv(Env):
         self.previous_save_path = model_save_path
         model.save(model_save_path)
         
-        self.terminal_state_flag = self.robot_success_flag and (self.current_difficulty >= self.desired_difficulty)
-        reward = self.__get_reward() + too_close_to_goal_penality
+        self.terminal_state_flag = self.robot_success_flag and (self.difficulty_area >= self.desired_difficulty)
+        reward += self.__get_reward()
         print(reward)
 
         if self.terminal_state_flag:
@@ -266,7 +264,8 @@ class TeacherEnv(Env):
                     self.robot_id,
                     reward,
                     self.robot_env.episode_reward,
-                    self.current_difficulty,
+                    self.difficulty_area,
+                    self.difficulty_obs, 
                     self.robot_level
                 ]
         return self._make_obs(), reward, self.done, {"episodes_count": self.episodes}
@@ -283,7 +282,8 @@ class TeacherEnv(Env):
         return [
             self.robot_level,
             self.robot_avg_reward,
-            self.current_difficulty,
+            self.difficulty_area,
+            self.difficulty_obs,
             self.robot_avg_episode_steps,
             self.robot_success_rate,
         ]
@@ -305,7 +305,12 @@ class TeacherEnv(Env):
 
         for i in range(len(action)):
             planner_output["{}".format(self.action_space_names[i])] = action[i]
-        print("teacher_action = {}".format(planner_output))
+        print("======== Teacher action ========")
+        names = ["px", "py", "gx", "gy", "h_cnt", "m_cnt", "s_cnt"]
+        action_table = PrettyTable()
+        for i, val in enumerate(list(planner_output.values())):
+            action_table.add_column(fieldname=names[i], column=[val])
+        print(action_table)
         return planner_output
 
     def _get_robot_position_from_action(self, action: dict) -> Tuple:
@@ -317,26 +322,26 @@ class TeacherEnv(Env):
         Returns:
             Tuple: clipped positions
         """
-        px = np.clip(
+        px = int(np.clip(
             self.robot_env.width * action["robot_X_position"],
             a_min=0,
             a_max=self.robot_env.width - 2,
-        )  # type: ignore
-        py = np.clip(
+        ))  # type: ignore
+        py = int(np.clip(
             self.robot_env.height * action["robot_Y_position"],
             a_min=0,
             a_max=self.robot_env.width - 2,
-        )
-        gx = np.clip(
+        ))
+        gx = int(np.clip(
             self.robot_env.width * action["goal_X_position"],
             a_min=0,
             a_max=self.robot_env.width - 2,
-        )
-        gy = np.clip(
+        ))
+        gy = int(np.clip(
             self.robot_env.height * action["goal_Y_position"],
             a_min=0,
             a_max=self.robot_env.height - 2,
-        )
+        ))
         return px, py, gx, gy
 
     def __get_reward(self) -> float:
@@ -347,7 +352,7 @@ class TeacherEnv(Env):
         """
         reward = (
             (
-                (self.current_difficulty / self.desired_difficulty)
+                (self.difficulty_area / self.desired_difficulty)
                 * (self.robot_avg_reward / self.max_robot_episode_reward)
             )
             ** self.alpha
@@ -356,7 +361,7 @@ class TeacherEnv(Env):
                 * (1 - self.robot_env.episode_steps / self.max_robot_episode_steps)
                 * self.terminal_state_reward
             )
-            + (self.current_difficulty - self.desired_difficulty) * self.gamma
+            + (self.difficulty_area - self.desired_difficulty) * self.gamma
         )
         return reward
 

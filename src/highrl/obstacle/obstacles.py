@@ -5,6 +5,7 @@ import numpy as np
 class Obstacles(object):
     def __init__(self, obstacles_list=[]) -> None:
         self.obstacles_list = obstacles_list
+        self.num = 0
 
     def __add__(self, obstacle: SingleObstacle):
         self.obstacles_list.append(obstacle)
@@ -26,3 +27,19 @@ class Obstacles(object):
                 flat_contours[v, :] = np.array([idx, vertex[0], vertex[1]])
                 v += 1
         return flat_contours, contours
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.num == len(self.obstacles_list):
+            raise StopIteration
+        self.num += 1
+        return self.obstacles_list[self.num - 1]
+
+    def __str__(self):
+        ret = "[\n"
+        for obstacle in self.obstacles_list:
+            ret += f"{obstacle}\n"
+        ret += "]"
+        return ret

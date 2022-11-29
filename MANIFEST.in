@@ -1,1 +1,2 @@
-include lidar2d_fast.pyx
+include cython_packages/lidar2d_fast.pyx
+include cython_packages/convex_hull.pyx

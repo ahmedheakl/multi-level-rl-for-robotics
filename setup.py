@@ -1,9 +1,7 @@
-from setuptools import setup, Extension
+from setuptools import setup
 from Cython.Build import cythonize
 import numpy
-import os
-
 setup(
-    ext_modules=cythonize("lidar2d_fast.pyx", annotate=True),
+    ext_modules=cythonize(["cython_packages/lidar2d_fast.pyx"], annotate=True),
     include_dirs=[numpy.get_include()],
 )

@@ -1,4 +1,5 @@
-from typing import Tuple
+from typing import Tuple, List, Union
+import numpy as np
 
 
 def calculate_norm(point):
@@ -72,6 +73,48 @@ def point_to_point_distance(p1, p2):
     p2_x, p2_y = p2
 
     return ((p1_x - p2_x) ** 2 + (p1_y - p2_y) ** 2) ** 0.5
+
+
+def cross_product_point_line(
+    point: List[int], p_first: List[int], p_sec: List[int]
+) -> Union[float, int]:
+    """Calculate the cross product between a point and a line
+
+    Args:
+        point (List[int]): input point
+        p_first (List[int]): first point of the line
+        p_sec (List[int]): second point of the line
+
+    Returns:
+        float: value of the cross product
+    """
+    p: np.ndarray = np.array(point, dtype=np.float32)
+    s1: np.ndarray = np.array(p_first, dtype=np.float32)
+    s2: np.ndarray = np.array(p_sec, dtype=np.float32)
+    l = p - s1
+    r = p - s2
+    return l[0] * r[1] - l[1] * r[0]
+
+
+def cross_product_triangle(
+    point: List[int],
+    p_first: List[int],
+    p_sec: List[int],
+) -> Union[float, int]:
+    """Triagular cross product
+    (p1 - p) x (p2 - p)
+    Args:
+        point (List[int]): input point
+        p_first (List[int]): first point of the line
+        p_sec (List[int]): second point of the line
+
+    Returns:
+        float: triangular cross product value
+    """
+    p = np.array(point, dtype=np.float32)
+    s1 = np.array(p_first, dtype=np.float32)
+    s2 = np.array(p_sec, dtype=np.float32)
+    return np.cross((s1 - p), (s2 - p)).tolist()  # type: ignore
 
 
 if __name__ == "__main__":

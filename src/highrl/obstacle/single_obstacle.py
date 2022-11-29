@@ -1,4 +1,5 @@
 from typing import Tuple
+import numpy as np
 
 
 class SingleObstacle(object):
@@ -32,6 +33,14 @@ class SingleObstacle(object):
 
     def overlap(self, obstacle):
         raise NotImplementedError
+
+    def get_grid_points(self):
+        h, w = map(int, (self.height, self.width))
+        points = [
+            [self.px + x, self.py + y] for x in range(w + 1) for y in range(h + 1)
+        ]
+        points = np.array(points, dtype=np.int32)
+        return points
 
     def __str__(self) -> str:
         return f"Obstacle: [{self.px}, {self.py}, {self.width}, {self.height}]"
