@@ -11,7 +11,13 @@ from highrl.utils.planner_checker import PlannerChecker
 from highrl.callbacks.robot_callback import RobotMaxStepsCallback
 from time import time
 import configparser
-from highrl.envs.env_encoders import RobotEnv1DPlayer, RobotEnv2DPlayer
+from highrl.envs.env_encoders import (
+    RobotEnv1DPlayer,
+    RobotEnv2DPlayer,
+    EvalEnv1DPlayer,
+    EvalEnv2DPlayer,
+)
+from highrl.envs.eval_env import RobotEvalEnv
 import pandas as pd
 import math
 from highrl.callbacks.robot_callback import (
@@ -32,6 +38,7 @@ class TeacherEnv(Env):
     def __init__(
         self,
         robot_config: configparser.RawConfigParser,
+        eval_config: configparser.RawConfigParser,
         teacher_config: configparser.RawConfigParser,
         args: argparse.Namespace,
     ) -> None:
@@ -84,11 +91,15 @@ class TeacherEnv(Env):
                     "robot_level",
                 ]
             )
+        # self.eval_env = RobotEvalEnv(config=eval_config, args=self.args)
 
         if self.lidar_mode == "flat":
             self.robot_env = RobotEnv1DPlayer(config=robot_config, args=self.args)
+            self.eval_env = EvalEnv1DPlayer(config=eval_config, args=self.args)
+
         elif self.lidar_mode == "rings":
             self.robot_env = RobotEnv2DPlayer(config=robot_config, args=self.args)
+            self.eval_env = EvalEnv2DPlayer(config=eval_config, args=self.args)
         else:
             raise ValueError(f"Lidar mode {self.lidar_mode} is not avaliable")
 
@@ -231,7 +242,7 @@ class TeacherEnv(Env):
         eval_model_save_path = path.join(self.args.robot_models_path, "test/best_tested_robot_model")
         log_callback =  RobotLogCallback(train_env = self.robot_env, logpath= logpath, eval_freq=100, verbose=0)
         robot_callback = RobotMaxStepsCallback(max_steps=self.max_session_timesteps, verbose=0)
-        eval_callback = RobotEvalCallback(eval_env = self.robot_env,
+        eval_callback = RobotEvalCallback(eval_env =self.eval_env  ,
         n_eval_episodes=10,
         logpath=eval_logpath,
         savepath=eval_model_save_path,

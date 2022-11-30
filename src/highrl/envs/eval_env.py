@@ -10,15 +10,12 @@ import math
 from os import path
 import argparse
 
-class RobotEvalEnv(RobotEnv):
 
+class RobotEvalEnv(RobotEnv):
     def __init__(self, *args, **kwargs):
         super(RobotEvalEnv, self).__init__(*args, **kwargs)
-        self.obstacles_configure ()
+        self.obstacles_configure()
 
-        
-
-    
     def _configure(self, config: configparser.RawConfigParser) -> None:
         """Configure the environment using input config file
 
@@ -27,14 +24,14 @@ class RobotEvalEnv(RobotEnv):
         """
         self.config = config
         self.robot_initial_px = config.getint("positions", "robot_initial_px")
-        self.robot_initial_py =  config.getint("positions", "robot_initial_py")
+        self.robot_initial_py = config.getint("positions", "robot_initial_py")
         self.robot_goal_px = config.getint("positions", "robot_goal_px")
         self.robot_goal_py = config.getint("positions", "robot_goal_py")
         self.width = config.getint("dimensions", "width")
         self.height = config.getint("dimensions", "height")
         self.robot_radius = config.getint("dimensions", "robot_radius")
         self.goal_radius = config.getint("dimensions", "goal_radius")
-        
+
         self.num_of_hard_obstacles = config.getint("obstacles", "n_hard")
         self.num_of_medium_obstacles = config.getint("obstacles", "n_,medium")
         self.num_of_small_obstacles = config.getint("obstacles", "n_small")
@@ -60,16 +57,15 @@ class RobotEvalEnv(RobotEnv):
         self.epsilon = config.getint("env", "epsilon")
         self.collect_statistics = config.getboolean("statistics", "collect_statistics")
         self.scenario = config.get("statistics", "scenario")
-    
-            
-    def obstacles_configure (self) -> None:
+
+    def obstacles_configure(self) -> None:
         self._generate_obstacles_points(
-           self.num_of_hard_obstacles,
+            self.num_of_hard_obstacles,
             min_dim=200,
             max_dim=400,
         )
         self._generate_obstacles_points(
-           self.num_of_medium_obstacles ,
+            self.num_of_medium_obstacles,
             min_dim=150,
             max_dim=300,
         )
@@ -90,7 +86,7 @@ class RobotEvalEnv(RobotEnv):
         self.add_boarder_obstacles()
         for i in range(int(obstacles_count)):
             overlap = True
-            new_obstacle = SingleObstacle() 
+            new_obstacle = SingleObstacle()
             while overlap:
                 px = randint(0, self.width)
                 py = randint(0, self.height)
@@ -99,47 +95,8 @@ class RobotEvalEnv(RobotEnv):
                 new_obstacle = SingleObstacle(px, py, new_width, new_height)
                 overlap = self.robot.is_overlapped(
                     new_obstacle, check_target="robot"
-                ) or self.robot.is_overlapped(
-                    new_obstacle, check_target="goal"
-                )
+                ) or self.robot.is_overlapped(new_obstacle, check_target="goal")
             self.obstacles += new_obstacle
 
     def _get_viewer(self):
         return self.viewer
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

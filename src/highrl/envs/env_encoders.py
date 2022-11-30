@@ -1,7 +1,7 @@
 from gym import spaces
 import numpy as np
 from highrl.lidar_setup.rings import generate_rings
-from highrl.envs.robot_env import RobotEnv 
+from highrl.envs.robot_env import RobotEnv
 from highrl.envs.eval_env import RobotEvalEnv
 import configparser
 import argparse
@@ -86,7 +86,7 @@ class RobotEnv2DPlayer(RobotEnv):
     def __init__(
         self, config: configparser.RawConfigParser, args: argparse.Namespace
     ) -> None:
-        self.encoder = FlatLidarEncoder() # need to be changed
+        self.encoder = FlatLidarEncoder()  # need to be changed
         super().__init__(config, args)
 
         self.observation_space = self.encoder.observation_space
@@ -101,23 +101,45 @@ class RobotEnv2DPlayer(RobotEnv):
         obs = super(RobotEnv2DPlayer, self).reset()
         h = self.encoder._encode_obs(obs)
         return h
-    
-class EvalEnv2DPlayer(RobotEvalEnv):
+
+
+class EvalEnv1DPlayer(RobotEvalEnv):
     def __init__(
         self, config: configparser.RawConfigParser, args: argparse.Namespace
     ) -> None:
-        self.encoder = FlatLidarEncoder() # need to be changed
+        self.encoder = FlatLidarEncoder()
         super().__init__(config, args)
 
         self.observation_space = self.encoder.observation_space
 
     def step(self, action):
-        obs, reward, done, info = super(RobotEnv2DPlayer, self).step(action)
+        obs, reward, done, info = super(EvalEnv1DPlayer, self).step(action)
         h = self.encoder._encode_obs(obs)
 
         return h, reward, done, info
 
     def reset(self):
-        obs = super(RobotEnv2DPlayer, self).reset()
+        obs = super(EvalEnv1DPlayer, self).reset()
+        h = self.encoder._encode_obs(obs)
+        return h
+
+
+class EvalEnv2DPlayer(RobotEvalEnv):
+    def __init__(
+        self, config: configparser.RawConfigParser, args: argparse.Namespace
+    ) -> None:
+        self.encoder = FlatLidarEncoder()  # need to be changed
+        super().__init__(config, args)
+
+        self.observation_space = self.encoder.observation_space
+
+    def step(self, action):
+        obs, reward, done, info = super(EvalEnv2DPlayer, self).step(action)
+        h = self.encoder._encode_obs(obs)
+
+        return h, reward, done, info
+
+    def reset(self):
+        obs = super(EvalEnv2DPlayer, self).reset()
         h = self.encoder._encode_obs(obs)
         return h

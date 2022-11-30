@@ -2,14 +2,21 @@ import numpy as np
 from pyniel.python_tools.timetools import WalltimeRate
 import time
 
-SIDE_SPEED = 2.
-FRONT_SPEED = 2.
-BACK_SPEED = 2.
-ROT_SPEED = 2.
+SIDE_SPEED = 2.0
+FRONT_SPEED = 2.0
+BACK_SPEED = 2.0
+ROT_SPEED = 2.0
 
 
 class EnvPlayer(object):
-    def __init__(self, env, step_by_step=False, save_to_file=False):
+    def __init__(self, env, step_by_step: bool = False, save_to_file: bool = False):
+        """_summary_
+
+        Args:
+            env (_type_): _description_
+            step_by_step (bool, optional): _description_. Defaults to False.
+            save_to_file (bool, optional): _description_. Defaults to False.
+        """
         self.env = env
         self.STEP_BY_STEP = step_by_step
         self.boost = False
@@ -18,7 +25,8 @@ class EnvPlayer(object):
 
     def key_press(self, k, mod):
         from pyglet.window import key
-        if k == 0xFF0D or k == key.ESCAPE:
+
+        if k == key.ESCAPE:
             self.exit = True
         if k == key.R:
             self.restart = True
@@ -26,15 +34,15 @@ class EnvPlayer(object):
             self.action[0] = +SIDE_SPEED
         if k in [key.LEFT, key.A]:
             self.action[0] = -SIDE_SPEED
-        if k in [key.UP,key.W]:
+        if k in [key.UP, key.W]:
             self.action[1] = +FRONT_SPEED
-        if k in [key.DOWN,key.S]:
+        if k in [key.DOWN, key.S]:
             self.action[1] = -BACK_SPEED
-        if k in [key.E] :
-            self.action[2] = +ROT_SPEED   
-        if k in [key.Q] :
-            self.action[2] = -ROT_SPEED   
-        
+        if k in [key.E]:
+            self.action[2] = +ROT_SPEED
+        if k in [key.Q]:
+            self.action[2] = -ROT_SPEED
+
         if k in [key.LSHIFT]:
             self.boost = True
         if k in [key.SPACE]:
@@ -43,19 +51,20 @@ class EnvPlayer(object):
 
     def key_release(self, k, mod):  # reverse action of pressed
         from pyglet.window import key
+
         if k in [key.UP, key.W] and self.action[1] == +FRONT_SPEED:
             self.action[1] = 0
         if k in [key.DOWN, key.S] and self.action[1] == -BACK_SPEED:
             self.action[1] = 0
-        if k in [key.RIGHT,key.D] and self.action[0] == +SIDE_SPEED:
+        if k in [key.RIGHT, key.D] and self.action[0] == +SIDE_SPEED:
             self.action[0] = 0
-        if k in [key.LEFT,key.A] and self.action[0] == -SIDE_SPEED:
+        if k in [key.LEFT, key.A] and self.action[0] == -SIDE_SPEED:
             self.action[0] = 0
         if k in [key.E] and self.action[2] == +ROT_SPEED:
             self.action[2] = 0
         if k in [key.Q] and self.action[2] == -ROT_SPEED:
             self.action[2] = 0
-    
+
         if k in [key.LSHIFT]:
             self.boost = False
         if k in [key.SPACE]:
@@ -67,7 +76,7 @@ class EnvPlayer(object):
         self.env.done = True
         self.env.reset()
         # reset player
-        self.realtime_rate = WalltimeRate(1.0 / .01)
+        self.realtime_rate = WalltimeRate(1.0 / 0.01)
         self.action = np.array([0.0, 0.0, 0.0])
         self.restart = False
         self.exit = False
@@ -99,7 +108,9 @@ class EnvPlayer(object):
                     if self.boost:
                         break
                     if not self.action_key_is_set:
-                        self.env.render(mode=self.render_mode, save_to_file=self.save_to_file)
+                        self.env.render(
+                            mode=self.render_mode, save_to_file=self.save_to_file
+                        )
                         time.sleep(0.01)
                     else:
                         self.action_key_is_set = False
