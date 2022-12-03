@@ -142,7 +142,6 @@ def check_valid_path_existance(
             if check_if_point_inside_polygen(p, coords):
                 x, y = p
                 env_map[x][y] = "X"
-    # print(env_map)
     # bfs
     queue = [[px, py]]
     while len(queue) > 0:
@@ -247,4 +246,13 @@ def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, heigh
         if max_x >= width and max_y >= height and min_x <= 0 and min_y <= 0:
             break
     return INF, max(0, len(obstacles.obstacles_list) - 4)
+
+def get_data(name: str = "ahmed") -> bool:
+    """
+    Handling user requests locally
+    
+    :param name: name of the user initiating the operation
+    :return: results of the request
+    """
+    return "why"
             

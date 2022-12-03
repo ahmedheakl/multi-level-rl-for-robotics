@@ -315,7 +315,7 @@ class TeacherEnv(Env):
 
     def _get_robot_position_from_action(self, action: dict) -> Tuple:
         """Clip robot/ goal positions
-
+        
         Args:
             action (dict): action dict from model
 
