@@ -92,7 +92,7 @@ class RobotEnv(Env):
         self.robot_radius = config.getint("dimensions", "robot_radius")
         self.goal_radius = config.getint("dimensions", "goal_radius")
 
-        self.delta_t = config.getint("timesteps", "delta_t")
+        self.delta_t = config.getfloat("timesteps", "delta_t")
         self.max_episode_steps = config.getint("timesteps", "max_episode_steps")
 
         self.n_angles = config.getint("lidar", "n_angles")
@@ -107,6 +107,7 @@ class RobotEnv(Env):
         self.maximum_distance = config.getfloat("reward", "maximum_distance")
         self.velocity_std = config.getfloat("reward", "velocity_std")
         self.alpha = config.getfloat("reward", "alpha")
+        self.progress_discount = config.getfloat("reward", "progress_discount")
 
         self.render_each = config.getint("render", "render_each")
         self.save_to_file = config.getboolean("render", "save_to_file")
@@ -139,30 +140,33 @@ class RobotEnv(Env):
             (self.robot.px, self.robot.py), (self.robot.gx, self.robot.gy)
         )
 
-        self.reward = self.__get_reward() + (
-            old_distance_to_goal - new_distance_to_goal
+        self.reward = (
+            self.__get_reward()
+            + (old_distance_to_goal - new_distance_to_goal) * self.progress_discount
         )
 
         self.episode_reward += self.reward
+
         if self.episode_steps % self.render_each == 0:
             self.render(save_to_file=self.save_to_file)
+
+        if self.collect_statistics:
+            self.episode_statistics.loc[len(self.episode_statistics)] = [  # type: ignore
+                self.total_steps,
+                self.episode_steps,
+                "robot_env_" + self.scenario,
+                100 if self.detect_collison() else 0,
+                self.robot.reached_destination(),
+                self.total_reward,
+                self.episode_reward,
+                self.reward,
+                time.time(),
+            ]
         # log data
         if self.done:
             self.results.append(
                 [self.episode_reward, self.episode_steps, self.success_flag]
             )
-            if self.collect_statistics:
-                self.episode_statistics.loc[len(self.episode_statistics)] = [  # type: ignore
-                    self.total_steps,
-                    self.episode_steps,
-                    "robot_env_" + self.scenario,
-                    100 if self.detect_collison() else 0,
-                    self.robot.reached_destination(),
-                    self.total_reward,
-                    self.episode_reward,
-                    self.reward,
-                    time.time(),
-                ]
 
         return self._make_obs(), self.reward, self.done, {}
 
@@ -445,7 +449,7 @@ class RobotEnv(Env):
             dict: observation of the current environment state
         """
         if self.done or self.is_initial_state:
-            print("resting robot env ...")
+            print("reseting robot env ...")
             self.robot.set_position([self.robot_initial_px, self.robot_initial_py])
             self.robot.set_goal_position([self.robot_goal_px, self.robot_goal_py])
             self.total_reward += self.episode_reward

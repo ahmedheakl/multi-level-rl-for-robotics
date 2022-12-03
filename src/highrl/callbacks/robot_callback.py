@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from pandas import DataFrame
+from pandas import DataFrame, concat
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env.base_vec_env import VecEnv
 
@@ -109,12 +109,12 @@ class RobotLogCallback(BaseCallback):
             if isinstance(self.training_env, VecEnv):
                 S = DataFrame()
                 for env in self.training_env.envs:  # type: ignore
-                    S = S.append(env.episode_statistics, ignore_index=True)
+                    S = concat([S, DataFrame.from_records(env.episode_statistics)])
             else:
                 S = env.episode_statistics  # type: ignore
 
             new_S = S[self.last_len_statistics :]
-            new_avg_reward = np.mean(new_S["reward"].values)
+            # new_avg_reward = np.mean(new_S["reward"].values)
             elapsed = time.time() - self.last_eval_time
             self.total_time += elapsed
             save_log(S, self.logpath, self.verbose)
@@ -235,6 +235,7 @@ class RobotEvalCallback(BaseCallback):
             toc = time.time()
             eval_duration = toc - tic
             new_S = S[self.last_len_statistics :]
+            print(S)
             new_avg_reward = np.mean(new_S["reward"].values)
 
             save_log(S, self.logpath, self.verbose)

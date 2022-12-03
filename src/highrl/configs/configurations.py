@@ -7,11 +7,11 @@ robot_radius = 20
 goal_radius = 10
 
 [timesteps]
-delta_t = 1
+delta_t = 0.2
 # 1e3
 max_episode_steps = 100
 # 1e5
-max_session_steps = 1000
+max_session_steps = 300
 
 [lidar]
 n_angles = 1080
@@ -27,6 +27,7 @@ minimum_distance = 0.1
 maximum_distance = 1470
 velocity_std = 2.0
 alpha = 0.4
+progress_discount = 0.4
 
 [render]
 render_each = 1
@@ -48,8 +49,9 @@ terminal_state_reward = 100
 max_reward = 3600
 base_difficulty = 590
 overlap_goal_penality = -100
-infinite_difficulty_penality = -1000
+infinite_difficulty_penality = -100
 too_close_to_goal_penality = -50
+gamma = 0.4
 
 [env]
 advance_probability = 0.9
@@ -64,5 +66,59 @@ scenario = train
 collect_statistics = True
 
 [timesteps]
-max_sessions = 10
+max_sessions = 100
+"""
+
+# ---------------------EVALUATIONS CONFIGURATIONS-----------------#
+eval_config_str = """
+[dimensions]
+width = 1080
+height = 720
+robot_radius = 20
+goal_radius = 10
+
+[positions]
+robot_initial_px = 50
+robot_initial_py = 50
+robot_goal_px = 900
+robot_goal_py = 700
+
+[obstacles]
+n_hard = 5
+n_,medium = 7
+n_small = 9
+
+[timesteps]
+delta_t = 1
+# 1e3
+max_episode_steps = 3000
+# 1e5
+max_session_steps = 300000
+
+[lidar]
+n_angles = 1080
+lidar_angle_increment = 005817764
+lidar_min_angle = 0
+lidar_max_angle = 6.283185307
+
+[reward]
+collision_score = -25
+reached_goal_score = 100
+minimum_velocity = 0.1
+minimum_distance = 0.1
+maximum_distance = 1470
+velocity_std = 2.0
+alpha = 0.4
+progress_discount = 0.4
+
+[render]
+render_each = 1
+save_to_file = False
+
+[env]
+epsilon = 1
+
+[statistics]
+collect_statistics = True
+scenario = train
 """

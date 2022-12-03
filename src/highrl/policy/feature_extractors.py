@@ -18,7 +18,8 @@ class LSTMFeatureExtractor(BaseFeaturesExtractor):
         self.LSTM = nn.LSTM(input_size=features_dim, hidden_size=16, num_layers=1)
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
-        th.tensor(observations)
+        # th.tensor(observations)
+        observations.clone().detach()
         self.LSTM_output, self.LSTM_hidden = self.LSTM(observations)
         return self.LSTM_output + self.LSTM_hidden[0] + self.LSTM_hidden[1]
 
