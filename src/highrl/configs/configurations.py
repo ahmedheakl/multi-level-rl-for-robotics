@@ -52,18 +52,30 @@ overlap_goal_penality = -100
 infinite_difficulty_penality = -100
 too_close_to_goal_penality = -50
 gamma = 0.4
+diff_increase_factor = 1.15
 
 [env]
 advance_probability = 0.9
 max_hard_obstacles_count = 2
 max_medium_obstacles_count = 5
 max_small_obstacles_count = 7
+hard_obstacles_max_dim = 300
+hard_obstacles_min_dim = 200
+medium_obstacles_max_dim = 200
+medium_obstacles_min_dim = 100
+small_obstacles_max_dim = 100
+small_obstacles_min_dim = 50
 # {flat: 1D, rings: 2D}
 lidar_mode = flat
+
+[render]
+render_eval = True
 
 [statistics]
 scenario = train
 collect_statistics = True
+robot_log_eval_freq = 100
+n_robot_eval_episodes = 1
 
 [timesteps]
 max_sessions = 100

@@ -130,6 +130,7 @@ class TeacherEnv(Env):
         self.gamma = config.getfloat("reward", "gamma")
         # start with base difficulty
         self.desired_difficulty = self.base_difficulty
+        self.diff_increase_factor = config.getfloat("reward", "diff_increase_factor")
 
         self.advance_probability = config.getfloat("env", "advance_probability")
         self.max_hard_obstacles_count = config.getint("env", "max_hard_obstacles_count")
@@ -139,9 +140,20 @@ class TeacherEnv(Env):
         self.max_small_obstacles_count = config.getint(
             "env", "max_small_obstacles_count"
         )
+        self.hard_obstacles_min_dim = config.getint("env", "hard_obstacles_min_dim")
+        self.hard_obstacles_max_dim = config.getint("env", "hard_obstacles_max_dim")
+        self.medium_obstacles_min_dim = config.getint("env", "medium_obstacles_min_dim")
+        self.medium_obstacles_max_dim = config.getint("env", "medium_obstacles_max_dim")
+        self.small_obstacles_min_dim = config.getint("env", "small_obstacles_min_dim")
+        self.small_obstacles_max_dim = config.getint("env", "small_obstacles_max_dim")
         self.lidar_mode = config.get("env", "lidar_mode")
         self.collect_statistics = config.getboolean("statistics", "collect_statistics")
         self.scenario = config.get("statistics", "scenario")
+        self.robot_log_eval_freq = config.getint("statistics", "robot_log_eval_freq")
+        self.n_robot_eval_episodes = config.getint(
+            "statistics", "n_robot_eval_episodes"
+        )
+        self.render_eval = config.getboolean("render", "render_eval")
 
     def _get_robot_metrics(self):
         if len(self.robot_env.results) > 0:
@@ -195,20 +207,20 @@ class TeacherEnv(Env):
 
         self._generate_obstacles_points(
             math.ceil(action["hard_obstacles_count"] * self.max_hard_obstacles_count),
-            min_dim=200,
-            max_dim=300,
+            min_dim=self.hard_obstacles_min_dim,
+            max_dim=self.hard_obstacles_max_dim,
         )
         self._generate_obstacles_points(
             math.ceil(
                 action["medium_obstacles_count"] * self.max_medium_obstacles_count
             ),
-            min_dim=100,
-            max_dim=200,
+            min_dim=self.medium_obstacles_min_dim,
+            max_dim=self.medium_obstacles_max_dim,
         )
         self._generate_obstacles_points(
             math.ceil(action["small_obstacles_count"] * self.max_small_obstacles_count),
-            min_dim=50,
-            max_dim=100,
+            min_dim=self.small_obstacles_min_dim,
+            max_dim=self.small_obstacles_max_dim,
         )
         self.robot_env.reset()
 
@@ -242,7 +254,9 @@ class TeacherEnv(Env):
             * self.robot_env.robot.is_robot_close_to_goal(min_dist=1000)
         )
 
-        self.desired_difficulty = self.base_difficulty * (1.15) ** self.episodes
+        self.desired_difficulty = (
+            self.base_difficulty * (self.diff_increase_factor) ** self.episodes
+        )
 
         policy_kwargs = dict(features_extractor_class=Robot1DFeatureExtractor)
 
@@ -261,15 +275,15 @@ class TeacherEnv(Env):
         logpath = path.join(self.args.robot_logs_path, "robot_logs.csv")
         eval_logpath = path.join(self.args.robot_logs_path, "robot_eval_logs.csv")
         eval_model_save_path = path.join(self.args.robot_models_path, "test/best_tested_robot_model")
-        log_callback =  RobotLogCallback(train_env = self.robot_env, logpath= logpath, eval_freq=100, verbose=0)
+        log_callback =  RobotLogCallback(train_env = self.robot_env, logpath= logpath, eval_freq=self.robot_log_eval_freq, verbose=0)
         robot_callback = RobotMaxStepsCallback(max_steps=self.max_session_timesteps, verbose=0)
         eval_callback = RobotEvalCallback(eval_env =self.eval_env  ,
-        n_eval_episodes=0,
+        n_eval_episodes=self.n_robot_eval_episodes,
         logpath=eval_logpath,
         savepath=eval_model_save_path,
         eval_freq=self.max_session_timesteps,
         verbose=1,
-        render=True,
+        render=self.render_eval,
     )
         callback = CallbackList([log_callback, robot_callback, eval_callback])
         
