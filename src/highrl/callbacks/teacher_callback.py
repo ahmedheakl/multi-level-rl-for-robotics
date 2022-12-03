@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from pandas import DataFrame
+from pandas import DataFrame, concat
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env.base_vec_env import VecEnv
 
@@ -97,20 +97,21 @@ class TeacherLogCallback(BaseCallback):
         :return: (bool) If the callback returns False, training is aborted early.
         """
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
-            # get episode_statistics
+            # get session_statistics
             env = self.training_env
             if isinstance(self.training_env, VecEnv):
                 S = DataFrame()
                 for env in self.training_env.envs:  # type: ignore
-                    if len(env.episode_statistics) != 0:
-                        S = S.append(env.episode_statistics, ignore_index=True)
+                    if len(env.session_statistics) != 0:
+                        S = concat([S, DataFrame.from_records(env.session_statistics)])
+
                         new_S = S[self.last_len_statistics :]  # type: ignore
-                        new_avg_reward = np.mean(new_S["reward"].values)
+                        # new_avg_reward = np.mean(new_S["teacher_reward"].values)
                         save_log(S, self.logpath, self.verbose)
             else:
-                S = env.episode_statistics  # type: ignore
+                S = env.session_statistics  # type: ignore
                 new_S = S[self.last_len_statistics :]  # type: ignore
-                new_avg_reward = np.mean(new_S["reward"].values)
+                # new_avg_reward = np.mean(new_S["teacher_reward"].values)
                 save_log(S, self.logpath, self.verbose)
 
             self.last_len_statistics = len(S)

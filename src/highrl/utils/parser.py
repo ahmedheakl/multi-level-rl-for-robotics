@@ -3,9 +3,10 @@ from rich_argparse import RichHelpFormatter
 from os import path, getcwd
 import os
 from configparser import RawConfigParser
-from highrl.configs import robot_config_str, teacher_config_str
+from highrl.configs import robot_config_str, teacher_config_str, eval_config_str
 from typing import Tuple
 import getpass
+
 
 def parse_args() -> argparse.Namespace:
     """Crease argument parser interface
@@ -20,6 +21,14 @@ def parse_args() -> argparse.Namespace:
         formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
+        "--device-used-for-training",
+        type=str,
+        default="none",
+        dest="device_used",
+        choices=["CPU", "GPU"],
+        help="what device to use for training (CPU/GPU)",
+    )
+    parser.add_argument(
         "--robot-config",
         type=str,
         default="none",
@@ -31,6 +40,13 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="none",
         dest="teacher_config_path",
+        help="path of configuration file of teacher environment",
+    )
+    parser.add_argument(
+        "--eval-config",
+        type=str,
+        default="none",
+        dest="eval_config_path",
         help="path of configuration file of teacher environment",
     )
     parser.add_argument("--mode", type=str, default="train", choices=["train", "test"])
@@ -72,8 +88,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def generate_agents_config(
-    robot_config_path: str, teacher_config_path: str
-) -> Tuple[RawConfigParser, RawConfigParser]:
+    robot_config_path: str, teacher_config_path: str, eval_config_path: str
+) -> Tuple[RawConfigParser, RawConfigParser, RawConfigParser]:
     """Generates the robot and teacher configs
 
     Args:
@@ -85,6 +101,7 @@ def generate_agents_config(
     """
     robot_config = None
     teacher_config = None
+    eval_config = None
     if robot_config_path != "none":
         robot_config_path = path.join(getcwd(), robot_config_path)
         assert (
@@ -95,6 +112,17 @@ def generate_agents_config(
     else:
         robot_config = RawConfigParser()
         robot_config.read_string(robot_config_str)
+
+    if eval_config_path != "none":
+        eval_config_path = path.join(getcwd(), eval_config_path)
+        assert (
+            path.exists(eval_config_path) == True
+        ), f"path {eval_config_path} does not exist"
+        eval_config = RawConfigParser()
+        eval_config.read(eval_config_path)
+    else:
+        eval_config = RawConfigParser()
+        eval_config.read_string(eval_config_str)
 
     if teacher_config_path != "none":
         teacher_config_path = path.join(getcwd(), teacher_config_path)
@@ -107,7 +135,7 @@ def generate_agents_config(
         teacher_config = RawConfigParser()
         teacher_config.read_string(teacher_config_str)
 
-    return (robot_config, teacher_config)
+    return (robot_config, teacher_config, eval_config)
 
 
 def handle_output_dir(args: argparse.Namespace) -> argparse.Namespace:
