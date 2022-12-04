@@ -261,13 +261,13 @@ class TeacherEnv(Env):
         logpath = path.join(self.args.robot_logs_path, "robot_logs.csv")
         eval_logpath = path.join(self.args.robot_logs_path, "robot_eval_logs.csv")
         eval_model_save_path = path.join(self.args.robot_models_path, "test/best_tested_robot_model")
-        log_callback =  RobotLogCallback(train_env = self.robot_env, logpath= logpath, eval_freq=100, verbose=0)
+        log_callback =  RobotLogCallback(train_env = self.robot_env, logpath= logpath, eval_frequency=100, verbose=0)
         robot_callback = RobotMaxStepsCallback(max_steps=self.max_session_timesteps, verbose=0)
         eval_callback = RobotEvalCallback(eval_env =self.eval_env  ,
         n_eval_episodes=0,
         logpath=eval_logpath,
         savepath=eval_model_save_path,
-        eval_freq=self.max_session_timesteps,
+        eval_frequency=self.max_session_timesteps,
         verbose=1,
         render=True,
     )
