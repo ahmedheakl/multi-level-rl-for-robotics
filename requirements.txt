@@ -1,7 +1,7 @@
 Cython==0.29.32
 gym==0.21.0
 numpy>=1.21.0
-pandas==1.5.1
+pandas>=1.3.5
 prettytable==3.5.0
 pyglet==1.5.26
 pymap2d==0.1.15
