@@ -80,7 +80,7 @@ class RobotEnv(Env):
             )
 
     def _configure(self, config: configparser.RawConfigParser) -> None:
-        """Configure the environment using input config file
+        """Configure the environment variables using input config object
 
         Args:
             config (configparser.RawConfigParser): input config object
@@ -117,14 +117,14 @@ class RobotEnv(Env):
         self.collect_statistics = config.getboolean("statistics", "collect_statistics")
         self.scenario = config.get("statistics", "scenario")
 
-    def step(self, action: List):
-        """Step into the new state using an action given by the agent model
+    def step(self, action: List) -> Tuple:
+        """Step into the new state using an action given by the robot model
 
         Args:
-            action (list): velocity action (vx, vy) provided by the agent model
+            action (List): velocity action (vx, vy) provided by the robot model
 
         Returns:
-            dict : environment state as the agent observation
+            Tuple : observation, reward, done, info
         """
         self.reward = 0
         self.episode_steps += 1
@@ -171,10 +171,10 @@ class RobotEnv(Env):
         return self._make_obs(), self.reward, self.done, {}
 
     def __get_reward(self) -> float:
-        """Calculate current reward
+        """Calculates current reward
 
         Returns:
-            float: reward
+            float: current reward value
         """
         reward = 0.0
         if self.detect_collison():
@@ -197,7 +197,7 @@ class RobotEnv(Env):
         return reward
 
     def set_robot_position(self, px: float, py: float, gx: float, gy: float) -> None:
-        """Initialize robot/goal position
+        """Initializes robot and goal positions
         Should be called from teacher
 
         Args:
@@ -215,6 +215,7 @@ class RobotEnv(Env):
         self.robot.set_goal_position([gx, gy])
 
     def add_boarder_obstacles(self) -> None:
+        """Creates border obstacles to limit the allowable navigation area"""
         # fmt: off
         self.obstacles = Obstacles([
                 SingleObstacle(-self.epsilon, 0, self.epsilon, self.height),  # left obstacle
@@ -223,11 +224,11 @@ class RobotEnv(Env):
                 SingleObstacle(0, self.height, self.width, self.epsilon),  # top obstacle
         ])
 
-    def _make_obs(self):
-        """Create agent observation from environment state and LiDAR
+    def _make_obs(self) -> dict:
+        """Creates robot observation from environment state and LiDAR
 
         Returns:
-            dict: agent observation
+            dict: robot observation
         """
         robot = self.robot
         lidar_pos = np.array([robot.px, robot.py, robot.theta], dtype=np.float32)
@@ -257,13 +258,13 @@ class RobotEnv(Env):
 
     def render(
         self, close: Any = False, save_to_file: Any = False, show_score: Any = True
-    ):
-        """Render robot and obstacles on an openGL window using gym viewer
+    ) -> bool:
+        """Renders robot and obstacles on an openGL window using gym viewer
 
         Args:
-            close (bool, optional): flag to close the environment window. Defaults to False.
-            save_to_file (bool, optional): flag to save render data to a file. Defaults to False.
-            show_score (boo, optional): flag to show reward on window. Defaults to True.
+            close (Any, optional): flag to close the environment window. Defaults to False.
+            save_to_file (Any, optional): flag to save render data to a file. Defaults to False.
+            show_score (Any, optional): flag to show reward on window. Defaults to True.
 
         Returns:
             bool: flag to check the status of the openGL window
@@ -420,11 +421,11 @@ class RobotEnv(Env):
                 )
             return self.viewer.isopen
 
-    def detect_collison(self):
-        """Detect if the agent has collided with any obstacle
+    def detect_collison(self) -> bool:
+        """Detects if the robot has collided with any obstacles
 
         Returns:
-            bool: flag to check collisions
+            bool: flag to check collisions. Ouputs True if there is collision
         """
         collision_flag = False
         for obstacle in self.obstacles.obstacles_list:
@@ -432,19 +433,20 @@ class RobotEnv(Env):
         return collision_flag
 
     def _convert_action_to_ActionXY_format(self, action: List) -> ActionXY:
-        """Convert action array into action object
+        """Converts action array into action object
 
         Args:
-            action (List): list of velocities given by agent model
+            action (List): list of velocities representing the robot action
 
         Returns:
-            ActionXY: same action by given in object format
+            ActionXY: same action but given in object format
         """
         return ActionXY(action[0], action[1], 0)
 
-    def reset(self):
+    def reset(self) -> dict:
         """
-        Reset robot state and generate new obstacles points
+        Resets robot state and generate new obstacles points
+
         Returns:
             dict: observation of the current environment state
         """

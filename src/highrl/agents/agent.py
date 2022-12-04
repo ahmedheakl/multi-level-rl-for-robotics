@@ -2,7 +2,7 @@ from typing import Any
 import numpy as np
 from numpy.linalg import norm
 import abc
-
+from typing import Tuple
 from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.utils.action import ActionXY
 from highrl.utils.calculations import (
@@ -54,7 +54,22 @@ class Agent(object):
         theta=0,
         radius=20,
         goal_radius=10,
-    ):
+    ) -> None:
+        """Sets all agent attributes
+
+        Args:
+            px (int, optional): agent x position. Defaults to 0.
+            py (int, optional): agent y position. Defaults to 0.
+            gx (int, optional): goal x position. Defaults to 0.
+            gy (int, optional): goal y position. Defaults to 0.
+            gt (int, optional): goal orientation angle. Defaults to 0.
+            vx (int, optional): agent x velocity. Defaults to 0.
+            vy (int, optional): agent y velocity. Defaults to 0.
+            w (int, optional): agent angular velocity. Defaults to 0.
+            theta (int, optional): agent angle theta. Defaults to 0.
+            radius (int, optional): agent radius. Defaults to 20.
+            goal_radius (int, optional): goal radius. Defaults to 10.
+        """
         self.px = px
         self.py = py
         self.gx = gx
@@ -67,27 +82,62 @@ class Agent(object):
         self.radius = radius
         self.goal_radius = goal_radius
 
-    def get_position(self):
+    def get_position(self) -> Tuple:
+        """Gets the agent postion
+
+        Returns:
+            Tuple: (agent x position, agent y position)
+        """
         return self.px, self.py
 
-    def set_position(self, position):
+    def set_position(self, position: Tuple) -> None:
+        """Sets the agent position
+
+        Args:
+            position (Tuple): (agent x position, agent y position)
+        """
         self.px, self.py = position
 
-    def set_goal_position(self, position):
+    def set_goal_position(self, position: Tuple) -> None:
+        """Sets goal position
+
+        Args:
+            position (Tuple): (goal x position, goal y position)
+        """
         self.gx, self.gy = position
 
-    def get_goal_position(self):
+    def get_goal_position(self) -> Tuple:
+        """Gets the goal postion
+
+        Returns:
+            Tuple: (goal x position, goal y position)
+        """
         return self.gx, self.gy
 
-    def get_velocity(self):
+    def get_velocity(self) -> Tuple:
+        """Gets agent velocity vector
+
+        Returns:
+            Tuple: (agent x velocity, agent y velocity, agent angular velocity)
+        """
         return self.vx, self.vy, self.w
 
-    def set_velocity(self, velocity):
+    def set_velocity(self, velocity: Tuple):
+        """Sets agent linear and angular velocity
+
+        Args:
+            velocity (Tuple): (agent x velocity, agent y velocity, agent angular velocity)
+        """
         self.vx = velocity[0]
         self.vy = velocity[1]
         self.w = velocity[2]
 
-    def check_validity(self, action):
+    def check_validity(self, action: Any):
+        """Checks if action is in right format. The right format is the object forman: ActionXY
+
+        Args:
+            action (Any): action whose format is required to be checked
+        """
         assert isinstance(action, ActionXY)
 
     def fix(self, x, mod):

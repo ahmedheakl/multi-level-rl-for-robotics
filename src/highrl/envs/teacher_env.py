@@ -1,12 +1,11 @@
 from typing import List, Tuple
-from highrl.envs.robot_env import RobotEnv
 from gym import Env, spaces
 from highrl.obstacle.single_obstacle import SingleObstacle
 import numpy as np
 from highrl.utils.calculations import *
 from highrl.policy.feature_extractors import Robot1DFeatureExtractor
 from stable_baselines3.ppo.ppo import PPO
-from random import randint, random, uniform
+from random import uniform
 from highrl.utils.planner_checker import convex_hull_difficulty
 from highrl.callbacks.robot_callback import RobotMaxStepsCallback
 from time import time
@@ -17,7 +16,6 @@ from highrl.envs.env_encoders import (
     EvalEnv1DPlayer,
     EvalEnv2DPlayer,
 )
-from highrl.envs.eval_env import RobotEvalEnv
 import pandas as pd
 import math
 from highrl.callbacks.robot_callback import (
@@ -30,10 +28,9 @@ from prettytable import PrettyTable
 import argparse
 from os import path
 
-# TODO: scale the observation space to [0,1]
-
 
 class TeacherEnv(Env):
+
     INF_DIFFICULTY = 921600  # w * h = 1280 * 720
 
     def __init__(
@@ -43,16 +40,27 @@ class TeacherEnv(Env):
         teacher_config: configparser.RawConfigParser,
         args: argparse.Namespace,
     ) -> None:
+        """Construct the teacher enviornment
+
+        Args:
+            robot_config (configparser.RawConfigParser): robot env config object
+            eval_config (configparser.RawConfigParser): eval env config object
+            teacher_config (configparser.RawConfigParser): teacher env config object
+            args (argparse.Namespace): args namespace with generated files output path
+
+        Raises:
+            ValueError: raises error if the user entered a lidar mode other than flat or rings
+        """
 
         super(TeacherEnv, self).__init__()
         self.action_space_names = [
-            "robot_X_position",
-            "robot_Y_position",
-            "goal_X_position",
-            "goal_Y_position",
-            "hard_obstacles_count",
-            "medium_obstacles_count",
-            "small_obstacles_count",
+            "robot_x",
+            "robot_y",
+            "goal_x",
+            "goal_y",
+            "hard_obst_cnt",
+            "medium_obst_cnt",
+            "small_obst_cnt",
         ]
         self.action_space = spaces.Box(
             low=0.01, high=0.99, shape=(7,), dtype=np.float32
@@ -91,7 +99,6 @@ class TeacherEnv(Env):
                     "robot_level",
                 ]
             )
-        # self.eval_env = RobotEvalEnv(config=eval_config, args=self.args)
 
         if self.lidar_mode == "flat":
             self.robot_env = RobotEnv1DPlayer(config=robot_config, args=self.args)
@@ -104,8 +111,7 @@ class TeacherEnv(Env):
             raise ValueError(f"Lidar mode {self.lidar_mode} is not avaliable")
 
     def _configure(self, config: configparser.RawConfigParser) -> None:
-        """Configure the environment using input config file
-
+        """Configure the environment variables using input config object
         Args:
             config (configparser.RawConfigParser): input config object
         """
@@ -155,7 +161,11 @@ class TeacherEnv(Env):
         )
         self.render_eval = config.getboolean("render", "render_eval")
 
-    def _get_robot_metrics(self):
+    def _get_robot_metrics(self) -> None:
+        """
+        Calculates and prints training session results indicating how well the robot performed
+        during this session. This is done for every robot trainig session created by the teacher.
+        """
         if len(self.robot_env.results) > 0:
             total_reward = 0
             total_steps = 0
@@ -183,14 +193,14 @@ class TeacherEnv(Env):
             )
             print(results_table)
 
-    def step(self, action) -> Tuple:
-        """Take a step in the environment
+    def step(self, action: List) -> Tuple:
+        """Step into the new state using an action given by the teacher model
 
         Args:
-            action (list): action to take
+            action (List): action to take
 
         Returns:
-            tuple: observation, reward, done, info
+            Tuple: observation, reward, done, info
         """
         self.time_steps += 1
         self.reward = 0
@@ -206,19 +216,17 @@ class TeacherEnv(Env):
         self.robot_env.add_boarder_obstacles()
 
         self._generate_obstacles_points(
-            math.ceil(action["hard_obstacles_count"] * self.max_hard_obstacles_count),
+            math.ceil(action["hard_obst_cnt"] * self.max_hard_obstacles_count),
             min_dim=self.hard_obstacles_min_dim,
             max_dim=self.hard_obstacles_max_dim,
         )
         self._generate_obstacles_points(
-            math.ceil(
-                action["medium_obstacles_count"] * self.max_medium_obstacles_count
-            ),
+            math.ceil(action["medium_obst_cnt"] * self.max_medium_obstacles_count),
             min_dim=self.medium_obstacles_min_dim,
             max_dim=self.medium_obstacles_max_dim,
         )
         self._generate_obstacles_points(
-            math.ceil(action["small_obstacles_count"] * self.max_small_obstacles_count),
+            math.ceil(action["small_obst_cnt"] * self.max_small_obstacles_count),
             min_dim=self.small_obstacles_min_dim,
             max_dim=self.small_obstacles_max_dim,
         )
@@ -326,7 +334,7 @@ class TeacherEnv(Env):
     def render(self):
         pass
 
-    def _make_obs(self):
+    def _make_obs(self) -> List:
         """Create observations
 
         Returns:
@@ -341,14 +349,14 @@ class TeacherEnv(Env):
             self.robot_success_rate,
         ]
 
-    def _convert_action_to_dict_format(self, action):
-        """Convert action form list format to dict format
+    def _convert_action_to_dict_format(self, action: List) -> dict:
+        """Convert action form List format to dict format
 
         Args:
-            action (list): output of planner model
+            action (List): output of teacher model
 
         Returns:
-            dict: action dictionay (robotPosition, goalPosition, numberOfObstacles)
+            dict: action dictionay (robot_x, robot_y, goal_x, goal_y, hard_obst_cnt, medium_obst_cnt, small_obst_cnt)
         """
         planner_output = {}
         action[0] = max(action[0], 0.1)
@@ -367,38 +375,38 @@ class TeacherEnv(Env):
         return planner_output
 
     def _get_robot_position_from_action(self, action: dict) -> Tuple:
-        """Clip robot/ goal positions
+        """Clip robot and goal positions to make sure they are inside the environment dimensions
 
         Args:
             action (dict): action dict from model
 
         Returns:
-            Tuple: clipped positions
+            Tuple: clipped positions of robot and goal
         """
         px = int(
             np.clip(
-                self.robot_env.width * action["robot_X_position"],
+                self.robot_env.width * action["robot_x"],
                 a_min=0,
                 a_max=self.robot_env.width - 2,
             )
         )  # type: ignore
         py = int(
             np.clip(
-                self.robot_env.height * action["robot_Y_position"],
+                self.robot_env.height * action["robot_y"],
                 a_min=0,
                 a_max=self.robot_env.width - 2,
             )
         )
         gx = int(
             np.clip(
-                self.robot_env.width * action["goal_X_position"],
+                self.robot_env.width * action["goal_x"],
                 a_min=0,
                 a_max=self.robot_env.width - 2,
             )
         )
         gy = int(
             np.clip(
-                self.robot_env.height * action["goal_Y_position"],
+                self.robot_env.height * action["goal_y"],
                 a_min=0,
                 a_max=self.robot_env.height - 2,
             )
@@ -406,10 +414,10 @@ class TeacherEnv(Env):
         return px, py, gx, gy
 
     def __get_reward(self) -> float:
-        """Calculate current reward
+        """Calculates current reward
 
         Returns:
-            float: current reward
+            float: current reward value
         """
         reward = (
             (
@@ -432,7 +440,9 @@ class TeacherEnv(Env):
         """Generate obstacles based on teacher action for next robot session
 
         Args:
-            obstacles_count (int): number of obstacles
+            obstacles_count (int): number of obstacles to generate
+            min_dim (int): min dimension of generated obstacles
+            max_dim (int): max dimension of generated obstacles
         """
         for i in range(int(obstacles_count)):
             overlap = True
@@ -450,7 +460,12 @@ class TeacherEnv(Env):
                 )
             self.robot_env.obstacles += new_obstacle
 
-    def reset(self):
+    def reset(self) -> List:
+        """Resets teacher state
+
+        Returns:
+            List: observation vector
+        """
         self.time_steps = 0
         self.done = 0
         return self._make_obs()
