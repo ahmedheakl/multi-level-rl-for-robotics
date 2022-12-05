@@ -80,7 +80,7 @@ class RobotEnv(Env):
             )
 
     def _configure(self, config: configparser.RawConfigParser) -> None:
-        """Configure the environment variables using input config object
+        """Configure environment variables using input config object
 
         Args:
             config (configparser.RawConfigParser): input config object
@@ -118,7 +118,7 @@ class RobotEnv(Env):
         self.scenario = config.get("statistics", "scenario")
 
     def step(self, action: List) -> Tuple:
-        """Step into the new state using an action given by the robot model
+        """Step into a new state using an action given by the robot model
 
         Args:
             action (List): velocity action (vx, vy) provided by the robot model
@@ -198,7 +198,7 @@ class RobotEnv(Env):
 
     def set_robot_position(self, px: float, py: float, gx: float, gy: float) -> None:
         """Initializes robot and goal positions
-        Should be called from teacher
+        Should be called from ``teacher``
 
         Args:
             px (float): x_position of robot
@@ -444,8 +444,7 @@ class RobotEnv(Env):
         return ActionXY(action[0], action[1], 0)
 
     def reset(self) -> dict:
-        """
-        Resets robot state and generate new obstacles points
+        """Resets robot state and generate new obstacles points
 
         Returns:
             dict: observation of the current environment state

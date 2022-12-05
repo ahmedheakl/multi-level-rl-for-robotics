@@ -93,11 +93,13 @@ def generate_agents_config(
     """Generates the robot and teacher configs
 
     Args:
-        robot_config_path (str): path of the config file for robot
-        teacher_config_path (str): path of the config file for teacher
+        robot_config_path (str): path of the config file for robot env
+        teacher_config_path (str): path of the config file for teacher env
+        eval_config_path (str): path of the config file for eval env
 
     Returns:
-        Tuple[RawConfigParser, RawConfigParser]: config files
+        Tuple[RawConfigParser, RawConfigParser, RawConfigParser]: Tuple of config objects for
+                                                                teacher, robot and eval envs
     """
     robot_config = None
     teacher_config = None

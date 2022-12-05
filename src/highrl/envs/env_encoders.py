@@ -11,7 +11,7 @@ _RS = 5  # robotstate size
 
 
 class FlatLidarEncoder:
-    """Genetric class to encode environment for 1D lidar states"""
+    """Generic class to encode environment for 1D lidar states"""
 
     def __init__(self) -> None:
         self.lidar_dim = 1080

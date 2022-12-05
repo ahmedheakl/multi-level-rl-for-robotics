@@ -1,11 +1,15 @@
 from highrl.obstacle.obstacles import Obstacles
-from highrl.utils.calculations import cross_product_point_line, cross_product_triangle, point_to_point_distance
+from highrl.utils.calculations import (
+    cross_product_point_line,
+    cross_product_triangle,
+    point_to_point_distance,
+)
 import numpy as np
 from highrl.agents.robot import Robot
 from typing import Tuple, List, Union, Callable
 
 
-INF = 921600 # w * h = 1280 * 720
+INF = 921600  # w * h = 1280 * 720
 
 
 def get_region_coordinates(
@@ -105,7 +109,7 @@ def check_valid_path_existance(
     height: int,
     robot_pos: List[int],
     goal_pos: List[int],
-    omit_first_four: bool = True
+    omit_first_four: bool = True,
 ) -> bool:
     """Check if there is a valid path in the input segment
 
@@ -133,7 +137,7 @@ def check_valid_path_existance(
         for y in range(height + 1):
             current.append(".")
         env_map.append(current)
-        
+
     for i, obstacle in enumerate(obstacles):
         if omit_first_four and i < 4:
             continue
@@ -164,6 +168,7 @@ def check_valid_path_existance(
                 queue.append([nx, ny])
     return False
 
+
 def convex_hull_compute(points: List[List[int]]) -> List[List[int]]:
     """Compute convex hull polygen of input points
 
@@ -188,6 +193,7 @@ def convex_hull_compute(points: List[List[int]]) -> List[List[int]]:
         points.reverse()
     return convex_polygen
 
+
 def get_area_of_convex_polygen(points: List[List[int]]) -> float:
     """Compute the area of a polygen using its points
 
@@ -203,11 +209,14 @@ def get_area_of_convex_polygen(points: List[List[int]]) -> float:
     array_points = np.array(points, dtype=np.float32)
     area = 0
     for i in range(num):
-        area += np.cross(array_points[i], array_points[i+1])
+        area += np.cross(array_points[i], array_points[i + 1])
     area = abs(area)
     return area
 
-def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, height: int) -> Tuple[float, int]:
+
+def convex_hull_difficulty(
+    obstacles: Obstacles, robot: Robot, width: int, height: int
+) -> Tuple[float, int]:
     """Calculate env complexity using convex_hull algorithm
 
     Args:
@@ -225,7 +234,9 @@ def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, heigh
     harmonic = 1
     while True:
         coords, _ = get_region_coordinates(harmonic, eps, [px, py, gx, gy])
-        if check_valid_path_existance(obstacles, coords, width, height, [px, py], [gx, gy]):
+        if check_valid_path_existance(
+            obstacles, coords, width, height, [px, py], [gx, gy]
+        ):
             points = [[px, py], [gx, gy]]
             num_overlap_obstacles = 0
             for obstacle in obstacles:
@@ -238,7 +249,7 @@ def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, heigh
                 num_overlap_obstacles += overlapped
             convex_polygen = convex_hull_compute(points)
             if num_overlap_obstacles == 0:
-                
+
                 return point_to_point_distance((px, py), (gx, gy)), 0
             return get_area_of_convex_polygen(convex_polygen), num_overlap_obstacles
         max_x, max_y = np.max(np.array(coords), axis=0)
@@ -247,4 +258,3 @@ def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, heigh
         if max_x >= width and max_y >= height and min_x <= 0 and min_y <= 0:
             break
     return INF, max(0, len(obstacles.obstacles_list) - 4)
-            

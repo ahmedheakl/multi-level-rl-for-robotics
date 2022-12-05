@@ -1,3 +1,6 @@
+"""This module contains:
+    Robot Class: class specific for robots. This class inherits from the Agent class
+"""
 from highrl.agents.agent import Agent
 
 

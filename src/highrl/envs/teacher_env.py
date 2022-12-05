@@ -6,7 +6,7 @@ from highrl.utils.calculations import *
 from highrl.policy.feature_extractors import Robot1DFeatureExtractor
 from stable_baselines3.ppo.ppo import PPO
 from random import uniform
-from highrl.utils.planner_checker import convex_hull_difficulty
+from highrl.utils.teacher_checker import convex_hull_difficulty
 from highrl.callbacks.robot_callback import RobotMaxStepsCallback
 from time import time
 import configparser
@@ -454,7 +454,7 @@ class TeacherEnv(Env):
                 new_height = uniform(min_dim, max_dim)
                 new_obstacle = SingleObstacle(px, py, new_width, new_height)
                 overlap = self.robot_env.robot.is_overlapped(
-                    new_obstacle, check_target="robot"
+                    new_obstacle, check_target="agent"
                 ) or self.robot_env.robot.is_overlapped(
                     new_obstacle, check_target="goal"
                 )

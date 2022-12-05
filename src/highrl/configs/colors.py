@@ -1,3 +1,8 @@
+"""
+This module contains:
+    Colors configurations of for rendering robot training window
+"""
+
 import numpy as np
 
 green_color = (50, 225, 30)
