@@ -1,6 +1,6 @@
-.. _teacherenv: 
-
 .. currentmodule:: highrl.envs.teacher_env
+
+.. _teacherenv: 
 
 Teacher Environment
 ===================

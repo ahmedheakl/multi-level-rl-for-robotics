@@ -20,9 +20,8 @@ Do not forget to specify the output dir for models saving
     
 Version
 ------------------
- - highrl v0.1.0
+ - highrl v0.1.1
 """
-
 
 import os
 import torch

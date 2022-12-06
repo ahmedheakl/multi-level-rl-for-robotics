@@ -43,7 +43,7 @@ Main Features
    :caption: Environments
 
    envs/env
-   envs/teacherenv
+   envs/teacherenvdocs
    envs/robotenv
    envs/evalenv
 

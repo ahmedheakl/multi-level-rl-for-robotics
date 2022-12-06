@@ -27,4 +27,4 @@ Compute the difficulty
 
 you can use the ``highrl.utils.planner_checker.convex_hull_compute()`` function:
 
-.. autofunction:: highrl.utils.planner_checker.get_data
+autofunction:: highrl.utils.p

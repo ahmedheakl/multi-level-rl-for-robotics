@@ -1,6 +1,7 @@
 src/highrl/build
 src/highrl/output_data
 src/highrl.egg-info
+src/*.so
 *__pycache__
 __pycache__
 test/__pycache__
@@ -16,3 +17,4 @@ cython_packages/*.c
 cython_packages/*.html
 diff.py
 robot_logs.csv
+
