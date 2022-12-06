@@ -1,1 +1,2 @@
 rst2pdf>=0.99
+sphinxcontrib-napoleon>=0.7
