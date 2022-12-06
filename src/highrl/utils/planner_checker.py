@@ -142,6 +142,10 @@ def check_valid_path_existance(
             if check_if_point_inside_polygen(p, coords):
                 x, y = p
                 env_map[x][y] = "X"
+<<<<<<< HEAD
+=======
+    # print(env_map)
+>>>>>>> d43a5220b17d8bbf27ddab5b46ca91440e4e615b
     # bfs
     queue = [[px, py]]
     while len(queue) > 0:
@@ -207,9 +211,13 @@ def get_area_of_convex_polygen(points: List[List[int]]) -> float:
     return area
 
 def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, height: int) -> Tuple[float, int]:
+<<<<<<< HEAD
     """Calculates env complexity using `convex_hull` algorithm
     
     Read more about `convex hull problem <https://en.wikipedia.org/wiki/Convex_hull>`_.
+=======
+    """Calculate env complexity using convex_hull algorithm
+>>>>>>> d43a5220b17d8bbf27ddab5b46ca91440e4e615b
 
     Args:
         obstacles (Obstacles): env obstacles
@@ -220,7 +228,10 @@ def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, heigh
     Returns:
         Tuple[float, int]: env area difficulty, env obstacles difficulty
     """
+<<<<<<< HEAD
     
+=======
+>>>>>>> d43a5220b17d8bbf27ddab5b46ca91440e4e615b
     px, py = robot.get_position()
     gx, gy = robot.get_goal_position()
     eps = 5
@@ -249,6 +260,7 @@ def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, heigh
         if max_x >= width and max_y >= height and min_x <= 0 and min_y <= 0:
             break
     return INF, max(0, len(obstacles.obstacles_list) - 4)
+<<<<<<< HEAD
 
 def get_data(name: str = "ahmed") -> bool:
     """
@@ -258,4 +270,6 @@ def get_data(name: str = "ahmed") -> bool:
     :return: results of the request
     """
     return "why"
+=======
+>>>>>>> d43a5220b17d8bbf27ddab5b46ca91440e4e615b
             

@@ -25,6 +25,7 @@ Version
 
 
 import os
+import torch
 from highrl.envs.teacher_env import TeacherEnv
 from time import time
 from highrl.policy.policy_networks import LinearActorCriticPolicy
@@ -43,8 +44,8 @@ def main() -> None:
     print(f">>> Start training {args.env_mode} ... ")
 
     if args.env_mode == "teacher":
-        robot_config, teacher_config = generate_agents_config(
-            args.robot_config_path, args.teacher_config_path
+        robot_config, teacher_config, eval_config = generate_agents_config(
+            args.robot_config_path, args.teacher_config_path, args.eval_config_path
         )
 
         if args.render_each > -1:
@@ -52,6 +53,15 @@ def main() -> None:
 
         if args.lidar_mode != "none":
             teacher_config.set("env", "lidar_mode", str(args.lidar_mode))
+
+        if args.device_used != "none":
+            args.device_used = torch.device(
+                "cuda"
+                if (torch.cuda.is_available() and args.device_used == "GPU")
+                else "cpu"
+            )
+        else:
+            args.device_used = "auto"
 
         max_robot_steps = robot_config.getint("timesteps", "max_session_steps")
         max_episode_timesteps = robot_config.getint("timesteps", "max_episode_steps")
@@ -61,9 +71,10 @@ def main() -> None:
         teacher_config.set("timesteps", "max_episode_timesteps", str(max_episode_timesteps))
 
         args = handle_output_dir(args=args)
-        planner_env = TeacherEnv(
+        teacher_env = TeacherEnv(
             robot_config=robot_config,
             teacher_config=teacher_config,
+            eval_config=eval_config,
             args = args
         )
         policy_kwargs = {
@@ -71,9 +82,9 @@ def main() -> None:
             "features_extractor_kwargs": dict(features_dim=6),
         }
         logpath = os.path.join(args.teacher_logs_path, "teacher_logs.csv")
-        model = PPO(LinearActorCriticPolicy, planner_env, verbose=1 , policy_kwargs = policy_kwargs,
-        learning_rate=0.0001, batch_size=16)
-        teacher_log_callback = TeacherLogCallback(train_env = planner_env, logpath=logpath, eval_freq=1, verbose=0)
+        model = PPO(LinearActorCriticPolicy, teacher_env, verbose=1 , policy_kwargs = policy_kwargs,
+        learning_rate=0.0001, batch_size=16, device=args.device_used)
+        teacher_log_callback = TeacherLogCallback(train_env = teacher_env, logpath=logpath, eval_freq=1, verbose=0)
         teacher_max_steps_callback = TeacherMaxStepsCallback(max_steps = max_sessions)
         callback = CallbackList([teacher_log_callback, teacher_max_steps_callback])
         model.learn(total_timesteps=int(1e7),  callback=callback)

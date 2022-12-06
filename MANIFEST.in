@@ -1,2 +1,6 @@
+<<<<<<< HEAD
 include cython_packages/lidar2d_fast.pyx
 include cython_packages/convex_hull.pyx
+=======
+include cython_packages/lidar2d_fast.pyx
+>>>>>>> d43a5220b17d8bbf27ddab5b46ca91440e4e615b
