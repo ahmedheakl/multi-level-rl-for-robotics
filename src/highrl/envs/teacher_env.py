@@ -27,7 +27,19 @@ from os import path
 
 
 class TeacherEnv(Env):
+    """Added new **new teacher method**
+
+    Args:
+        Env (_type_): _description_
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        _type_: _description_
+    """
     INF_DIFFICULTY = 921600 # w * h = 1280 * 720
+    
 
     def __init__(
         self,
@@ -35,7 +47,16 @@ class TeacherEnv(Env):
         teacher_config: configparser.RawConfigParser,
         args: argparse.Namespace,
     ) -> None:
+        """Initialize teacher class with configs attributes
 
+        Args:
+            robot_config (configparser.RawConfigParser): robot config object
+            teacher_config (configparser.RawConfigParser): teacher config object
+            args (argparse.Namespace): command-line args from ``__main__``
+
+        Raises:
+            ValueError: checks if you either run flat or rings mode
+        """
         super(TeacherEnv, self).__init__()
         self.action_space_names = [
             "robot_X_position",

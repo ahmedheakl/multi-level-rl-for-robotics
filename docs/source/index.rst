@@ -10,19 +10,48 @@ Welcome to Highrl's documentation!
 The library has *numerous* features from generating random environment, training agents to generate curriculum learning schemes,
 or train robots in pre-defined environments.
 
-Check out the :doc:`usage` section for further information, including how to
-:ref:`install <installation>` the project.
+Github repository: https://github.com/ahmedheakl/multi-level-rl-for-robotics
+
+Check out the :doc:`guide/install` section for further information, including how to
+install the project.
+
+Main Features
+--------------
+
+- Unified state-of-the art environment
+- PEP8 compliant (unified code style)
+- Documented functions and classes
+- Tests, high code coverage and type hints
+- Clean code
+- Wrapped environment style
 
 .. note::
 
    This project is under active development.
 
 .. toctree::
-   usage
-   env
-   api
    :maxdepth: 2
-   :caption: Contents:
+   :caption: User Guide
+
+   guide/install
+   guide/quickstart
+   guide/configurations
+   
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Environments
+
+   envs/env
+   envs/teacherenv
+   envs/robotenv
+   envs/evalenv
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Utilities
+
+   utils/convexhull
 
 
 

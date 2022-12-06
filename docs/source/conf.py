@@ -19,9 +19,28 @@ release = '0.1.0'
 
 extensions = [
     'sphinx.ext.duration',
+    'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
+    'rst2pdf.pdfbuilder',
+    'sphinxcontrib.napoleon'
 ]
+pdf_documents = [('index', u'highrldocs', u'Highl Docs', u'Ahmed Heakl'),]
+pdf_stylesheets = ['twocolumn']
+autodoc_default_options = {
+    'members': True,
+    'member-order': 'bysource',
+    # 'special-members': '__init__',
+    # 'undoc-members': True,
+    # 'exclude-members': '__weakref__'
+}
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3/', None),
+    'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
+}
+intersphinx_disabled_domains = ['std']
 
 templates_path = ['_templates']
 exclude_patterns = []

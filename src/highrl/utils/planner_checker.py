@@ -207,7 +207,9 @@ def get_area_of_convex_polygen(points: List[List[int]]) -> float:
     return area
 
 def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, height: int) -> Tuple[float, int]:
-    """Calculate env complexity using convex_hull algorithm
+    """Calculates env complexity using `convex_hull` algorithm
+    
+    Read more about `convex hull problem <https://en.wikipedia.org/wiki/Convex_hull>`_.
 
     Args:
         obstacles (Obstacles): env obstacles
@@ -218,6 +220,7 @@ def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, heigh
     Returns:
         Tuple[float, int]: env area difficulty, env obstacles difficulty
     """
+    
     px, py = robot.get_position()
     gx, gy = robot.get_goal_position()
     eps = 5
