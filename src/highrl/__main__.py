@@ -59,6 +59,7 @@ def main() -> None:
                 if (torch.cuda.is_available() and args.device_used == "GPU")
                 else "cpu"
             )
+            print(args.device_used)
         else:
             args.device_used = "auto"
 
