@@ -105,7 +105,6 @@ class TeacherEnv(Env):
 
     def _configure(self, config: configparser.RawConfigParser) -> None:
         """Configure the environment using input config file
-
         Args:
             config (configparser.RawConfigParser): input config object
         """
@@ -185,10 +184,8 @@ class TeacherEnv(Env):
 
     def step(self, action) -> Tuple:
         """Take a step in the environment
-
         Args:
             action (list): action to take
-
         Returns:
             tuple: observation, reward, done, info
         """
@@ -328,7 +325,6 @@ class TeacherEnv(Env):
 
     def _make_obs(self):
         """Create observations
-
         Returns:
             List: observation vector
         """
@@ -343,10 +339,8 @@ class TeacherEnv(Env):
 
     def _convert_action_to_dict_format(self, action):
         """Convert action form list format to dict format
-
         Args:
             action (list): output of planner model
-
         Returns:
             dict: action dictionay (robotPosition, goalPosition, numberOfObstacles)
         """
@@ -368,10 +362,8 @@ class TeacherEnv(Env):
 
     def _get_robot_position_from_action(self, action: dict) -> Tuple:
         """Clip robot/ goal positions
-
         Args:
             action (dict): action dict from model
-
         Returns:
             Tuple: clipped positions
         """
@@ -407,7 +399,6 @@ class TeacherEnv(Env):
 
     def __get_reward(self) -> float:
         """Calculate current reward
-
         Returns:
             float: current reward
         """
@@ -430,7 +421,6 @@ class TeacherEnv(Env):
         self, obstacles_count: int, min_dim: int, max_dim: int
     ) -> None:
         """Generate obstacles based on teacher action for next robot session
-
         Args:
             obstacles_count (int): number of obstacles
         """

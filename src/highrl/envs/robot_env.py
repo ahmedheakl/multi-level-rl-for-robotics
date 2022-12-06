@@ -113,7 +113,6 @@ class RobotEnv(Env):
         self.save_to_file = config.getboolean("render", "save_to_file")
 
         self.epsilon = config.getint("env", "epsilon")
-
         self.collect_statistics = config.getboolean("statistics", "collect_statistics")
         self.scenario = config.get("statistics", "scenario")
 
@@ -146,7 +145,6 @@ class RobotEnv(Env):
         )
 
         self.episode_reward += self.reward
-
         if self.episode_steps % self.render_each == 0:
             self.render(save_to_file=self.save_to_file)
 

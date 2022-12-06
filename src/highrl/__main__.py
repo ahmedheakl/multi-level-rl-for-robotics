@@ -20,9 +20,8 @@ Do not forget to specify the output dir for models saving
     
 Version
 ------------------
- - highrl v0.1.0
+ - highrl v0.1.1
 """
-
 
 import os
 import torch
@@ -60,6 +59,7 @@ def main() -> None:
                 if (torch.cuda.is_available() and args.device_used == "GPU")
                 else "cpu"
             )
+            print(args.device_used)
         else:
             args.device_used = "auto"
 
