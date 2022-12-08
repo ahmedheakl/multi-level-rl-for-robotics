@@ -35,6 +35,7 @@ from highrl.utils.parser import parse_args, generate_agents_config, handle_outpu
 from highrl.callbacks.teacher_callback import (
     TeacherLogCallback,
     TeacherMaxStepsCallback,
+    TeacherSaveModelCallback,
 )
 from stable_baselines3.common.callbacks import CallbackList
 
@@ -82,11 +83,16 @@ def main() -> None:
             "features_extractor_kwargs": dict(features_dim=6),
         }
         logpath = os.path.join(args.teacher_logs_path, "teacher_logs.csv")
+        save_model_path = os.path.join(args.teacher_models_path, "during_training")
+        if not os.path.isdir(save_model_path):
+            os.mkdir(save_model_path)
         model = PPO(LinearActorCriticPolicy, teacher_env, verbose=1 , policy_kwargs = policy_kwargs,
         learning_rate=0.0001, batch_size=16, device=args.device_used)
-        teacher_log_callback = TeacherLogCallback(train_env = teacher_env, logpath=logpath, eval_freq=1, verbose=0)
+        teacher_log_callback = TeacherLogCallback(train_env = teacher_env, logpath=logpath, save_freq=1, verbose=0)
         teacher_max_steps_callback = TeacherMaxStepsCallback(max_steps = max_sessions)
-        callback = CallbackList([teacher_log_callback, teacher_max_steps_callback])
+        teacher_save_model_callback = TeacherSaveModelCallback(train_env= teacher_env,
+         save_path= save_model_path, save_freq = teacher_env.teacher_save_model_freq)
+        callback = CallbackList([teacher_log_callback, teacher_max_steps_callback, teacher_save_model_callback])
         model.learn(total_timesteps=int(1e7),  callback=callback)
         model.save(f"{args.teacher_models_path}/model_{int(time())}")
     else:

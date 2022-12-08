@@ -7,11 +7,11 @@ robot_radius = 20
 goal_radius = 10
 
 [timesteps]
-delta_t = 0.2
+delta_t = 1
 # 1e3
-max_episode_steps = 100
+max_episode_steps = 1000
 # 1e5
-max_session_steps = 300
+max_session_steps = 10000
 
 [lidar]
 n_angles = 1080
@@ -30,8 +30,8 @@ alpha = 0.4
 progress_discount = 0.4
 
 [render]
-render_each = 1
-save_to_file = False
+render_each = 100
+save_to_file = True
 
 [env]
 epsilon = 1
@@ -69,16 +69,17 @@ small_obstacles_min_dim = 50
 lidar_mode = flat
 
 [render]
-render_eval = True
+render_eval = False
 
 [statistics]
 scenario = train
 collect_statistics = True
-robot_log_eval_freq = 100
+robot_log_eval_freq = 1000
 n_robot_eval_episodes = 1
+save_model_freq = 1
 
 [timesteps]
-max_sessions = 100
+max_sessions = 2
 """
 
 # ---------------------EVALUATIONS CONFIGURATIONS-----------------#

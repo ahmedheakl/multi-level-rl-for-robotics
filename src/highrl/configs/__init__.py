@@ -1,4 +1,5 @@
-"""This package contains:
+"""
+Contains:
         Colors configuration of the rendered training window
         Teacher, Robot, and Eval Environments configurations
 """

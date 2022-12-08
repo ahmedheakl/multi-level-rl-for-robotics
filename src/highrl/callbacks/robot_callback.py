@@ -1,3 +1,11 @@
+"""
+Callbacks for robot training.
+
+Contains the following classes:
+    RobotMaxStepsCallback Class: Terminates robot training after a max number of steps
+    RobotLogCallback Class: Collects robot training statistics
+    RobotEvalCallback Class: Evaluates robot model every certain number of steps
+"""
 import numpy as np
 import time
 from pandas import DataFrame, concat
@@ -15,23 +23,6 @@ class RobotMaxStepsCallback(BaseCallback):
     def __init__(self, max_steps=1e6, verbose=0):
         super(RobotMaxStepsCallback, self).__init__(verbose)
         self.max_steps = max_steps
-        # Those variables will be accessible in the callback
-        # (they are defined in the base class)
-        # The RL model
-        # self.model = None  # type: BaseAlgorithm
-        # An alias for self.model.get_env(), the environment used for training
-        # self.training_env = None  # type: Union[gym.Env, VecEnv, None]
-        # Number of time the callback was called
-        # self.n_calls = 0  # type: int
-        # self.num_timesteps = 0  # type: int
-        # local and global variables
-        # self.locals = None  # type: Dict[str, Any]
-        # self.globals = None  # type: Dict[str, Any]
-        # The logger object, used to report things in the terminal
-        # self.logger = None  # stable_baselines3.common.logger
-        # # Sometimes, for event callback, it is useful
-        # # to have access to the parent object
-        # self.parent = None  # type: Optional[BaseCallback]
 
     def _on_training_start(self) -> None:
         """
@@ -79,143 +70,89 @@ class RobotMaxStepsCallback(BaseCallback):
 
 
 class RobotLogCallback(BaseCallback):
-    """
-    A custom callback that derives from ``BaseCallback``.
+    """Prints and Saves training logs for the robot.
 
-    :param logpath: (string) where to save the training log
-    :param verbose: (int) Verbosity level 0: not output 1: info 2: debug
-    :param verbose: (int) Verbosity level 0: not output 1: info 2: debug
+    Args:
+        BaseCallback (Class): Base class for callback in stable_baselines3.
     """
 
-    def __init__(self, train_env, logpath=None, eval_freq=10000, verbose=0):
+    def __init__(
+        self,
+        train_env,
+        logpath: str = None,
+        eval_frequency: int = 10000,
+        verbose: int = 0,
+    ) -> None:
         super(RobotLogCallback, self).__init__(verbose)
-        # self.model = None  # type: BaseRLModel
-        self.training_env = train_env  # type: ignore
+        self.training_env = train_env
         self.logpath = logpath
-        self.eval_freq = eval_freq
+        self.eval_frequency = eval_frequency
         self.last_len_statistics = 0
         self.best_avg_reward = [-np.inf]
         self.last_eval_time = time.time()
         self.total_time = 0
 
     def _on_step(self) -> bool:
+        """print statistics and save training logs every eval_frequency timesteps.
+
+        Returns:
+            bool: If the callback returns False, training is aborted early.
         """
-        This method will be called by the model after each call to `env.step()`.
-        :return: (bool) If the callback returns False, training is aborted early.
-        """
-        if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
-            # get episode_statistics
+
+        if self.eval_frequency > 0 and self.n_calls % self.eval_frequency == 0:
             env = self.training_env
             if isinstance(self.training_env, VecEnv):
-                S = DataFrame()
-                for env in self.training_env.envs:  # type: ignore
-                    S = concat([S, DataFrame.from_records(env.episode_statistics)])
+                train_logs = DataFrame()
+                for env in self.training_env.envs:
+                    train_logs = concat(
+                        [train_logs, DataFrame.from_records(env.episode_statistics)]
+                    )
             else:
-                S = env.episode_statistics  # type: ignore
+                train_logs = env.episode_statistics
 
-            new_S = S[self.last_len_statistics :]
-            # new_avg_reward = np.mean(new_S["reward"].values)
+            last_added_train_logs = train_logs[self.last_len_statistics :]
             elapsed = time.time() - self.last_eval_time
             self.total_time += elapsed
-            save_log(S, self.logpath, self.verbose)
-            print_statistics_10K(new_S, elapsed, self.verbose)
-            if self.n_calls % (self.eval_freq * 10) == 0:
+            save_logs(train_logs, self.logpath, self.verbose)
+            if self.verbose:
+                print_statistics_for_n_steps(
+                    last_added_train_logs, elapsed=elapsed, n=10000
+                )
+            if self.n_calls % (self.eval_frequency * 10) == 0 and self.verbose:
                 print_statistics_train(
-                    S, self.total_time, self.n_calls, self.num_timesteps, self.verbose
+                    train_logs,
+                    self.total_time,
+                    self.n_calls,
+                    self.num_timesteps,
                 )
 
-            self.last_len_statistics = len(S)
+            self.last_len_statistics = len(train_logs)
             self.last_eval_time = time.time()
         return True
 
 
-def save_log(S, logpath, verbose):
-    # save log
-    if logpath is not None:
-        S.to_csv(logpath)
-        if verbose > 1:
-            print("log saved to {}.".format(logpath))
-
-
-def print_statistics_train(S, elapsed, n_calls, n_train_steps, verbose):
-    scenarios = sorted(list(set(S["scenario"].values)))
-    rewards = S["reward"].values
-    # print statistics
-    if verbose > 0:
-        print("Statistics for {:10d} steps".format(n_train_steps))
-        print(
-            "Steps Per Env = {:5d} ,Total Steps = {:5d} ,Total episodes = {:5d} done in {} sec  ".format(
-                n_calls, n_train_steps, len(S), elapsed
-            )
-        )
-        for scenario in scenarios:
-            is_scenario = S["scenario"].values == scenario
-            scenario_rewards = rewards[is_scenario]
-            print(
-                "Reward in training : {:.4f} ({})".format(
-                    np.mean(scenario_rewards), len(scenario_rewards)
-                )
-            )
-
-
-def print_statistics_10K(S, elapsed, verbose):
-    scenarios = sorted(list(set(S["scenario"].values)))
-    rewards = S["reward"].values
-    # print statistics
-    if verbose > 0:
-        print("Statistics for last 10K steps")
-        print("Total episodes = {:5d} done in {} sec ".format(len(S), elapsed))
-        for scenario in scenarios:
-            is_scenario = S["scenario"].values == scenario
-            scenario_rewards = rewards[is_scenario]
-            print(
-                "Reward in training : {:.4f} ({})".format(
-                    np.mean(scenario_rewards), len(scenario_rewards)
-                )
-            )
-
-
-def run_n_episodes(model, env, n):
-    env.episode_statistics["scenario"] = "robot_env_test"
-    for i in range(n):
-        obs = env.reset()
-        done = False
-        while not done:
-            action, _ = model.predict(obs, deterministic=True)
-            obs, _, done, _ = env.step(action)
-    return env.episode_statistics
-
-
 class RobotEvalCallback(BaseCallback):
-    """
-    A custom callback that derives from ``BaseCallback``.
+    """Runs evaluation episodes on the trained model,save the evaluation logs and saves the model if improved in evaluation.
 
-    :param eval_env: (gym.Env) environment with which to evaluate the model (at eval_freq)
-    :param test_env_fn: (function) function which returns an environment which is used to evaluate
-                        the model after every tenth evaluation.
-    :param n_eval_episodes: (int) how many episodes to run the evaluation env for
-    :param logpath: (string) where to save the training log
-    :param savepath: (string) where to save the model
-    :param eval_freq: (int) how often to run the evaluation
-    :param verbose: (int) Verbosity level 0: not output 1: info 2: debug
-    :param render: (bool) human rendering in the test env
+    Args:
+        BaseCallback (Class): Base class for callback in stable_baselines3.
     """
 
     def __init__(
         self,
         eval_env,
         n_eval_episodes=100,
-        logpath=None,
-        savepath=None,
-        eval_freq=50000,
-        verbose=1,
+        logpath: str = None,
+        savepath: str = None,
+        eval_frequency: int = 50000,
+        verbose: int = 1,
         render=False,
-    ):
+    ) -> None:
         super(RobotEvalCallback, self).__init__(verbose)
 
         self.logpath = logpath
         self.n_eval_episodes = n_eval_episodes
-        self.eval_freq = eval_freq
+        self.eval_frequency = eval_frequency
         self.last_len_statistics = 0
         self.best_avg_reward = [-np.inf]
         self.eval_env = eval_env
@@ -224,28 +161,39 @@ class RobotEvalCallback(BaseCallback):
         self.render = render
 
     def _on_step(self) -> bool:
+        """Runs evaluation episodes on the trained model every eval_frequency timesteps, saves the evaluation logs and saves the model if improved in evaluation.
+
+        Returns:
+            bool: If the callback returns False, training is aborted early.
         """
-        This method will be called by the model after each call to `env.step()`.
-        :return: (bool) If the callback returns False, training is aborted early.
-        """
-        if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
-            # get episode_statistics
+
+        if self.eval_frequency > 0 and self.n_calls % self.eval_frequency == 0:
             tic = time.time()
-            S = run_n_episodes(self.model, self.eval_env, self.n_eval_episodes)
+            eval_logs = run_n_episodes(self.model, self.eval_env, self.n_eval_episodes)
             toc = time.time()
             eval_duration = toc - tic
-            new_S = S[self.last_len_statistics :]
-            print(S)
-            new_avg_reward = np.mean(new_S["reward"].values)
+            last_added_eval_logs = eval_logs[self.last_len_statistics :]
+            new_avg_reward = np.mean(last_added_eval_logs["reward"].values)
 
-            save_log(S, self.logpath, self.verbose)
-            print_statistics(new_S, eval_duration, self.verbose)
+            save_logs(eval_logs, self.logpath, self.verbose)
+            if self.verbose:
+                print_statistics_eval(last_added_eval_logs, eval_duration)
             self.save_model_if_improved(new_avg_reward, self.model, self.savepath)
 
-            self.last_len_statistics = len(S)
+            self.last_len_statistics = len(eval_logs)
         return True
 
-    def save_model_if_improved(self, new_avg_reward, model, savepath):
+    def save_model_if_improved(
+        self, new_avg_reward: float, model, savepath: str
+    ) -> None:
+        """saves the model if the average reward improved in evaluation.
+
+        Args:
+            new_avg_reward (float): the new average reward in evaluation.
+            model (_type_): trained model.
+            savepath (str): path to save the model to it.
+        """
+
         if new_avg_reward > self.best_avg_reward[0]:
             self.best_avg_reward[0] = new_avg_reward
             if savepath is not None:
@@ -256,21 +204,116 @@ class RobotEvalCallback(BaseCallback):
                             savepath, new_avg_reward
                         )
                     )
-                except:  # noqa
+                except:
                     print("Could not save")
 
 
-def print_statistics(S, eval_elapsed, verbose):
-    scenarios = sorted(list(set(S["scenario"].values)))
-    rewards = S["reward"].values
-    # print statistics
-    if verbose > 0:
-        print("Evalution time : {} ".format(eval_elapsed))
-        for scenario in scenarios:
-            is_scenario = S["scenario"].values == scenario
-            scenario_rewards = rewards[is_scenario]
-            print(
-                "{}: {:.4f} ({})".format(
-                    scenario, np.mean(scenario_rewards), len(scenario_rewards)
-                )
+def save_logs(training_logs: DataFrame, logpath: str, verbose: int) -> None:
+    """Saves the training logs of the robot.
+
+    Args:
+        training_logs (DataFrame): contains robot training logs.
+        logpath (str): path to save the logs to it.
+        verbose (int): flag to print the saving path.
+    """
+    if logpath is not None:
+        training_logs.to_csv(logpath)
+        if verbose > 1:
+            print("log saved to {}.".format(logpath))
+
+
+def print_statistics_train(
+    train_logs: DataFrame, elapsed: float, n_calls: int, n_train_steps: int
+) -> None:
+    """print statistics of training.
+
+
+    Args:
+        train_logs (DataFrame): contains robot training logs.
+        elapsed (float): time elapsed in training.
+        n_calls (int): number of training steps per env.
+        n_train_steps (int): total number of training steps.
+    """
+    scenarios = sorted(list(set(train_logs["scenario"].values)))
+    rewards = train_logs["reward"].values
+    print("Statistics for {:10d} steps".format(n_train_steps))
+    print(
+        "Steps Per Env = {:5d} ,Total Steps = {:5d} ,Total episodes = {:5d} done in {} sec  ".format(
+            n_calls, n_train_steps, len(train_logs), elapsed
+        )
+    )
+    for scenario in scenarios:
+        is_scenario = train_logs["scenario"].values == scenario
+        scenario_rewards = rewards[is_scenario]
+        print(
+            "Reward in training : {:.4f} ({})".format(
+                np.mean(scenario_rewards), len(scenario_rewards)
             )
+        )
+
+
+def print_statistics_for_n_steps(
+    logs: DataFrame, elapsed: float, n: int = 10000
+) -> None:
+    """_summary_
+
+    Args:
+        logs (DataFrame): contains robot training logs for the last n timesteps.
+        elapsed (float): time elapsed in last n training timesteps.
+        n (int, optional): number of training steps to print. Defaults to 10000.
+    """
+    scenarios = sorted(list(set(logs["scenario"].values)))
+    rewards = logs["reward"].values
+    # print statistics
+
+    print("Statistics for last {} steps".format(n))
+    print("Total episodes = {:5d} done in {} sec ".format(len(logs), elapsed))
+    for scenario in scenarios:
+        is_scenario = logs["scenario"].values == scenario
+        scenario_rewards = rewards[is_scenario]
+        print(
+            "Reward in training : {:.4f} ({})".format(
+                np.mean(scenario_rewards), len(scenario_rewards)
+            )
+        )
+
+
+def run_n_episodes(model, env, n: int) -> DataFrame:
+    """runs n evaluation episodes on the trained model.
+
+    Args:
+        model (_type_): trained model.
+        env (_type_): evaluation env.
+        n (int): number of episodes.
+
+    Returns:
+        DataFrame: logs for evaluation episodes.
+    """
+    env.episode_statistics["scenario"] = "robot_env_test"
+    for i in range(n):
+        obs = env.reset()
+        done = False
+        while not done:
+            action, _ = model.predict(obs, deterministic=True)
+            obs, _, done, _ = env.step(action)
+    return env.episode_statistics
+
+
+def print_statistics_eval(eval_logs: DataFrame, eval_elapsed: float) -> None:
+    """print statistics of evaluation.
+
+    Args:
+        eval_logs (DataFrame): ontains robot evaluation logs.
+        eval_elapsed (float):  time elapsed in evaluation.
+    """
+    scenarios = sorted(list(set(eval_logs["scenario"].values)))
+    rewards = eval_logs["reward"].values
+    print("Evaluation time : {} ".format(eval_elapsed))
+    for scenario in scenarios:
+        is_scenario = eval_logs["scenario"].values == scenario
+        scenario_rewards = rewards[is_scenario]
+        print(
+            "{}: {:.4f} ({})".format(
+                scenario, np.mean(scenario_rewards), len(scenario_rewards)
+            )
+        )

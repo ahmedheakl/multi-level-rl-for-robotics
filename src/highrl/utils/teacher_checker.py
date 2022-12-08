@@ -10,6 +10,7 @@ from typing import Tuple, List, Union, Callable
 
 
 INF = 921600  # w * h = 1280 * 720
+EPSILON = 10 ** (-8)
 
 
 def get_region_coordinates(
@@ -26,11 +27,11 @@ def get_region_coordinates(
         Tuple[List[List[int]], List[Callable[[float], List[float]]]]: limiting coords & lines
     """
     px, py, gx, gy = coords
-    slope = (gy - py) / (gx - px)
-    intercept = (gx * py - gy * px) / (gx - px)
+    slope = (gy - py) / ((gx - px) + EPSILON)
+    intercept = (gx * py - gy * px) / ((gx - px) + EPSILON)
     shift_amount = eps * harmonic_number
-    top_intercept = (slope * gy + gx) / slope
-    bottom_intercept = (slope * py + px) / slope
+    top_intercept = (slope * gy + gx) / (slope + EPSILON)
+    bottom_intercept = (slope * py + px) / (slope + EPSILON)
 
     def left_line(x: float) -> List[float]:
         return [x, slope * x + (intercept + shift_amount)]

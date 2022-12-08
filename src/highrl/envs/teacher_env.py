@@ -85,6 +85,7 @@ class TeacherEnv(Env):
         self.robot_success_rate = 0
         self.robot_avg_episode_steps = 0
         self.robot_id = 0
+        self.overlap_or_difficulity_time_step = 0
 
         self._configure(config=teacher_config)
         self.session_statistics = None
@@ -156,6 +157,8 @@ class TeacherEnv(Env):
         self.collect_statistics = config.getboolean("statistics", "collect_statistics")
         self.scenario = config.get("statistics", "scenario")
         self.robot_log_eval_freq = config.getint("statistics", "robot_log_eval_freq")
+        self.teacher_save_model_freq = config.getint("statistics", "save_model_freq")
+
         self.n_robot_eval_episodes = config.getint(
             "statistics", "n_robot_eval_episodes"
         )
@@ -180,7 +183,7 @@ class TeacherEnv(Env):
             self.robot_avg_reward = total_reward / len(self.robot_env.results)
             self.robot_avg_episode_steps = total_steps / len(self.robot_env.results)
             self.robot_success_rate = num_success / len(self.robot_env.results)
-            print(f"======== Session {self.time_steps-1} Results ========")
+            print(f"======== Session {self.time_steps} Results ========")
             results_table = PrettyTable(
                 field_names=["avg_reward", "avg_ep_steps", "success_rate"]
             )
@@ -255,7 +258,10 @@ class TeacherEnv(Env):
                     self.difficulty_obs,
                     self.robot_level,
                 ]
+            self.overlap_or_difficulity_time_step = self.time_steps
             return self._make_obs(), self.reward, self.done, {}
+        else:
+            self.overlap_or_difficulity_time_step = 0
 
         too_close_to_goal_penality = (
             self.too_close_to_goal_penality
@@ -280,20 +286,20 @@ class TeacherEnv(Env):
             model = PPO.load(self.previous_save_path, self.robot_env, device=device)
 
         # fmt: off
-        logpath = path.join(self.args.robot_logs_path, "robot_logs.csv")
+        robot_logpath = path.join(self.args.robot_logs_path, "robot_logs.csv")
         eval_logpath = path.join(self.args.robot_logs_path, "robot_eval_logs.csv")
         eval_model_save_path = path.join(self.args.robot_models_path, "test/best_tested_robot_model")
-        log_callback =  RobotLogCallback(train_env = self.robot_env, logpath= logpath, eval_freq=self.robot_log_eval_freq, verbose=0)
-        robot_callback = RobotMaxStepsCallback(max_steps=self.max_session_timesteps, verbose=0)
+        log_callback =  RobotLogCallback(train_env = self.robot_env, logpath= robot_logpath, eval_frequency=self.robot_log_eval_freq, verbose=0)
+        robot_max_steps_callback = RobotMaxStepsCallback(max_steps=self.max_session_timesteps, verbose=0)
         eval_callback = RobotEvalCallback(eval_env =self.eval_env  ,
         n_eval_episodes=self.n_robot_eval_episodes,
         logpath=eval_logpath,
         savepath=eval_model_save_path,
-        eval_freq=self.max_session_timesteps,
+        eval_frequency=self.max_session_timesteps,
         verbose=1,
         render=self.render_eval,
     )
-        callback = CallbackList([log_callback, robot_callback, eval_callback])
+        callback = CallbackList([log_callback, robot_max_steps_callback, eval_callback])
         
         model.learn(total_timesteps=int(1e9), reset_num_timesteps=False,
                     callback=callback)
@@ -363,6 +369,10 @@ class TeacherEnv(Env):
         action[0] = min(action[0], 0.9)
         action[1] = max(action[1], 0.1)
         action[1] = min(action[1], 0.9)
+        action[2] = max(action[2], 0.1)
+        action[2] = min(action[2], 0.9)
+        action[3] = max(action[3], 0.1)
+        action[3] = min(action[3], 0.9)
 
         for i in range(len(action)):
             planner_output["{}".format(self.action_space_names[i])] = action[i]
@@ -414,25 +424,40 @@ class TeacherEnv(Env):
         return px, py, gx, gy
 
     def __get_reward(self) -> float:
-        """Calculates current reward
-
+        """Calculate current reward
         Returns:
-            float: current reward value
+            float: current reward
         """
-        reward = (
-            (
-                (self.difficulty_area / self.desired_difficulty)
-                * (self.robot_avg_reward / self.max_robot_episode_reward)
-            )
-            ** self.alpha
-            + (
-                self.terminal_state_flag
-                * (1 - self.robot_env.episode_steps / self.max_robot_episode_steps)
-                * self.terminal_state_reward
-            )
-            + (self.difficulty_area - self.desired_difficulty) * self.gamma
+        dfc_fact = self.difficulty_area / self.desired_difficulty
+        rwd_fact = float(self.robot_avg_reward / self.max_robot_episode_reward)
+
+        r_s = self.exp(dfc_fact * rwd_fact, self.alpha)
+
+        r_t = (
+            self.terminal_state_flag
+            * (1 - self.robot_env.episode_steps / self.max_robot_episode_steps)
+            * self.terminal_state_reward
         )
+
+        r_d = (self.difficulty_area - self.desired_difficulty) * self.gamma
+        print(
+            dfc_fact,
+            type(dfc_fact),
+            rwd_fact,
+            type(rwd_fact),
+            self.alpha,
+            type(self.alpha),
+        )
+
+        reward = r_s + r_t + r_d
+
         return reward
+
+    def exp(self, base, exponent):
+        neg = base < 0.0
+        ans = abs(base) ** exponent
+        ans = ans * ((-1) ** neg)
+        return ans
 
     def _generate_obstacles_points(
         self, obstacles_count: int, min_dim: int, max_dim: int
@@ -466,6 +491,6 @@ class TeacherEnv(Env):
         Returns:
             List: observation vector
         """
-        self.time_steps = 0
+        self.time_steps = self.overlap_or_difficulity_time_step
         self.done = 0
         return self._make_obs()

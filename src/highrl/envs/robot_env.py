@@ -15,7 +15,8 @@ import configparser
 import pandas as pd
 import time
 import argparse
-from os import path
+from os import path, mkdir
+import time
 
 
 class RobotEnv(Env):
@@ -41,6 +42,7 @@ class RobotEnv(Env):
         self.viewer = None
         self.args = args
         self.reward = 0
+        self.episodes = 1
         self.episode_reward = 0
         self.episode_steps = 0
         self.total_reward = 0
@@ -193,6 +195,7 @@ class RobotEnv(Env):
         if self.episode_steps >= self.max_episode_steps:
             self.done = True
             self.success_flag = False
+            self.episodes += 1
 
         return reward
 
@@ -257,14 +260,14 @@ class RobotEnv(Env):
         return {"lidar": self.lidar_scan, "robot": robotstate_obs}
 
     def render(
-        self, close: Any = False, save_to_file: Any = False, show_score: Any = True
+        self, close: bool = False, save_to_file: bool = False, show_score: bool = True
     ) -> bool:
         """Renders robot and obstacles on an openGL window using gym viewer
 
         Args:
-            close (Any, optional): flag to close the environment window. Defaults to False.
-            save_to_file (Any, optional): flag to save render data to a file. Defaults to False.
-            show_score (Any, optional): flag to show reward on window. Defaults to True.
+            close (bool, optional): flag to close the environment window. Defaults to False.
+            save_to_file (bool, optional): flag to save render data to a file. Defaults to False.
+            show_score (bool, optional): flag to show reward on window. Defaults to True.
 
         Returns:
             bool: flag to check the status of the openGL window
@@ -413,12 +416,13 @@ class RobotEnv(Env):
             self.iteration_label.draw()
             win.flip()
             if save_to_file:
-                pyglet.image.get_buffer_manager().get_color_buffer().save(
-                    path.join(
-                        self.args.env_render_path,
-                        "{:08}.png".format(self.episode_steps),
-                    )
+                save_folder = path.join(self.args.env_render_path, f"{self.episodes}")
+                if not path.isdir(save_folder):
+                    mkdir(save_folder)
+                save_path = path.join(
+                    save_folder, "{:08}.png".format(self.episode_steps)
                 )
+                pyglet.image.get_buffer_manager().get_color_buffer().save(save_path)
             return self.viewer.isopen
 
     def detect_collison(self) -> bool:
