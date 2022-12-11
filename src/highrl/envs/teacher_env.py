@@ -45,17 +45,24 @@ class TeacherEnv(Env):
     ) -> None:
 
         super(TeacherEnv, self).__init__()
+        # added
+        self.map_width = 1280
+        self.map_height = 720
+
+        # changed
         self.action_space_names = [
             "robot_X_position",
             "robot_Y_position",
             "goal_X_position",
             "goal_Y_position",
-            "hard_obstacles_count",
-            "medium_obstacles_count",
-            "small_obstacles_count",
+            "obstacles_X_sampler",
+            "obstacles_Y_sampler",
+            "obstacles_w_sampler",
+            "obstacles_h_sampler",
         ]
+        # changed
         self.action_space = spaces.Box(
-            low=0.01, high=0.99, shape=(7,), dtype=np.float32
+            low=0, high=10000000, shape=(8,), dtype=np.float32
         )
         # [time_steps, robot_level, robot_reward, difficulty_area, difficulty_obs]
         self.observation_space = spaces.Box(
@@ -193,23 +200,8 @@ class TeacherEnv(Env):
 
         self.robot_env.add_boarder_obstacles()
 
-        self._generate_obstacles_points(
-            math.ceil(action["hard_obstacles_count"] * self.max_hard_obstacles_count),
-            min_dim=200,
-            max_dim=300,
-        )
-        self._generate_obstacles_points(
-            math.ceil(
-                action["medium_obstacles_count"] * self.max_medium_obstacles_count
-            ),
-            min_dim=100,
-            max_dim=200,
-        )
-        self._generate_obstacles_points(
-            math.ceil(action["small_obstacles_count"] * self.max_small_obstacles_count),
-            min_dim=50,
-            max_dim=100,
-        )
+        self._generate_obstacles_points(action)
+
         self.robot_env.reset()
 
         self.difficulty_area, self.difficulty_obs = convex_hull_difficulty(
@@ -327,6 +319,9 @@ class TeacherEnv(Env):
             self.robot_success_rate,
         ]
 
+    def generate_obstacles(action):
+        pass
+
     def _convert_action_to_dict_format(self, action):
         """Convert action form list format to dict format
 
@@ -344,8 +339,20 @@ class TeacherEnv(Env):
 
         for i in range(len(action)):
             planner_output["{}".format(self.action_space_names[i])] = action[i]
+
         print(f"======== Teacher action for Session {self.time_steps} ========")
-        names = ["px", "py", "gx", "gy", "h_cnt", "m_cnt", "s_cnt"]
+
+        # changed
+        names = [
+            "px",
+            "py",
+            "gx",
+            "gy",
+            "x_sampler",
+            "y_sampler",
+            "w_sampler",
+            "h_sampler",
+        ]
         action_table = PrettyTable()
         for i, val in enumerate(list(planner_output.values())):
             action_table.add_column(fieldname=names[i], column=[val])
@@ -412,28 +419,51 @@ class TeacherEnv(Env):
         )
         return reward
 
-    def _generate_obstacles_points(
-        self, obstacles_count: int, min_dim: int, max_dim: int
-    ) -> None:
+    def sampler(self, sampler_action, base):
+        """Takes sampler_action as input and return list of values depending on the base.
+
+        Args:
+            sampler_action (float): teacher action for sampling x,y,w and h.
+            base (int): base to sample based on it e.g. map width or height.
+
+        Returns:
+            list: sampled value for x,y,w or h.
+        """
+        sampled_list = []
+        while sampler_action != 0:
+            sampled_list.append(sampler_action % base)
+            sampler_action = sampler_action // base
+
+        return sampled_list
+
+    def _generate_obstacles_points(self, action: dict) -> None:
         """Generate obstacles based on teacher action for next robot session
 
         Args:
-            obstacles_count (int): number of obstacles
+            action (dict): teacher action for next robot session
         """
-        for i in range(int(obstacles_count)):
-            overlap = True
+
+        obstacle_x_list = self.sampler(action["obstacles_X_sampler"], self.map_width)
+        obstacle_y_list = self.sampler(action["obstacles_Y_sampler"], self.map_height)
+        obstacle_w_list = self.sampler(action["obstacles_w_sampler"], self.map_width)
+        obstacle_h_list = self.sampler(action["obstacles_h_sampler"], self.map_height)
+
+        n_obstacle = np.min(
+            [
+                len(obstacle_x_list),
+                len(obstacle_y_list),
+                len(obstacle_w_list),
+                len(obstacle_h_list),
+            ]
+        )
+
+        for i in range(n_obstacle):
             new_obstacle = SingleObstacle()
-            while overlap:
-                px = uniform(0, self.robot_env.width)
-                py = uniform(0, self.robot_env.height)
-                new_width = uniform(min_dim, max_dim)
-                new_height = uniform(min_dim, max_dim)
-                new_obstacle = SingleObstacle(px, py, new_width, new_height)
-                overlap = self.robot_env.robot.is_overlapped(
-                    new_obstacle, check_target="robot"
-                ) or self.robot_env.robot.is_overlapped(
-                    new_obstacle, check_target="goal"
-                )
+            px = obstacle_x_list[i]
+            py = obstacle_y_list[i]
+            new_width = obstacle_w_list[i]
+            new_height = obstacle_h_list[i]
+            new_obstacle = SingleObstacle(px, py, new_width, new_height)
             self.robot_env.obstacles += new_obstacle
 
     def reset(self):

@@ -72,7 +72,7 @@ class LinearActorCriticPolicy(ActorCriticPolicy):
         action_space: gym.spaces.Space,  # type: ignore
         lr_schedule: Callable[[float], float],
         net_arch: Optional[List[Union[int, Dict[str, List[int]]]]] = None,
-        activation_fn: Type[nn.Module] = nn.Tanh,
+        activation_fn: Type[nn.Module] = nn.ReLU(),
         *args,
         **kwargs,
     ):
