@@ -13,5 +13,6 @@ The teacher is a single class inherited from ``gym.Env`` interface. It implement
 Teacher Env Class
 -----------------
 
-.. autoclass:: TeacherEnv
+.. autoclass:: TeacherEnv 
     :members: 
+

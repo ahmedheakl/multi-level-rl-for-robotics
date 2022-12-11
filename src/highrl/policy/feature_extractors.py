@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch as th
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from typing import Callable, Dict, List, Optional, Tuple, Type, Union
-from stable_baselines3.common.policies import ActorCriticPolicy
 
 
 class LSTMFeatureExtractor(BaseFeaturesExtractor):
@@ -13,21 +12,28 @@ class LSTMFeatureExtractor(BaseFeaturesExtractor):
         This corresponds to the number of unit for the last layer.
     """
 
-    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 6):  # type: ignore
+    def __init__(
+        self,
+        observation_space: gym.spaces.Box,
+        features_dim: int = 6,
+        hidden_dim: int =16,
+        num_layers: int =1,
+    ) -> None: 
         super(LSTMFeatureExtractor, self).__init__(observation_space, features_dim)
-        self.LSTM = nn.LSTM(input_size=features_dim, hidden_size=16, num_layers=1)
+        self.device = th.device("cuda" if th.cuda.is_available() else "cpu")
+
+        self.hidden = th.zeros(1, 1, hidden_dim, device=self.device)
+        self.linear = nn.Linear(features_dim, hidden_dim)
+        self.gru = nn.GRU(hidden_dim, hidden_dim, num_layers=num_layers)
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
-        # th.tensor(observations)
+
         observations.clone().detach()
-        self.LSTM_output, self.LSTM_hidden = self.LSTM(observations)
-        return self.LSTM_output + self.LSTM_hidden[0] + self.LSTM_hidden[1]
+        embedded = self.linear(observations).view(1, 1, -1)
+        _, self.hidden = self.gru(embedded, self.hidden)
 
-
-import torch as th
-import gym.spaces
-import torch.nn as nn
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+        # returns [1, 1, 16]
+        return self.hidden
 
 
 class Robot2DFeatureExtractor(BaseFeaturesExtractor):

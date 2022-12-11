@@ -57,6 +57,7 @@ class TeacherEnv(Env):
         self.action_space = spaces.Box(
             low=0.01, high=0.99, shape=(7,), dtype=np.float32
         )
+        # self.action_space = spaces.Gra
         # [time_steps, robot_level, robot_reward, difficulty_area, difficulty_obs]
         self.observation_space = spaces.Box(
             low=-1000, high=1000, shape=(6,), dtype=np.float32
@@ -185,7 +186,7 @@ class TeacherEnv(Env):
     def step(self, action) -> Tuple:
         """Take a step in the environment
         Args:
-            action (list): action to take
+            action (np.ndarray): action to take
         Returns:
             tuple: observation, reward, done, info
         """
@@ -252,7 +253,7 @@ class TeacherEnv(Env):
         )
 
         self.desired_difficulty = (
-            self.base_difficulty * (self.diff_increase_factor) ** self.episodes
+            self.base_difficulty * ((self.diff_increase_factor) ** self.episodes)
         )
 
         policy_kwargs = dict(features_extractor_class=Robot1DFeatureExtractor)
@@ -282,7 +283,7 @@ class TeacherEnv(Env):
         verbose=1,
         render=self.render_eval,
     )
-        callback = CallbackList([log_callback, robot_callback, eval_callback])
+        callback = CallbackList([log_callback, robot_callback])
         
         model.learn(total_timesteps=int(1e9), reset_num_timesteps=False,
                     callback=callback)
@@ -397,24 +398,33 @@ class TeacherEnv(Env):
         )
         return px, py, gx, gy
 
+    def exp(self, base, exponent):
+        neg = base < 0.0
+        ans = abs(base) ** exponent
+        ans = ans * ((-1) ** neg)
+        return ans
+        
     def __get_reward(self) -> float:
         """Calculate current reward
         Returns:
             float: current reward
         """
-        reward = (
-            (
-                (self.difficulty_area / self.desired_difficulty)
-                * (self.robot_avg_reward / self.max_robot_episode_reward)
-            )
-            ** self.alpha
-            + (
-                self.terminal_state_flag
+        dfc_fact = self.difficulty_area / self.desired_difficulty
+        rwd_fact = float(self.robot_avg_reward / self.max_robot_episode_reward)
+        
+        r_s = self.exp(dfc_fact*rwd_fact, self.alpha)
+        
+        
+        r_t = (self.terminal_state_flag
                 * (1 - self.robot_env.episode_steps / self.max_robot_episode_steps)
-                * self.terminal_state_reward
-            )
-            + (self.difficulty_area - self.desired_difficulty) * self.gamma
-        )
+                * self.terminal_state_reward)
+        
+        r_d = (self.difficulty_area - self.desired_difficulty) * self.gamma
+        print("XXXXXXXXXXXXXX REWARD DATA XXXXXXXXXXXXXXXX")
+        print(dfc_fact, type(dfc_fact), rwd_fact, type(rwd_fact), self.alpha, type(self.alpha))
+        
+        reward = r_s + r_t + r_d
+        
         return reward
 
     def _generate_obstacles_points(

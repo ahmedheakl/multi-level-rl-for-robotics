@@ -11,7 +11,7 @@ delta_t = 0.2
 # 1e3
 max_episode_steps = 100
 # 1e5
-max_session_steps = 300
+max_session_steps = 100
 
 [lidar]
 n_angles = 1080
