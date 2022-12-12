@@ -18,7 +18,7 @@ class LinearPolicyNetwork(nn.Module):
     def __init__(
         self,
         feature_dim: int = 16,
-        last_layer_dim_pi: int = 7,
+        last_layer_dim_pi: int = 8,
         last_layer_dim_vf: int = 32,
     ):
         super(LinearPolicyNetwork, self).__init__()
@@ -37,7 +37,7 @@ class LinearPolicyNetwork(nn.Module):
             nn.Linear(64, 32),
             nn.ReLU(),
             nn.Linear(32, last_layer_dim_pi),
-            nn.ReLU(),
+            nn.Sigmoid(),
         )
         # Value network
         self.value_net = nn.Sequential(

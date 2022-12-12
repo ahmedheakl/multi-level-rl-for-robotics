@@ -30,8 +30,8 @@ alpha = 0.4
 progress_discount = 0.4
 
 [render]
-render_each = 100
-save_to_file = True
+render_each = 200
+save_to_file = False
 
 [env]
 epsilon = 1
@@ -51,8 +51,11 @@ base_difficulty = 590
 overlap_goal_penality = -100
 infinite_difficulty_penality = -100
 too_close_to_goal_penality = -50
+is_goal_or_robot_overlap_obstacles_penality = -100
 gamma = 0.4
 diff_increase_factor = 1.15
+base_num_successes = 5
+num_successes_increase_factor = 1.2
 
 [env]
 advance_probability = 0.9
@@ -74,12 +77,12 @@ render_eval = False
 [statistics]
 scenario = train
 collect_statistics = True
-robot_log_eval_freq = 1000
-n_robot_eval_episodes = 1
+robot_log_eval_freq = 100
+n_robot_eval_episodes = 0
 save_model_freq = 1
 
 [timesteps]
-max_sessions = 2
+max_sessions = 5
 """
 
 # ---------------------EVALUATIONS CONFIGURATIONS-----------------#

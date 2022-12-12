@@ -69,6 +69,22 @@ class RobotMaxStepsCallback(BaseCallback):
         pass
 
 
+class RobotSuccessesCallback(BaseCallback):
+    def __init__(self, num_successes=5, verbose=0):
+        super(RobotSuccessesCallback, self).__init__(verbose)
+        self.num_successes = num_successes
+
+    def _on_step(self) -> bool:
+        thinking_emoji = "\U0001F914"
+        total_num_successes = self.training_env.get_attr(attr_name="num_successes")[0]  # type: ignore
+        if total_num_successes >= self.num_successes:
+            print(
+                f"{thinking_emoji} {thinking_emoji} Abort_training {thinking_emoji} {thinking_emoji}"
+            )
+            return False
+        return True
+
+
 class RobotLogCallback(BaseCallback):
     """Prints and Saves training logs for the robot.
 

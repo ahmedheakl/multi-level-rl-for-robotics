@@ -7,7 +7,6 @@ from highrl.policy.feature_extractors import Robot1DFeatureExtractor
 from stable_baselines3.ppo.ppo import PPO
 from random import uniform
 from highrl.utils.teacher_checker import convex_hull_difficulty
-from highrl.callbacks.robot_callback import RobotMaxStepsCallback
 from time import time
 import configparser
 from highrl.envs.env_encoders import (
@@ -22,6 +21,7 @@ from highrl.callbacks.robot_callback import (
     RobotMaxStepsCallback,
     RobotLogCallback,
     RobotEvalCallback,
+    RobotSuccessesCallback,
 )
 from stable_baselines3.common.callbacks import CallbackList
 from prettytable import PrettyTable
@@ -58,12 +58,9 @@ class TeacherEnv(Env):
             "robot_y",
             "goal_x",
             "goal_y",
-            "hard_obst_cnt",
-            "medium_obst_cnt",
-            "small_obst_cnt",
         ]
         self.action_space = spaces.Box(
-            low=0.01, high=0.99, shape=(7,), dtype=np.float32
+            low=0.01, high=0.99, shape=(8,), dtype=np.float32
         )
         # [time_steps, robot_level, robot_reward, difficulty_area, difficulty_obs]
         self.observation_space = spaces.Box(
@@ -85,9 +82,10 @@ class TeacherEnv(Env):
         self.robot_success_rate = 0
         self.robot_avg_episode_steps = 0
         self.robot_id = 0
-        self.overlap_or_difficulity_time_step = 0
+        self.penality_time_step = 0
 
         self._configure(config=teacher_config)
+
         self.session_statistics = None
         if self.collect_statistics:
             self.session_statistics = pd.DataFrame(
@@ -98,6 +96,7 @@ class TeacherEnv(Env):
                     "current_difficulty_area",
                     "current_difficulty_obst",
                     "robot_level",
+                    "robot_num_successes",  # robot num_successes in this teacher session
                 ]
             )
 
@@ -134,10 +133,17 @@ class TeacherEnv(Env):
         self.too_close_to_goal_penality = config.getint(
             "reward", "too_close_to_goal_penality"
         )
+        self.is_goal_or_robot_overlap_obstacles_penality = config.getint(
+            "reward", "is_goal_or_robot_overlap_obstacles_penality"
+        )
         self.gamma = config.getfloat("reward", "gamma")
         # start with base difficulty
         self.desired_difficulty = self.base_difficulty
         self.diff_increase_factor = config.getfloat("reward", "diff_increase_factor")
+        self.base_num_successes = config.getint("reward", "base_num_successes")
+        self.num_successes_increase_factor = config.getfloat(
+            "reward", "num_successes_increase_factor"
+        )
 
         self.advance_probability = config.getfloat("env", "advance_probability")
         self.max_hard_obstacles_count = config.getint("env", "max_hard_obstacles_count")
@@ -209,30 +215,20 @@ class TeacherEnv(Env):
         self.reward = 0
 
         ######################### Initiate Robot Env ############################
-        action = self._convert_action_to_dict_format(action)
 
-        px, py, gx, gy = self._get_robot_position_from_action(action)
+        position_action = [action[0], action[1], action[2], action[3]]
+
+        px, py, gx, gy = self._get_robot_position_from_action(position_action)
+
+        self.robot_env.add_boarder_obstacles()
+
+        obstacles = self.get_obstacles_from_action(action)
+        for obstacle in obstacles:
+            self.robot_env.obstacles.obstacles_list.append(obstacle)
 
         self.robot_env.set_robot_position(px=px, py=py, gx=gx, gy=gy)
         self.robot_env.is_initial_state = True
 
-        self.robot_env.add_boarder_obstacles()
-
-        self._generate_obstacles_points(
-            math.ceil(action["hard_obst_cnt"] * self.max_hard_obstacles_count),
-            min_dim=self.hard_obstacles_min_dim,
-            max_dim=self.hard_obstacles_max_dim,
-        )
-        self._generate_obstacles_points(
-            math.ceil(action["medium_obst_cnt"] * self.max_medium_obstacles_count),
-            min_dim=self.medium_obstacles_min_dim,
-            max_dim=self.medium_obstacles_max_dim,
-        )
-        self._generate_obstacles_points(
-            math.ceil(action["small_obst_cnt"] * self.max_small_obstacles_count),
-            min_dim=self.small_obstacles_min_dim,
-            max_dim=self.small_obstacles_max_dim,
-        )
         self.robot_env.reset()
 
         self.difficulty_area, self.difficulty_obs = convex_hull_difficulty(
@@ -243,10 +239,33 @@ class TeacherEnv(Env):
         )
         is_passed_inf_diff = self.difficulty_area >= self.INF_DIFFICULTY
         is_goal_overlap_robot = self.robot_env.robot.is_robot_overlap_goal()
-        if is_passed_inf_diff or is_goal_overlap_robot:
+        is_goal_or_robot_overlap_obstacles = 0
+        for obstacle in self.robot_env.obstacles.obstacles_list:
+            is_goal_or_robot_overlap_obstacles = (
+                is_goal_or_robot_overlap_obstacles
+                + self.robot_env.robot.is_overlapped(
+                    obstacle=obstacle, check_target="agent"
+                )
+                + self.robot_env.robot.is_overlapped(
+                    obstacle=obstacle, check_target="goal"
+                )
+            )
+        is_goal_or_robot_overlap_obstacles = is_goal_or_robot_overlap_obstacles > 0
+        print(
+            f"is_goal_or_robot_overlap_obstacles = {is_goal_or_robot_overlap_obstacles}"
+        )
+        print(f"is_goal_overlap_robot = {is_goal_overlap_robot}")
+        print(f"is_passed_inf_diff = {is_passed_inf_diff}")
+        if (
+            is_passed_inf_diff
+            or is_goal_overlap_robot
+            or is_goal_or_robot_overlap_obstacles
+        ):
             self.reward = (
                 self.infinite_difficulty_penality * is_passed_inf_diff
                 + self.overlap_goal_penality * is_goal_overlap_robot
+                + self.is_goal_or_robot_overlap_obstacles_penality
+                * is_goal_or_robot_overlap_obstacles
             )
             self.done = True
             if self.collect_statistics:
@@ -257,11 +276,12 @@ class TeacherEnv(Env):
                     self.difficulty_area,
                     self.difficulty_obs,
                     self.robot_level,
+                    self.robot_env.num_successes,
                 ]
-            self.overlap_or_difficulity_time_step = self.time_steps
+            self.penality_time_step = self.time_steps
             return self._make_obs(), self.reward, self.done, {}
         else:
-            self.overlap_or_difficulity_time_step = 0
+            self.penality_time_step = 0
 
         too_close_to_goal_penality = (
             self.too_close_to_goal_penality
@@ -270,6 +290,11 @@ class TeacherEnv(Env):
 
         self.desired_difficulty = (
             self.base_difficulty * (self.diff_increase_factor) ** self.episodes
+        )
+
+        self.num_successes = (
+            self.base_num_successes
+            * (self.num_successes_increase_factor) ** self.episodes
         )
 
         policy_kwargs = dict(features_extractor_class=Robot1DFeatureExtractor)
@@ -299,7 +324,8 @@ class TeacherEnv(Env):
         verbose=1,
         render=self.render_eval,
     )
-        callback = CallbackList([log_callback, robot_max_steps_callback, eval_callback])
+        successes_callback = RobotSuccessesCallback(num_successes=self.num_successes)
+        callback = CallbackList([log_callback, robot_max_steps_callback, eval_callback, successes_callback])
         
         model.learn(total_timesteps=int(1e9), reset_num_timesteps=False,
                     callback=callback)
@@ -331,10 +357,12 @@ class TeacherEnv(Env):
                 self.robot_env.episode_reward,
                 self.difficulty_area,
                 self.difficulty_obs, 
-                self.robot_level
+                self.robot_level,
+                self.robot_env.num_successes
             ]
 
         self.robot_level = (self.robot_level + advance_flag) * advance_flag
+        self.robot_env.num_successes = 0
         return self._make_obs(), self.reward, self.done, {"episodes_count": self.episodes}
 
     def render(self):
@@ -355,34 +383,59 @@ class TeacherEnv(Env):
             self.robot_success_rate,
         ]
 
-    def _convert_action_to_dict_format(self, action: List) -> dict:
-        """Convert action form List format to dict format
+    def get_obstacles_from_action(self, action: np.array):
+        """Convert action from index-format to function-format.
+        The output of the planner is treated as a list of functions,
+        each with valuable points in the domain from x -> [0, max_obs].
+
+        The index is convert into the function by converting the base of the index
+        from decimal(10) base to width/height.
+
+        The function is then sampled at points x -> [0, max_obs] to obtain the corresponding values.
+        There are 4 output values(indexes) from the teacher model:
+            x position of obstacles
+            y position of obstacles
+            w width of obstacles
+            h height of obstacles
+        Each index is treated as a function and converted to obtain the corresponding values
+        using the method described above.
 
         Args:
-            action (List): output of teacher model
+            action (np.array): input action(x, y, w, h)
 
         Returns:
-            dict: action dictionay (robot_x, robot_y, goal_x, goal_y, hard_obst_cnt, medium_obst_cnt, small_obst_cnt)
+            List[SingleObstalce, ...]: list of obtained obstacles
         """
-        planner_output = {}
-        action[0] = max(action[0], 0.1)
-        action[0] = min(action[0], 0.9)
-        action[1] = max(action[1], 0.1)
-        action[1] = min(action[1], 0.9)
-        action[2] = max(action[2], 0.1)
-        action[2] = min(action[2], 0.9)
-        action[3] = max(action[3], 0.1)
-        action[3] = min(action[3], 0.9)
+        x_func, y_func, w_func, h_func = action[4], action[5], action[6], action[7]
+        max_num_obstacles = (
+            self.max_hard_obstacles_count
+            + self.max_medium_obstacles_count
+            + self.max_small_obstacles_count
+        )
+        width = self.robot_env.width
+        height = self.robot_env.height
+        x_max = width**max_num_obstacles
+        y_max = height**max_num_obstacles
 
-        for i in range(len(action)):
-            planner_output["{}".format(self.action_space_names[i])] = action[i]
-        print(f"======== Teacher action for Session {self.time_steps} ========")
-        names = ["px", "py", "gx", "gy", "h_cnt", "m_cnt", "s_cnt"]
-        action_table = PrettyTable()
-        for i, val in enumerate(list(planner_output.values())):
-            action_table.add_column(fieldname=names[i], column=[val])
-        print(action_table)
-        return planner_output
+        x_func = math.ceil(x_func * x_max)
+        w_func = math.ceil(w_func * x_max)
+        y_func = math.ceil(y_func * y_max)
+        h_func = math.ceil(h_func * y_max)
+
+        obstacles = []
+        for i in range(max_num_obstacles):
+            x = x_func % width
+            y = y_func % height
+            w = min(w_func % width, width - x)
+            h = min(h_func % height, height - y)
+            obstacle = SingleObstacle(x, y, w, h)
+            obstacles.append(obstacle)
+
+            x_func = x_func // width
+            w_func = w_func // width
+            y_func = y_func // height
+            h_func = h_func // height
+        return obstacles
 
     def _get_robot_position_from_action(self, action: dict) -> Tuple:
         """Clip robot and goal positions to make sure they are inside the environment dimensions
@@ -393,30 +446,57 @@ class TeacherEnv(Env):
         Returns:
             Tuple: clipped positions of robot and goal
         """
+        """Convert action form List format to dict format
+
+        Args:
+            action (List): output of teacher model
+
+        Returns:
+            dict: action dictionay (robot_x, robot_y, goal_x, goal_y, hard_obst_cnt, medium_obst_cnt, small_obst_cnt)
+        """
+        planner_output = {}
+        action[0] = max(action[0], 0.099)
+        action[0] = min(action[0], 0.899)
+        action[1] = max(action[1], 0.099)
+        action[1] = min(action[1], 0.899)
+        action[2] = max(action[2], 0.1)
+        action[2] = min(action[2], 0.9)
+        action[3] = max(action[3], 0.1)
+        action[3] = min(action[3], 0.9)
+
+        for i in range(len(action)):
+            planner_output["{}".format(self.action_space_names[i])] = action[i]
+        print(f"======== Teacher action for Session {self.time_steps} ========")
+        names = ["px", "py", "gx", "gy"]
+        action_table = PrettyTable()
+        for i, val in enumerate(list(planner_output.values())):
+            action_table.add_column(fieldname=names[i], column=[val])
+        print(action_table)
+
         px = int(
             np.clip(
-                self.robot_env.width * action["robot_x"],
+                self.robot_env.width * planner_output["robot_x"],
                 a_min=0,
                 a_max=self.robot_env.width - 2,
             )
         )  # type: ignore
         py = int(
             np.clip(
-                self.robot_env.height * action["robot_y"],
+                self.robot_env.height * planner_output["robot_y"],
                 a_min=0,
                 a_max=self.robot_env.width - 2,
             )
         )
         gx = int(
             np.clip(
-                self.robot_env.width * action["goal_x"],
+                self.robot_env.width * planner_output["goal_x"],
                 a_min=0,
                 a_max=self.robot_env.width - 2,
             )
         )
         gy = int(
             np.clip(
-                self.robot_env.height * action["goal_y"],
+                self.robot_env.height * planner_output["goal_y"],
                 a_min=0,
                 a_max=self.robot_env.height - 2,
             )
@@ -459,38 +539,12 @@ class TeacherEnv(Env):
         ans = ans * ((-1) ** neg)
         return ans
 
-    def _generate_obstacles_points(
-        self, obstacles_count: int, min_dim: int, max_dim: int
-    ) -> None:
-        """Generate obstacles based on teacher action for next robot session
-
-        Args:
-            obstacles_count (int): number of obstacles to generate
-            min_dim (int): min dimension of generated obstacles
-            max_dim (int): max dimension of generated obstacles
-        """
-        for i in range(int(obstacles_count)):
-            overlap = True
-            new_obstacle = SingleObstacle()
-            while overlap:
-                px = uniform(0, self.robot_env.width)
-                py = uniform(0, self.robot_env.height)
-                new_width = uniform(min_dim, max_dim)
-                new_height = uniform(min_dim, max_dim)
-                new_obstacle = SingleObstacle(px, py, new_width, new_height)
-                overlap = self.robot_env.robot.is_overlapped(
-                    new_obstacle, check_target="agent"
-                ) or self.robot_env.robot.is_overlapped(
-                    new_obstacle, check_target="goal"
-                )
-            self.robot_env.obstacles += new_obstacle
-
     def reset(self) -> List:
         """Resets teacher state
 
         Returns:
             List: observation vector
         """
-        self.time_steps = self.overlap_or_difficulity_time_step
+        self.time_steps = self.penality_time_step
         self.done = 0
         return self._make_obs()

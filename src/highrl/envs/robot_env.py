@@ -48,6 +48,7 @@ class RobotEnv(Env):
         self.total_reward = 0
         self.total_steps = 0
         self.success_flag = False
+        self.num_successes = 0
 
         self.done = False
 
@@ -166,6 +167,7 @@ class RobotEnv(Env):
             ]
         # log data
         if self.done:
+            self.num_successes += self.success_flag
             self.results.append(
                 [self.episode_reward, self.episode_steps, self.success_flag]
             )
