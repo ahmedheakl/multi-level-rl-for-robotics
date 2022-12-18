@@ -20,7 +20,7 @@ Do not forget to specify the output dir for models saving
     
 Version
 ------------------
- - highrl v0.1.2
+ - highrl v0.1.3
 """
 
 
@@ -86,13 +86,17 @@ def main() -> None:
         save_model_path = os.path.join(args.teacher_models_path, "during_training")
         if not os.path.isdir(save_model_path):
             os.mkdir(save_model_path)
-        model = PPO(LinearActorCriticPolicy, teacher_env, verbose=1 , policy_kwargs = policy_kwargs,
-        learning_rate=0.0001, batch_size=16, device=args.device_used)
         teacher_log_callback = TeacherLogCallback(train_env = teacher_env, logpath=logpath, save_freq=1, verbose=0)
         teacher_max_steps_callback = TeacherMaxStepsCallback(max_steps = max_sessions)
         teacher_save_model_callback = TeacherSaveModelCallback(train_env= teacher_env,
          save_path= save_model_path, save_freq = teacher_env.teacher_save_model_freq)
         callback = CallbackList([teacher_log_callback, teacher_max_steps_callback, teacher_save_model_callback])
+        if args.initial_teacher_model != "none":
+            teacher_model = args.initial_teacher_model
+            model = PPO.load(path=teacher_model ,env=teacher_env, device=args.device_used)      
+        else:
+            model = PPO(LinearActorCriticPolicy, teacher_env, verbose=1 , policy_kwargs = policy_kwargs,
+            learning_rate=0.0001, batch_size=16, device=args.device_used)
         model.learn(total_timesteps=int(1e7),  callback=callback)
         model.save(f"{args.teacher_models_path}/model_{int(time())}")
     else:

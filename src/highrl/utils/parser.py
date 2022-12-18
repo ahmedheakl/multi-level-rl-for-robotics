@@ -29,6 +29,14 @@ def parse_args() -> argparse.Namespace:
         help="what device to use for training (CPU/GPU)",
     )
     parser.add_argument(
+        "--initial-teacher-model",
+        type=str,
+        default="none",
+        dest="initial_teacher_model",
+        help="path of initial teacher model used in training",
+    )
+
+    parser.add_argument(
         "--robot-config",
         type=str,
         default="none",
