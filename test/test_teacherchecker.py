@@ -29,8 +29,9 @@ class TeacherCheckerTest(unittest.TestCase):
         input_coords = [3.5, 3.5, 4.5, 2.5]
         expected = [5.5, 5.5, 4.5, 2.5]
         points = [lines[i](input_coords[i])[1] for i in range(len(lines))]
+        new_points = [round(item, 1) for item in points]
         self.assertListEqual(
-            expected, points, msg=f"\nExpected:\n{expected}\nFound:\n{points}"
+            expected, new_points, msg=f"\nExpected:\n{expected}\nFound:\n{points}"
         )
 
     @classmethod
