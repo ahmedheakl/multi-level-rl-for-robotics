@@ -48,7 +48,7 @@ class TeacherCheckerTest(unittest.TestCase):
         for p in range(len(expected)):
             self.assertEqual(
                 expected[p],
-                value[p],
+                round(value[p]),
                 msg=f"\nExpected:\n{expected[p]}\nFound:\n{value[p]}",
             )
 
