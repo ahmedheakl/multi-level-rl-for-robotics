@@ -18,6 +18,7 @@ class TeacherCheckerTest(unittest.TestCase):
         )
         expected = sorted([[3.5, 5.5], [4.5, 4.5], [1.5, 3.5], [2.5, 2.5]])
         for p in range(len(expected)):
+            value[p] = [round(value[p][i], 1) for i in range(len(value[p]))]
             self.assertListEqual(
                 expected[p],
                 value[p],
@@ -46,9 +47,10 @@ class TeacherCheckerTest(unittest.TestCase):
         expected = [[3.6, 7.2], [4.4, 6.8], [2.4, 2.8], [1.6, 3.2]]
         self.addTypeEqualityFunc(list, self.float_comparer)
         for p in range(len(expected)):
+            value[p] = [round(value[p][i], 1) for i in range(len(value[p]))]
             self.assertEqual(
                 expected[p],
-                round(value[p]),
+                value[p],
                 msg=f"\nExpected:\n{expected[p]}\nFound:\n{value[p]}",
             )
 
