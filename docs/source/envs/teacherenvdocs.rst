@@ -14,5 +14,4 @@ Teacher Env Class
 -----------------
 
 .. autoclass:: TeacherEnv 
-    :members: 
 

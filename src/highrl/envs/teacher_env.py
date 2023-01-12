@@ -29,6 +29,7 @@ from stable_baselines3.common.callbacks import CallbackList
 from prettytable import PrettyTable
 import argparse
 from os import path
+import torch as th
 
 # TODO: scale the observation space to [0,1]
 
@@ -54,9 +55,10 @@ class TeacherEnv(Env):
             "medium_obstacles_count",
             "small_obstacles_count",
         ]
-        self.action_space = spaces.Box(
-            low=0.01, high=0.99, shape=(7,), dtype=np.float32
-        )
+        # self.action_space = spaces.Box(
+        #     low=0.01, high=0.99, shape=(7,), dtype=np.float32
+        # )
+        # self.action_space = Graph(node_space=spaces.Box(low=0, high=1, shape=(4,), dtype=np.float32), edge_space=None)
         # self.action_space = spaces.Gra
         # [time_steps, robot_level, robot_reward, difficulty_area, difficulty_obs]
         self.observation_space = spaces.Box(
@@ -154,6 +156,13 @@ class TeacherEnv(Env):
             "statistics", "n_robot_eval_episodes"
         )
         self.render_eval = config.getboolean("render", "render_eval")
+        
+        # FIXME: edit
+        max_num_obstacles = self.max_hard_obstacles_count +\
+                            self.max_medium_obstacles_count +\
+                            self.max_small_obstacles_count
+                            
+        self.action_space = spaces.Box(low=0.0, high=1.0, shape=(max_num_obstacles + 2, 4), dtype=np.float32)
 
     def _get_robot_metrics(self):
         if len(self.robot_env.results) > 0:
@@ -340,25 +349,67 @@ class TeacherEnv(Env):
 
     def _convert_action_to_dict_format(self, action):
         """Convert action form list format to dict format
+        
         Args:
             action (list): output of planner model
+            
         Returns:
             dict: action dictionay (robotPosition, goalPosition, numberOfObstacles)
         """
-        planner_output = {}
-        action[0] = max(action[0], 0.1)
-        action[0] = min(action[0], 0.9)
-        action[1] = max(action[1], 0.1)
-        action[1] = min(action[1], 0.9)
+        # FIXME: edit
+        def conv(prob, max):
+            prob = np.clip(prob, 0.1, 0.9)
+            return np.round(prob * max)
+        robot_pos = np.zeros((4), np.int32)
+        # get robot/goal position
+        robot_pos[0] = conv(action[0][0], self.robot_env.width)
+        robot_pos[1] = conv(action[0][1], self.robot_env.height)
+        robot_pos[2] = conv(action[0][2], self.robot_env.width)
+        robot_pos[3] = conv(action[0][3], self.robot_env.height)
+            
+        # get obstacles count
+        obs_count = np.zeros((3), np.int32)
+        obs_count[0] = conv(action[1][0], self.max_hard_obstacles_count)
+        obs_count[1] = conv(action[1][1], self.max_medium_obstacles_count)
+        obs_count[2] = conv(action[1][2], self.max_small_obstacles_count)
+        
+        planner_output = {"robot_pos": robot_pos, "obs_count": obs_count}
+        big_obstacles = np.zeros((obs_count[0], 4), np.uint32)
+        med_obstacles = np.zeros((obs_count[1], 4), np.uint32)
+        small_obstacles = np.zeros((obs_count[2], 4), np.uint32)
+        
+        width = self.robot_env.width
+        height = self.robot_env.height
+        dims_array = np.array([width, height, width, height], dtype=np.int32)
+        offset = 2
+        for i in range(obs_count[0].item()):
+            x = np.reshape(conv(action[i + offset], dims_array), (-1, 4))
+            print("XXXXX", x.shape, x, type(x))
+            big_obstacles[i] = x
+        planner_output["big_obs"] = big_obstacles
+        
+        offset += obs_count[0].item()
+        for i in range(obs_count[1].item()):
+            x = np.reshape(conv(action[i + offset], dims_array), (-1, 4))
+            print("XXXXX", x.shape, x, type(x))
+            med_obstacles[i] = x
+        planner_output["med_obs"] = med_obstacles
+        
+        offset += obs_count[1].item()
+        for i in range(obs_count[2].item()):
+            small_obstacles[i] = np.reshape(conv(action[i + offset], dims_array), (-1, 4))
+        planner_output["sm_obs"] = small_obstacles
+        print(planner_output)
+        
 
-        for i in range(len(action)):
-            planner_output["{}".format(self.action_space_names[i])] = action[i]
-        print(f"======== Teacher action for Session {self.time_steps} ========")
-        names = ["px", "py", "gx", "gy", "h_cnt", "m_cnt", "s_cnt"]
-        action_table = PrettyTable()
-        for i, val in enumerate(list(planner_output.values())):
-            action_table.add_column(fieldname=names[i], column=[val])
-        print(action_table)
+        # for i in range(len(action)):
+        #     planner_output["{}".format(self.action_space_names[i])] = action[i]
+        # print(f"======== Teacher action for Session {self.time_steps} ========")
+        # names = ["px", "py", "gx", "gy", "h_cnt", "m_cnt", "s_cnt"]
+        # action_table = PrettyTable()
+        # for i, val in enumerate(list(planner_output.values())):
+        #     action_table.add_column(fieldname=names[i], column=[val])
+        # print(action_table)
         return planner_output
 
     def _get_robot_position_from_action(self, action: dict) -> Tuple:

@@ -22,13 +22,23 @@ class LSTMFeatureExtractor(BaseFeaturesExtractor):
         super(LSTMFeatureExtractor, self).__init__(observation_space, features_dim)
         self.device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
-        self.hidden = th.zeros(1, 1, hidden_dim, device=self.device)
+        self.hidden_dim = hidden_dim
+        self.init_hidden()
         self.linear = nn.Linear(features_dim, hidden_dim)
         self.gru = nn.GRU(hidden_dim, hidden_dim, num_layers=num_layers)
+        
+    def init_hidden(self): 
+        self.hidden = th.zeros(1, 1, self.hidden_dim, device=self.device)
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
 
         observations.clone().detach()
+        
+        # if robot level is reset, then re-initialize hidden tensor
+        # FIXME: check robot level entry position
+        # if observations[1] == 0:
+        #     self.init_hidden()
+            
         embedded = self.linear(observations).view(1, 1, -1)
         _, self.hidden = self.gru(embedded, self.hidden)
 

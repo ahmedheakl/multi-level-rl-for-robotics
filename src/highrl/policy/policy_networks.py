@@ -94,14 +94,17 @@ class LSTMPolicyNetwork(nn.Module):
         self.max_big_obs = max_big_obs
         self.max_med_obs = max_med_obs
         self.max_small_obs = max_small_obs
+        self.max_num_obs = max_big_obs +\
+                           max_med_obs +\
+                           max_small_obs
         
         self.embedding = nn.Linear(last_layer_dim_pi, hidden_dim)
         self.gru = nn.GRU(hidden_dim, hidden_dim)
         self.out = nn.Linear(hidden_dim, last_layer_dim_pi)
         self.logsoftmax = nn.LogSoftmax(dim=0)
         self.softmax = nn.Softmax(dim=0)
-        device = th.device("cuda" if th.cuda.is_available() else "cpu")
-        self.hidden = th.zeros(1, 1, hidden_dim, device=device)
+        self.device = th.device("cuda" if th.cuda.is_available() else "cpu")
+        self.hidden = th.zeros(1, 1, hidden_dim, device=self.device)
         
         # Value network
         self.value_net = nn.Sequential(
@@ -123,15 +126,9 @@ class LSTMPolicyNetwork(nn.Module):
 
         Returns:
             Tuple[th.Tensor, th.Tensor]: action(4), value(1, 1, 32)
-        """
-        # value_forward
-        v_out = self.value_net(features)
-        print(v_out.shape)
-        
-        # policy forward
-        p_out = self.forward_actor(features)
-        
-        return p_out, v_out
+        """        
+        return self.forward_actor(features), self.value_net(features)
+    
     def decoder_policy(self, input_tensor: th.Tensor, hidden_tensor: th.Tensor) -> Tuple[th.Tensor, ...]:
         """Foward pass through decoder policy net
 
@@ -152,7 +149,7 @@ class LSTMPolicyNetwork(nn.Module):
         logits = self.out(output)
         
         # justify output: [1, 4]
-        output = self.logsoftmax(logits[0]).view(1, -1)
+        output = logits.view(1, -1)
         return output, hidden_tensor, logits
         
     def forward_actor(self, features: th.Tensor) -> th.Tensor:
@@ -164,7 +161,7 @@ class LSTMPolicyNetwork(nn.Module):
         Returns:
             th.Tensor: outputs(num_obs + 2, 4)
         """
-        decoder_input = th.zeros(1, 4) # <SOS>
+        decoder_input = th.zeros(1, 4).to(self.device) # <SOS>
 
         # first output = [px, py, gx, gy]
         # input_dims : [1, 4], [1, 16]
@@ -181,7 +178,7 @@ class LSTMPolicyNetwork(nn.Module):
         num_sm_obs = th.round(obs_count[2] * self.max_small_obs).int().item()
         
         target_length = num_big_obs + num_med_obs + num_sm_obs
-        outputs = th.zeros(target_length+2, 1, self.latent_dim_pi)
+        outputs = th.zeros(self.max_num_obs+2, 1, self.latent_dim_pi).to(self.device)
         
         outputs[0] = robot_pos
         outputs[1] = obs_count
@@ -189,6 +186,7 @@ class LSTMPolicyNetwork(nn.Module):
         for t in range(2,target_length+2):
             p_out, hidden, logits = self.decoder_policy(p_out, hidden)
             outputs[t] = self.softmax(logits[0])
+        print(outputs.shape)
         return outputs
 
     def forward_critic(self, features: th.Tensor) -> th.Tensor:
