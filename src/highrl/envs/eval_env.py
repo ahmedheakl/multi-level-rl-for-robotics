@@ -90,7 +90,7 @@ class RobotEvalEnv(RobotEnv):
                 new_height = randint(min_dim, max_dim)
                 new_obstacle = SingleObstacle(px, py, new_width, new_height)
                 overlap = self.robot.is_overlapped(
-                    new_obstacle, check_target="robot"
+                    new_obstacle, check_target="agent"
                 ) or self.robot.is_overlapped(new_obstacle, check_target="goal")
             self.obstacles += new_obstacle
 

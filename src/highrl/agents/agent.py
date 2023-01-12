@@ -124,20 +124,20 @@ class Agent(object):
             np.array(self.get_position()) - np.array(self.get_goal_position())  # type: ignore
         ) < (self.radius + self.goal_radius)
 
-    def is_overlapped(self, obstacle: SingleObstacle, check_target: str = "robot"):
+    def is_overlapped(self, obstacle: SingleObstacle, check_target: str = "agent"):
         """Check if there is no overlap between either the robot or the goal and an obstacle
 
         Args:
             obstacle (SingleObstacle): input obstalce
-            check_target (str): target to be checked, either robot or goal
+            check_target (str): target to be checked, either agent or goal
 
         Returns:
             bool: flag to determine if there is no overlap
         """
         assert check_target in [
             "goal",
-            "robot",
-        ], f"check target should be goal or robot"
+            "agent",
+        ], f"check target should be goal or agent"
         if check_target == "goal":
             min_x = self.gx - self.goal_radius
             min_y = self.gy - self.goal_radius
