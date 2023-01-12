@@ -46,6 +46,7 @@ class RobotEnv(Env):
         self.total_reward = 0
         self.total_steps = 0
         self.success_flag = False
+        self.num_successes = 0
 
         self.done = False
 
@@ -162,6 +163,7 @@ class RobotEnv(Env):
             ]
         # log data
         if self.done:
+            self.num_successes += self.success_flag
             self.results.append(
                 [self.episode_reward, self.episode_steps, self.success_flag]
             )
@@ -440,9 +442,9 @@ class RobotEnv(Env):
         """
         return ActionXY(action[0], action[1], 0)
 
-    def reset(self):
-        """
-        Reset robot state and generate new obstacles points
+    def reset(self) -> dict:
+        """Resets robot state and generate new obstacles points
+
         Returns:
             dict: observation of the current environment state
         """
