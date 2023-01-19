@@ -16,9 +16,9 @@ class LSTMFeatureExtractor(BaseFeaturesExtractor):
         self,
         observation_space: gym.spaces.Box,
         features_dim: int = 6,
-        hidden_dim: int =16,
-        num_layers: int =1,
-    ) -> None: 
+        hidden_dim: int = 16,
+        num_layers: int = 1,
+    ) -> None:
         super(LSTMFeatureExtractor, self).__init__(observation_space, features_dim)
         self.device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
@@ -26,23 +26,25 @@ class LSTMFeatureExtractor(BaseFeaturesExtractor):
         self.init_hidden()
         self.linear = nn.Linear(features_dim, hidden_dim)
         self.gru = nn.GRU(hidden_dim, hidden_dim, num_layers=num_layers)
-        
-    def init_hidden(self): 
+
+    def init_hidden(self):
         self.hidden = th.zeros(1, 1, self.hidden_dim, device=self.device)
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
 
         observations.clone().detach()
-        
+
         # if robot level is reset, then re-initialize hidden tensor
         # FIXME: check robot level entry position
-        # if observations[1] == 0:
-        #     self.init_hidden()
-            
+        print("observations = ", observations)
+        if observations[0][0] == 0:
+            self.init_hidden()
+
         embedded = self.linear(observations).view(1, 1, -1)
         _, self.hidden = self.gru(embedded, self.hidden)
 
         # returns [1, 1, 16]
+        print("features shape = ", self.hidden.shape)
         return self.hidden
 
 

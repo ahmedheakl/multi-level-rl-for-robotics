@@ -40,6 +40,7 @@ class SingleObstacle(object):
             [self.px + x, self.py + y] for x in range(w + 1) for y in range(h + 1)
         ]
         points = np.array(points, dtype=np.int32)
+        # print(points)
         return points
 
     def __str__(self) -> str:

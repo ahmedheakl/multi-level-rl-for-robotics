@@ -138,6 +138,10 @@ class TeacherEnv(Env):
         # start with base difficulty
         self.desired_difficulty = self.base_difficulty
         self.diff_increase_factor = config.getfloat("reward", "diff_increase_factor")
+        self.base_num_successes = config.getfloat("reward", "base_num_successes")
+        self.num_successes_increase_factor = config.getfloat(
+            "reward", "num_successes_increase_factor"
+        )
 
         self.advance_probability = config.getfloat("env", "advance_probability")
         self.max_hard_obstacles_count = config.getint("env", "max_hard_obstacles_count")
@@ -274,6 +278,7 @@ class TeacherEnv(Env):
                     self.robot_env.num_successes,
                 ]
             self.penality_time_step = self.time_steps
+
             return self._make_obs(), self.reward, self.done, {}
         else:
             self.penality_time_step = 0
@@ -307,13 +312,13 @@ class TeacherEnv(Env):
         robot_logpath = path.join(self.args.robot_logs_path, "robot_logs.csv")
         eval_logpath = path.join(self.args.robot_logs_path, "robot_eval_logs.csv")
         eval_model_save_path = path.join(self.args.robot_models_path, "test/best_tested_robot_model")
-        log_callback =  RobotLogCallback(train_env = self.robot_env, logpath= robot_logpath, eval_frequency=self.robot_log_eval_freq, verbose=0)
+        log_callback =  RobotLogCallback(train_env = self.robot_env, logpath= robot_logpath, eval_freq=self.robot_log_eval_freq, verbose=0)
         robot_max_steps_callback = RobotMaxStepsCallback(max_steps=self.max_session_timesteps, verbose=0)
         eval_callback = RobotEvalCallback(eval_env =self.eval_env  ,
         n_eval_episodes=self.n_robot_eval_episodes,
         logpath=eval_logpath,
         savepath=eval_model_save_path,
-        eval_frequency=self.max_session_timesteps,
+        eval_freq=self.max_session_timesteps,
         verbose=1,
         render=self.render_eval,
     )
@@ -354,7 +359,7 @@ class TeacherEnv(Env):
                 self.robot_env.num_successes
             ]
 
-        self.robot_level = (self.robot_level + advance_flag) * advance_flag
+        self.robot_level = int((self.robot_level + advance_flag) * advance_flag)
         self.robot_env.num_successes = 0
         return self._make_obs(), self.reward, self.done, {"episodes_count": self.episodes}
 
@@ -384,6 +389,7 @@ class TeacherEnv(Env):
         Returns:
             dict: action dictionay (robotPosition, goalPosition, numberOfObstacles)
         """
+        print("action outputed from teacher model directly shape = ", action.shape)
         # FIXME: edit
         def conv(prob, max):
             prob = np.clip(prob, 0.1, 0.9)
@@ -413,14 +419,14 @@ class TeacherEnv(Env):
         offset = 2
         for i in range(obs_count[0].item()):
             x = np.reshape(conv(action[i + offset], dims_array), (-1, 4))
-            print("XXXXX", x.shape, x, type(x))
+            # print("XXXXX", x.shape, x, type(x), "\n")
             big_obstacles[i] = x
         planner_output["big_obs"] = big_obstacles
 
         offset += obs_count[0].item()
         for i in range(obs_count[1].item()):
             x = np.reshape(conv(action[i + offset], dims_array), (-1, 4))
-            print("XXXXX", x.shape, x, type(x))
+            # print("XXXXX", x.shape, x, type(x), "\n")
             med_obstacles[i] = x
         planner_output["med_obs"] = med_obstacles
 
@@ -434,12 +440,31 @@ class TeacherEnv(Env):
 
         # for i in range(len(action)):
         #     planner_output["{}".format(self.action_space_names[i])] = action[i]
-        # print(f"======== Teacher action for Session {self.time_steps} ========")
-        # names = ["px", "py", "gx", "gy", "h_cnt", "m_cnt", "s_cnt"]
-        # action_table = PrettyTable()
-        # for i, val in enumerate(list(planner_output.values())):
-        #     action_table.add_column(fieldname=names[i], column=[val])
-        # print(action_table)
+        print(f"======== Teacher action for Session {self.time_steps} ========")
+        names = ["px", "py", "gx", "gy", "h_cnt", "m_cnt", "s_cnt"]
+        action_table = PrettyTable()
+        action_table.add_column(
+            fieldname=names[0], column=[planner_output["robot_pos"][0]]
+        )
+        action_table.add_column(
+            fieldname=names[1], column=[planner_output["robot_pos"][1]]
+        )
+        action_table.add_column(
+            fieldname=names[2], column=[planner_output["robot_pos"][2]]
+        )
+        action_table.add_column(
+            fieldname=names[3], column=[planner_output["robot_pos"][3]]
+        )
+        action_table.add_column(
+            fieldname=names[4], column=[planner_output["obs_count"][0]]
+        )
+        action_table.add_column(
+            fieldname=names[5], column=[planner_output["obs_count"][1]]
+        )
+        action_table.add_column(
+            fieldname=names[6], column=[planner_output["obs_count"][2]]
+        )
+        print(action_table)
         return planner_output
 
     def _get_robot_position_from_action(self, action: dict) -> Tuple:

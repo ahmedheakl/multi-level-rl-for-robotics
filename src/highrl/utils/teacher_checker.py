@@ -10,6 +10,7 @@ from typing import Tuple, List, Union, Callable
 
 
 INF = 921600  # w * h = 1280 * 720
+# EPSILON = 0.001
 
 
 def get_region_coordinates(
@@ -26,16 +27,16 @@ def get_region_coordinates(
         Tuple[List[List[int]], List[Callable[[float], List[float]]]]: limiting coords & lines
     """
     px, py, gx, gy = coords
-    if (gx - px) == 0:
-        slope = 99999
-        intercept = 99999
+    if abs(gx - px) < 1e-3:
+        slope = 9999
+        intercept = 9999
     else:
         slope = (gy - py) / ((gx - px))
         intercept = (gx * py - gy * px) / ((gx - px))
     shift_amount = eps * harmonic_number
-    if slope == 0:
-        top_intercept = 99999
-        bottom_intercept = 99999
+    if abs(slope) < 1e-3:
+        top_intercept = 9999
+        bottom_intercept = 9999
     else:
         top_intercept = (slope * gy + gx) / (slope)
         bottom_intercept = (slope * py + px) / (slope)
@@ -140,10 +141,15 @@ def check_valid_path_existance(
     px, py = robot_pos
     gx, gy = goal_pos
     env_map = []
+
+    iterations = 0
+
     for x in range(width + 1):
         current = []
         for y in range(height + 1):
             current.append(".")
+            print(iterations)
+            iterations = iterations + 1
         env_map.append(current)
 
     for i, obstacle in enumerate(obstacles):
@@ -153,6 +159,10 @@ def check_valid_path_existance(
         for p in points:
             if check_if_point_inside_polygen(p, coords):
                 x, y = p
+                # TODO: clip values
+                x = np.clip(x, a_min=0, a_max=1280)
+                y = np.clip(y, a_min=0, a_max=720)
+                print(x, y)
                 env_map[x][y] = "X"
     # print(env_map)
     # bfs
@@ -223,7 +233,11 @@ def get_area_of_convex_polygen(points: List[List[int]]) -> float:
 
 
 def convex_hull_difficulty(
-    obstacles: Obstacles, robot: Robot, width: int, height: int
+    # TODO: FIX the loop stuck
+    obstacles: Obstacles,
+    robot: Robot,
+    width: int,
+    height: int,
 ) -> Tuple[float, int]:
     """Calculate env complexity using convex_hull algorithm
 
