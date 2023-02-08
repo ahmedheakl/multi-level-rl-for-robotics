@@ -23,7 +23,6 @@ Version
  - highrl v0.1.5
 """
 
-
 import os
 import torch
 from highrl.envs.teacher_env import TeacherEnv

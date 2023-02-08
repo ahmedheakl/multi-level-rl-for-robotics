@@ -7,7 +7,7 @@ robot_radius = 20
 goal_radius = 10
 
 [timesteps]
-delta_t = 1
+delta_t = 0.2
 # 1e3
 max_episode_steps = 1000
 # 1e5

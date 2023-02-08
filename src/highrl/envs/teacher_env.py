@@ -85,7 +85,6 @@ class TeacherEnv(Env):
         self.penality_time_step = 0
 
         self._configure(config=teacher_config)
-
         self.session_statistics = None
         if self.collect_statistics:
             self.session_statistics = pd.DataFrame(
@@ -99,6 +98,7 @@ class TeacherEnv(Env):
                     "robot_num_successes",  # robot num_successes in this teacher session
                 ]
             )
+        # self.eval_env = RobotEvalEnv(config=eval_config, args=self.args)
 
         if self.lidar_mode == "flat":
             self.robot_env = RobotEnv1DPlayer(config=robot_config, args=self.args)
@@ -370,7 +370,6 @@ class TeacherEnv(Env):
 
     def _make_obs(self) -> List:
         """Create observations
-
         Returns:
             List: observation vector
         """

@@ -116,7 +116,6 @@ class RobotEnv(Env):
         self.save_to_file = config.getboolean("render", "save_to_file")
 
         self.epsilon = config.getint("env", "epsilon")
-
         self.collect_statistics = config.getboolean("statistics", "collect_statistics")
         self.scenario = config.get("statistics", "scenario")
 

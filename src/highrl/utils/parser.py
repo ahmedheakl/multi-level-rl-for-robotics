@@ -6,6 +6,8 @@ from configparser import RawConfigParser
 from highrl.configs import robot_config_str, teacher_config_str, eval_config_str
 from typing import Tuple
 import getpass
+from highrl import __version__
+
 
 
 def parse_args() -> argparse.Namespace:
@@ -21,6 +23,15 @@ def parse_args() -> argparse.Namespace:
         formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
+<<<<<<< HEAD
+=======
+        "-v",
+        "--version",
+        action="version",
+        version=f"Version: {__version__}",
+    )
+    parser.add_argument(
+>>>>>>> main
         "--device-used-for-training",
         type=str,
         default="none",
@@ -29,6 +40,7 @@ def parse_args() -> argparse.Namespace:
         help="what device to use for training (CPU/GPU)",
     )
     parser.add_argument(
+<<<<<<< HEAD
         "--initial-teacher-model",
         type=str,
         default="none",
@@ -37,6 +49,8 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+=======
+>>>>>>> main
         "--robot-config",
         type=str,
         default="none",
