@@ -1,4 +1,4 @@
-# ---------------------ROBOT CONFIGURATIONS-----------------#
+"""Configurations for training and inference"""
 robot_config_str = """
 [dimensions]
 width = 1280

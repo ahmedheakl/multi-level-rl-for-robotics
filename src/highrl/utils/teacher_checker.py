@@ -1,19 +1,22 @@
+"""Difficulty computation implementation for the teacher"""
+from typing import Tuple, List, Union, Callable
+import numpy as np
 from highrl.obstacle.obstacles import Obstacles
 from highrl.utils.calculations import (
     cross_product_point_line,
     cross_product_triangle,
     point_to_point_distance,
 )
-import numpy as np
 from highrl.agents.robot import Robot
-from typing import Tuple, List, Union, Callable
 
 
 INF = 921600  # w * h = 1280 * 720
 
 
 def get_region_coordinates(
-    harmonic_number: int, eps: int, coords: List[Union[int, float]]
+    harmonic_number: int,
+    eps: int,
+    coords: List[Union[int, float]],
 ) -> Tuple[List[List[float]], List[Callable[[float], List[float]]]]:
     """Calculates the boundaries for the current harmonic
 
@@ -39,24 +42,22 @@ def get_region_coordinates(
         top_intercept = (slope * gy + gx) / (slope)
         bottom_intercept = (slope * py + px) / (slope)
 
-    def left_line(x: float) -> List[float]:
-        return [x, slope * x + (intercept + shift_amount)]
+    def left_line(x_coords: float) -> List[float]:
+        return [x_coords, slope * x_coords + (intercept + shift_amount)]
 
-    def right_line(x: float) -> List[float]:
-        return [x, slope * x + (intercept - shift_amount)]
+    def right_line(x_coords: float) -> List[float]:
+        return [x_coords, slope * x_coords + (intercept - shift_amount)]
 
-    def bottom_line(x: float) -> List[float]:
-        return [x, -1 / slope * x + bottom_intercept]
+    def bottom_line(x_coords: float) -> List[float]:
+        return [x_coords, -1 / slope * x_coords + bottom_intercept]
 
-    def top_line(x: float) -> List[float]:
-        return [x, -1 / slope * x + top_intercept]
+    def top_line(x_coords: float) -> List[float]:
+        return [x_coords, -1 / slope * x_coords + top_intercept]
 
-    """
-    p1-----p2
-    |       |
-    |       |
-    p3-----p4
-    """
+    # p1-----p2
+    # |       |
+    # |       |
+    # p3-----p4
     scale_factor = slope / (slope**2 + 1)
     x1: float = scale_factor * (top_intercept - (intercept + shift_amount))
     x2: float = scale_factor * (top_intercept - (intercept - shift_amount))

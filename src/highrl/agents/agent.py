@@ -1,14 +1,8 @@
-"""
-Creates and manages agents.
-
-Contains:
-    Agent Class: generic class for humans and robots
-"""
-from typing import Any
+"""Implementation for agents interface"""
+from typing import Any, Tuple, List
 import numpy as np
 from numpy.linalg import norm
-import abc
-from typing import Tuple, List
+
 from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.utils.action import ActionXY
 from highrl.utils.calculations import point_to_point_distance
@@ -122,7 +116,7 @@ class Agent:
         """
         return self.px, self.py
 
-    def set_position(self, position: Tuple[int, int, int]) -> None:
+    def set_position(self, position: Tuple[int, int]) -> None:
         """Sets agent position.
 
         Args:
@@ -199,7 +193,7 @@ class Agent:
 
         return px, py, theta
 
-    def step(self, action: List, delta_t: float) -> None:
+    def step(self, action: ActionXY, delta_t: float) -> None:
         """Performs an action and update the agent state.
 
         Args:
@@ -239,7 +233,7 @@ class Agent:
         goal_pos = np.array(self.get_goal_position())
         agent_goal_dist = robot_pos - goal_pos
         min_allowed_dist = self.radius + self.goal_radius
-        return norm(agent_goal_dist) < min_allowed_dist
+        return norm(agent_goal_dist).item() < min_allowed_dist
 
     def is_overlapped(self, obstacle: SingleObstacle, check_target: str = "agent"):
         """Checks if overlap between the agent/goal and an obstacle.
