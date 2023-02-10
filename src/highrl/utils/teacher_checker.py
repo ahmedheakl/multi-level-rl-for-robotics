@@ -219,18 +219,11 @@ def get_area_of_convex_polygen(points: List[List[int]]) -> float:
     area = abs(area)
     return area
 
-<<<<<<< HEAD:src/highrl/utils/teacher_checker.py
 
 def convex_hull_difficulty(
     obstacles: Obstacles, robot: Robot, width: int, height: int
 ) -> Tuple[float, int]:
     """Calculate env complexity using convex_hull algorithm
-=======
-def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, height: int) -> Tuple[float, int]:
-    """Calculates env complexity using `convex_hull` algorithm
-    
-    Read more about `convex hull problem <https://en.wikipedia.org/wiki/Convex_hull>`_.
->>>>>>> main:src/highrl/utils/planner_checker.py
 
     Args:
         obstacles (Obstacles): env obstacles
