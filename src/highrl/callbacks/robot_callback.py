@@ -49,7 +49,7 @@ class RobotSuccessesCallback(BaseCallback):
     """Callback for checking for the number of successes"""
 
     def __init__(self, num_successes: int = 5, verbose: int = 0):
-        super(RobotSuccessesCallback, self).__init__(verbose)
+        super().__init__(verbose)
         self.num_successes = num_successes
 
     def _on_step(self) -> bool:

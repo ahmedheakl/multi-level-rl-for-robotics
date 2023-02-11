@@ -1,13 +1,13 @@
+"""Implementation for environments wrappers"""
+import configparser
+import argparse
+from typing import List, Tuple
 from gym import spaces
 import numpy as np
+
 from highrl.lidar_setup.rings import generate_rings
 from highrl.envs.robot_env import RobotEnv
 from highrl.envs.eval_env import RobotEvalEnv
-import configparser
-import argparse
-
-_L = 1080  # lidar size
-_RS = 5  # robotstate size
 
 
 class FlatLidarEncoder:
@@ -27,7 +27,18 @@ class FlatLidarEncoder:
             }
         )
 
-    def _encode_obs(self, obs: dict) -> dict:
+    def encode_obs(self, obs: dict) -> dict:
+        """Encode observations from robot lidar
+
+        Note that the function is idle since the lidar readings
+        are inherently in the 1-D format.
+
+        Args:
+            obs (dict): Input observation for encoding
+
+        Returns:
+            dict: Encoded observation
+        """
         return obs
 
 
@@ -52,7 +63,17 @@ class RingsLidarEncoder:
 
         self.rings_def = generate_rings(64, 64)
 
-    def _encode_obs(self, obs: dict) -> dict:
+    def encode_obs(self, obs: dict) -> dict:
+        """Encode observations from robot lidar
+
+        Convert observations to 2-D format.
+
+        Args:
+            obs (dict): Input observation for encoding
+
+        Returns:
+            dict: Encoded observation
+        """
         lidar = obs["lidar"]
         obs["lidar"] = (
             self.rings_def["lidar_to_rings"](lidar[None, :]).astype(float)
@@ -62,45 +83,77 @@ class RingsLidarEncoder:
 
 
 class RobotEnv1DPlayer(RobotEnv):
+    """Robot environment wrapper for running flat lidars readings"""
+
     def __init__(
-        self, config: configparser.RawConfigParser, args: argparse.Namespace
+        self,
+        config: configparser.RawConfigParser,
+        args: argparse.Namespace,
     ) -> None:
         self.encoder = FlatLidarEncoder()
         super().__init__(config, args)
-
         self.observation_space = self.encoder.observation_space
 
-    def step(self, action):
-        obs, reward, done, info = super(RobotEnv1DPlayer, self).step(action)
-        h = self.encoder._encode_obs(obs)
+    def step(self, action: List) -> Tuple[dict, float, bool, dict]:
+        """Implements one step for robot
 
-        return h, reward, done, info
+        Args:
+            action (List): Action for robot step
 
-    def reset(self):
-        obs = super(RobotEnv1DPlayer, self).reset()
-        h = self.encoder._encode_obs(obs)
-        return h
+        Returns:
+            Tuple[dict, float, bool, dict]: observation, reward, done flag, info dict
+        """
+        obs, reward, done, info = super().step(action)
+        encoded_obs = self.encoder.encode_obs(obs)
+
+        return encoded_obs, reward, done, info
+
+    def reset(self) -> dict:
+        """Reset robot environment
+
+        Returns:
+            dict: Observation
+        """
+        obs = super().reset()
+        encoded_obs = self.encoder.encode_obs(obs)
+        return encoded_obs
 
 
 class RobotEnv2DPlayer(RobotEnv):
+    """Robot environment wrapper for running rings lidars readings"""
+
     def __init__(
-        self, config: configparser.RawConfigParser, args: argparse.Namespace
+        self,
+        config: configparser.RawConfigParser,
+        args: argparse.Namespace,
     ) -> None:
         self.encoder = RingsLidarEncoder()  # need to be changed
         super().__init__(config, args)
-
         self.observation_space = self.encoder.observation_space
 
-    def step(self, action):
-        obs, reward, done, info = super(RobotEnv2DPlayer, self).step(action)
-        h = self.encoder._encode_obs(obs)
+    def step(self, action: List):
+        """Implements one step for robot
 
-        return h, reward, done, info
+        Args:
+            action (List): Action for robot step
+
+        Returns:
+            Tuple[dict, float, bool, dict]: observation, reward, done flag, info dict
+        """
+        obs, reward, done, info = super().step(action)
+        encoded_obs = self.encoder.encode_obs(obs)
+
+        return encoded_obs, reward, done, info
 
     def reset(self):
-        obs = super(RobotEnv2DPlayer, self).reset()
-        h = self.encoder._encode_obs(obs)
-        return h
+        """Reset robot environment
+
+        Returns:
+            dict: Observation
+        """
+        obs = super().reset()
+        encoded_obs = self.encoder.encode_obs(obs)
+        return encoded_obs
 
 
 class EvalEnv1DPlayer(RobotEvalEnv):
@@ -112,21 +165,23 @@ class EvalEnv1DPlayer(RobotEvalEnv):
 
         self.observation_space = self.encoder.observation_space
 
-    def step(self, action):
-        obs, reward, done, info = super(EvalEnv1DPlayer, self).step(action)
-        h = self.encoder._encode_obs(obs)
+    def step(self, action: ):
+        obs, reward, done, info = super().step(action)
+        encoded_obs = self.encoder.encode_obs(obs)
 
-        return h, reward, done, info
+        return encoded_obs, reward, done, info
 
     def reset(self):
-        obs = super(EvalEnv1DPlayer, self).reset()
-        h = self.encoder._encode_obs(obs)
-        return h
+        obs = super().reset()
+        encoded_obs = self.encoder.encode_obs(obs)
+        return encoded_obs
 
 
 class EvalEnv2DPlayer(RobotEvalEnv):
     def __init__(
-        self, config: configparser.RawConfigParser, args: argparse.Namespace
+        self,
+        config: configparser.RawConfigParser,
+        args: argparse.Namespace,
     ) -> None:
         self.encoder = RingsLidarEncoder()  # need to be changed
         super().__init__(config, args)
@@ -134,12 +189,12 @@ class EvalEnv2DPlayer(RobotEvalEnv):
         self.observation_space = self.encoder.observation_space
 
     def step(self, action):
-        obs, reward, done, info = super(EvalEnv2DPlayer, self).step(action)
-        h = self.encoder._encode_obs(obs)
+        obs, reward, done, info = super().step(action)
+        encoded_obs = self.encoder.encode_obs(obs)
 
-        return h, reward, done, info
+        return encoded_obs, reward, done, info
 
     def reset(self):
-        obs = super(EvalEnv2DPlayer, self).reset()
-        h = self.encoder._encode_obs(obs)
-        return h
+        obs = super().reset()
+        encoded_obs = self.encoder.encode_obs(obs)
+        return encoded_obs

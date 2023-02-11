@@ -1,5 +1,4 @@
-# Configuration file for the Sphinx documentation builder.
-from typing import List
+"""Configuration file for the Sphinx documentation builder"""
 import pathlib
 import sys
 
@@ -41,7 +40,7 @@ intersphinx_mapping = {
 intersphinx_disabled_domains = ["std"]
 
 templates_path = ["_templates"]
-exclude_patterns: List[] = []
+exclude_patterns = []
 
 
 # -- Options for HTML output -------------------------------------------------
