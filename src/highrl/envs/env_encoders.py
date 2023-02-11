@@ -131,7 +131,7 @@ class RobotEnv2DPlayer(RobotEnv):
         super().__init__(config, args)
         self.observation_space = self.encoder.observation_space
 
-    def step(self, action: List):
+    def step(self, action: List) -> Tuple[dict, float, bool, dict]:
         """Implements one step for robot
 
         Args:
@@ -145,7 +145,7 @@ class RobotEnv2DPlayer(RobotEnv):
 
         return encoded_obs, reward, done, info
 
-    def reset(self):
+    def reset(self) -> dict:
         """Reset robot environment
 
         Returns:
@@ -157,27 +157,45 @@ class RobotEnv2DPlayer(RobotEnv):
 
 
 class EvalEnv1DPlayer(RobotEvalEnv):
+    """Robot evaluatiion environment wrapper for running flat lidars readings"""
+
     def __init__(
-        self, config: configparser.RawConfigParser, args: argparse.Namespace
+        self,
+        config: configparser.RawConfigParser,
+        args: argparse.Namespace,
     ) -> None:
         self.encoder = FlatLidarEncoder()
         super().__init__(config, args)
 
         self.observation_space = self.encoder.observation_space
 
-    def step(self, action: ):
+    def step(self, action: List) -> Tuple[dict, float, bool, dict]:
+        """Implements one step for robot
+
+        Args:
+            action (List): Action for robot step
+
+        Returns:
+            Tuple[dict, float, bool, dict]: observation, reward, done flag, info dict
+        """
         obs, reward, done, info = super().step(action)
         encoded_obs = self.encoder.encode_obs(obs)
 
         return encoded_obs, reward, done, info
 
-    def reset(self):
+    def reset(self) -> dict:
+        """Reset robot environment
+
+        Returns:
+            dict: Observation
+        """
         obs = super().reset()
         encoded_obs = self.encoder.encode_obs(obs)
         return encoded_obs
 
 
 class EvalEnv2DPlayer(RobotEvalEnv):
+    """Robot evaluatiion environment wrapper for running rings lidars readings"""
     def __init__(
         self,
         config: configparser.RawConfigParser,
@@ -188,13 +206,26 @@ class EvalEnv2DPlayer(RobotEvalEnv):
 
         self.observation_space = self.encoder.observation_space
 
-    def step(self, action):
+    def step(self, action: List) -> Tuple[dict, float, bool, dict]:
+        """Implements one step for robot
+
+        Args:
+            action (List): Action for robot step
+
+        Returns:
+            Tuple[dict, float, bool, dict]: observation, reward, done flag, info dict
+        """
         obs, reward, done, info = super().step(action)
         encoded_obs = self.encoder.encode_obs(obs)
 
         return encoded_obs, reward, done, info
 
-    def reset(self):
+    def reset(self) -> dict:
+        """Reset robot environment
+
+        Returns:
+            dict: Observation
+        """
         obs = super().reset()
         encoded_obs = self.encoder.encode_obs(obs)
         return encoded_obs
