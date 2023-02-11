@@ -1,78 +1,102 @@
+"""Functions for mathematicals calculations"""
 from typing import Tuple, List, Union
 import numpy as np
 
 
-def calculate_norm(point):
+def calculate_norm(point: Tuple[int, int]) -> float:
     """
     Calculate norm of a vector
     v = (x, y)
     |v| = sqrt(x**2 + y**2)
     """
-    x, y = point
-    return (x**2 + y**2) ** 0.5
+    x_value, y_value = point
+    distance = (x_value**2 + y_value**2) ** 0.5
+    return distance
 
 
-def difference_vectors(s1, s2):
+def difference_vectors(
+    first_vector: Tuple[int, int],
+    second_vector: Tuple[int, int],
+) -> Tuple[int, int]:
     """
     Calculate the difference between two vectors (s1 - s2)
     """
-    s1_x, s1_y = s1
-    s2_x, s2_y = s2
-    return (s1_x - s2_x, s1_y - s2_y)
+    vector1_x, vector1_y = first_vector
+    vector2_x, vector2_y = second_vector
+    return (vector1_x - vector2_x, vector1_y - vector2_y)
 
 
-def point_to_segment_distance(s1: Tuple, s2: Tuple, robot_position: Tuple):
-    """Calculate the closest distance between point(x3, y3) and a line segment with two endpoints (x1, y1), (x2, y2)
+def point_to_segment_distance(
+    robot_position: Tuple[int, int],
+    segment_point1: Tuple[int, int],
+    segment_point2: Tuple[int, int],
+) -> float:
+    """Calculate the closest distance between point(x3, y3) and a line segment with
+    two endpoints (x1, y1), (x2, y2)
 
     Args:
-        s1 (Tuple): first point of the segment
-        s2 (Tuple): second point of the segment
-        robot_position (Tuple): robot coordinates
+        segment_point1 (Tuple): First point of the segment
+        segment_point2 (Tuple): Second point of the segment
+        robot_position (Tuple): Robot coordinates
 
     Returns:
-        float: closest distance between robot and segment
+        float: Closest distance between robot and segment
     """
-    x1, y1 = s1
-    x2, y2 = s2
-    x3, y3 = robot_position
-    base = ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
-    left_side = ((x3 - x1) ** 2 + (y3 - y1) ** 2) ** 0.5
-    right_side = ((x3 - x2) ** 2 + (y3 - y2) ** 2) ** 0.5
-    s = base + left_side + right_side
+    seg1_x, seg1_y = segment_point1
+    seg2_x, seg2_y = segment_point2
+    robot_x, robot_y = robot_position
+    base = ((seg1_x - seg2_x) ** 2 + (seg1_y - seg2_y) ** 2) ** 0.5
+    left_side = ((robot_x - seg1_x) ** 2 + (robot_y - seg1_y) ** 2) ** 0.5
+    right_side = ((robot_x - seg2_x) ** 2 + (robot_y - seg2_y) ** 2) ** 0.5
+    avg = (base + left_side + right_side) / 2
     area = (
-        s * (s - base) * (s - left_side) * (s - right_side)
+        avg * (avg - base) * (avg - left_side) * (avg - right_side)
     ) ** 0.5  # area = 0.5 * height * base
     return 2.0 * area / base
 
 
-def point_to_obstacle_distance(robot_position, obstalce_data):
-    """
-    Calculate the distance to an obstacle
-    """
-    px, py, height, width = obstalce_data
+def point_to_obstacle_distance(
+    robot_position: Tuple[int, int],
+    obstalce_data: Tuple[int, ...],
+) -> List[float]:
+    """Calculate the distance to an obstacle"""
+    x_coord, y_coord, height, width = obstalce_data
     segments = [
-        [(px, py), (px + width, py)],
-        [(px + width, py), (px + width, py + height)],
-        [(px + width, py + height), (px, py + height)],
-        [(px, py + height), (px, py)],
+        [(x_coord, y_coord), (x_coord + width, y_coord)],
+        [(x_coord + width, y_coord), (x_coord + width, y_coord + height)],
+        [(x_coord + width, y_coord + height), (x_coord, y_coord + height)],
+        [(x_coord, y_coord + height), (x_coord, y_coord)],
     ]
 
     distances = []
 
     for segment in segments:
         current_distance = point_to_segment_distance(
-            segment[0], segment[1], robot_position
+            robot_position,
+            *segment,
         )
         distances.append(current_distance)
 
     return distances
 
 
-def point_to_point_distance(p1, p2):
-    p1_x, p1_y = p1
-    p2_x, p2_y = p2
+def point_to_point_distance(
+    first_point: Tuple[int, int],
+    second_point: Tuple[int, int],
+) -> float:
+    """Get distance between two points
 
-    return ((p1_x - p2_x) ** 2 + (p1_y - p2_y) ** 2) ** 0.5
+    Args:
+        first_point (Tuple[int, int]): First points coordinates
+        second_point (Tuple[int, int]): Second points coordinates
+
+    Returns:
+        float: Distance between points
+    """
+    point1_x, point1_y = first_point
+    point2_x, point2_y = second_point
+
+    return ((point1_x - point2_x) ** 2 + (point1_y - point2_y) ** 2) ** 0.5
 
 
 def cross_product_point_line(
@@ -88,18 +112,19 @@ def cross_product_point_line(
     Returns:
         float: value of the cross product
     """
-    p: np.ndarray = np.array(point, dtype=np.float32)
-    s1: np.ndarray = np.array(p_first, dtype=np.float32)
-    s2: np.ndarray = np.array(p_sec, dtype=np.float32)
-    l = p - s1
-    r = p - s2
-    return l[0] * r[1] - l[1] * r[0]
+    ground_point: np.ndarray = np.array(point, dtype=np.float32)
+    line_point1: np.ndarray = np.array(p_first, dtype=np.float32)
+    line_point2: np.ndarray = np.array(p_sec, dtype=np.float32)
+    left_point = ground_point - line_point1
+    right_point = ground_point - line_point2
+    cross_product = left_point[0] * right_point[1] - left_point[1] * right_point[0]
+    return cross_product
 
 
 def cross_product_triangle(
-    point: List[int],
-    p_first: List[int],
-    p_sec: List[int],
+    point: Tuple[int, int],
+    p_first: Tuple[int, int],
+    p_sec: Tuple[int, int],
 ) -> Union[float, int]:
     """Triagular cross product
     (p1 - p) x (p2 - p)
@@ -111,14 +136,7 @@ def cross_product_triangle(
     Returns:
         float: triangular cross product value
     """
-    p = np.array(point, dtype=np.float32)
-    s1 = np.array(p_first, dtype=np.float32)
-    s2 = np.array(p_sec, dtype=np.float32)
-    return np.cross((s1 - p), (s2 - p)).tolist()  # type: ignore
-
-
-if __name__ == "__main__":
-    p1 = (1, 1)
-    p2 = (1, 3)
-    robo = (2, 4)
-    print(point_to_segment_distance(p1, p2, robo))
+    ground_point = np.array(point, dtype=np.float32)
+    pnt1 = np.array(p_first, dtype=np.float32)
+    pnt2 = np.array(p_sec, dtype=np.float32)
+    return np.cross((pnt1 - ground_point), (pnt2 - ground_point)).tolist()
