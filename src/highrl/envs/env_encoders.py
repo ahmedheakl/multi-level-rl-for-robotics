@@ -165,7 +165,7 @@ class EvalEnv1DPlayer(RobotEvalEnv):
 
         self.observation_space = self.encoder.observation_space
 
-    def step(self, action: ):
+    def step(self, action: List):
         obs, reward, done, info = super().step(action)
         encoded_obs = self.encoder.encode_obs(obs)
 

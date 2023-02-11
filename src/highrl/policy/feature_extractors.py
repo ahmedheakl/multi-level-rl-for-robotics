@@ -1,17 +1,15 @@
+"""
+Implementation of features exctractors for both the teacher and the robot
+"""
+
 import gym
 import torch.nn as nn
 import torch as th
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
-from typing import Callable, Dict, List, Optional, Tuple, Type, Union
-from stable_baselines3.common.policies import ActorCriticPolicy
 
 
 class LSTMFeatureExtractor(BaseFeaturesExtractor):
-    """
-    :param observation_space: (gym.Space)
-    :param features_dim: (int) Number of features extracted.
-        This corresponds to the number of unit for the last layer.
-    """
+    """_summary_"""
 
     def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 6):  # type: ignore
         super(LSTMFeatureExtractor, self).__init__(observation_space, features_dim)
@@ -22,12 +20,6 @@ class LSTMFeatureExtractor(BaseFeaturesExtractor):
         observations.clone().detach()
         self.LSTM_output, self.LSTM_hidden = self.LSTM(observations)
         return self.LSTM_output + self.LSTM_hidden[0] + self.LSTM_hidden[1]
-
-
-import torch as th
-import gym.spaces
-import torch.nn as nn
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 
 class Robot2DFeatureExtractor(BaseFeaturesExtractor):

@@ -1,22 +1,22 @@
+"""Implementation of Teacher Environment"""
 from typing import List, Tuple
 from gym import Env, spaces
-from highrl.obstacle.single_obstacle import SingleObstacle
 import numpy as np
-from highrl.utils.calculations import *
-from highrl.policy.feature_extractors import Robot1DFeatureExtractor
+import pandas as pd
+import math
 from stable_baselines3.ppo.ppo import PPO
 from random import uniform
-from highrl.utils.teacher_checker import convex_hull_difficulty
 from time import time
 import configparser
+from highrl.obstacle.single_obstacle import SingleObstacle
+from highrl.policy.feature_extractors import Robot1DFeatureExtractor
 from highrl.envs.env_encoders import (
     RobotEnv1DPlayer,
     RobotEnv2DPlayer,
     EvalEnv1DPlayer,
     EvalEnv2DPlayer,
 )
-import pandas as pd
-import math
+from highrl.utils.teacher_checker import convex_hull_difficulty
 from highrl.callbacks.robot_callback import (
     RobotMaxStepsCallback,
     RobotLogCallback,
@@ -78,9 +78,9 @@ class TeacherEnv(Env):
 
         self.terminal_state_flag = 0
 
-        self.robot_avg_reward = 0
-        self.robot_success_rate = 0
-        self.robot_avg_episode_steps = 0
+        self.robot_avg_reward: float = 0
+        self.robot_success_rate: float = 0
+        self.robot_avg_episode_steps: float = 0
         self.robot_id = 0
         self.penality_time_step = 0
 

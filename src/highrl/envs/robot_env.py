@@ -1,29 +1,44 @@
-from typing import Any, List
-from gym import Env, spaces
-from highrl.utils.action import *
-from highrl.obstacle.obstacles import Obstacles
-import numpy as np
-from CMap2D import render_contours_in_lidar
+"""Implementation of Robot Environment"""
 
-from pose2d import apply_tf_to_vel, inverse_pose2d, apply_tf_to_pose
-from highrl.utils.calculations import *
+from typing import List, Tuple, Union
 import threading
-from highrl.agents.robot import Robot
-from highrl.obstacle.single_obstacle import SingleObstacle
-from highrl.configs.colors import *
-import configparser
-import pandas as pd
 import time
 import argparse
+import configparser
 from os import path, mkdir
-import time
+import pandas as pd
+import numpy as np
+from CMap2D import render_contours_in_lidar
+from gym import Env, spaces
+from gym.envs.classic_control import rendering
+import pyglet
+from pyglet import gl
+from pose2d import apply_tf_to_vel, inverse_pose2d, apply_tf_to_pose
+from highrl.configs.colors import (
+    white_color,
+    bgcolor,
+    obstcolor,
+    goalcolor,
+    goallinecolor,
+    nosecolor,
+    agentcolor,
+)
+from highrl.obstacle.single_obstacle import SingleObstacle
+from highrl.utils.action import ActionXY
+from highrl.utils.calculations import point_to_point_distance
+from highrl.agents.robot import Robot
+from highrl.obstacle.obstacles import Obstacles
 
 
 class RobotEnv(Env):
+    """Robot Environment Class used in training and testing"""
+
     def __init__(
-        self, config: configparser.RawConfigParser, args: argparse.Namespace
+        self,
+        config: configparser.RawConfigParser,
+        args: argparse.Namespace,
     ) -> None:
-        super(RobotEnv, self).__init__()
+        super().__init__()
         self.action_space_names = ["ActionXY", "ActionRot"]
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
         self.observation_space = spaces.Dict(
@@ -43,26 +58,31 @@ class RobotEnv(Env):
         self.args = args
         self.reward = 0
         self.episodes = 1
-        self.episode_reward = 0
-        self.episode_steps = 0
-        self.total_reward = 0
-        self.total_steps = 0
-        self.success_flag = False
-        self.num_successes = 0
+        self.episode_reward: float = 0
+        self.episode_steps: int = 0
+        self.total_reward: float = 0
+        self.total_steps: int = 0
+        self.success_flag: bool = False
+        self.num_successes: int = 0
 
         self.done = False
 
-        self.robot_initial_px = 0
-        self.robot_initial_py = 0
-        self.robot_goal_px = 0
-        self.robot_goal_py = 0
+        self.robot_initial_px: float = 0
+        self.robot_initial_py: float = 0
+        self.robot_goal_px: float = 0
+        self.robot_goal_py: float = 0
 
         self.is_initial_state = True
 
-        """Results of each episode
-        Contains [episode_reward, episode_steps, success_flag]
-        """
-        self.results = []
+        # Results of each episode
+        # Contains [episode_reward, episode_steps, success_flag]
+        self.results: List[Tuple[float, int, bool]] = []
+
+        self.lidar_scan: np.ndarray = np.array([])
+        self.lidar_angles: np.ndarray = np.array([])
+
+        self.contours: np.ndarray = np.array([])
+        self.flat_contours: np.ndarray = np.array([])
 
         self._configure(config=config)
 
@@ -167,9 +187,8 @@ class RobotEnv(Env):
         # log data
         if self.done:
             self.num_successes += self.success_flag
-            self.results.append(
-                [self.episode_reward, self.episode_steps, self.success_flag]
-            )
+            result = (self.episode_reward, self.episode_steps, self.success_flag)
+            self.results.append(result)
 
         return self._make_obs(), self.reward, self.done, {}
 
@@ -214,7 +233,7 @@ class RobotEnv(Env):
         self.robot_initial_py = py
         self.robot_goal_px = gx
         self.robot_goal_py = gy
-
+        # TODO: change arguement types for both functions below
         self.robot.set_position([px, py])
         self.robot.set_goal_position([gx, gy])
 
@@ -276,18 +295,11 @@ class RobotEnv(Env):
         if close:
             if self.viewer is not None:
                 self.viewer.close()
-            return
-        WINDOW_W = self.width
-        WINDOW_H = self.height
-        VP_W = WINDOW_W
-        VP_H = WINDOW_H
-        from gym.envs.classic_control import rendering
-        import pyglet
-        from pyglet import gl
+            return False
 
         # Create viewer
         if self.viewer is None:
-            self.viewer = rendering.Viewer(WINDOW_W, WINDOW_H)
+            self.viewer = rendering.Viewer(self.width, self.height)
             self.transform = rendering.Transform()
             self.transform.set_scale(10, 10)
             self.transform.set_translation(128, 128)
@@ -295,7 +307,7 @@ class RobotEnv(Env):
                 "0000",
                 font_size=12,
                 x=20,
-                y=int(WINDOW_H * 2.5 / 40.00),
+                y=int(self.height * 2.5 / 40.00),
                 anchor_x="left",
                 anchor_y="center",
                 color=white_color,
@@ -304,7 +316,7 @@ class RobotEnv(Env):
                 "0000",
                 font_size=12,
                 x=20,
-                y=int((WINDOW_H * 1.6) // 40.00),
+                y=int((self.height * 1.6) // 40.00),
                 anchor_x="left",
                 anchor_y="center",
                 color=white_color,
@@ -335,13 +347,13 @@ class RobotEnv(Env):
             win.switch_to()
             win.dispatch_events()
             win.clear()
-            gl.glViewport(0, 0, VP_W, VP_H)
+            gl.glViewport(0, 0, self.width, self.height)
             # Green background
             gl.glBegin(gl.GL_QUADS)
             gl.glColor4f(bgcolor[0], bgcolor[1], bgcolor[2], 1.0)
-            gl.glVertex3f(0, VP_H, 0)
-            gl.glVertex3f(VP_W, VP_H, 0)
-            gl.glVertex3f(VP_W, 0, 0)
+            gl.glVertex3f(0, self.height, 0)
+            gl.glVertex3f(self.width, self.height, 0)
+            gl.glVertex3f(self.width, 0, 0)
             gl.glVertex3f(0, 0, 0)
             gl.glEnd()
             # Transform
