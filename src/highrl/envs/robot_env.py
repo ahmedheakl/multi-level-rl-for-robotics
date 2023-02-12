@@ -1,6 +1,6 @@
 """Implementation of Robot Environment"""
 
-from typing import List, Tuple, Union
+from typing import List, Tuple
 import threading
 import time
 import argparse

@@ -41,9 +41,6 @@ commit_message  = "bump version {old_version} -> {new_version}"
         'current_version = "{version}"',
         'version = "{version}"',
     ]
-    "highrl/__init__.py" = ["{version}"]
-    "highrl/__main__.py" = ["- highrl v{version}"]
+    "src/highrl/__init__.py" = ["{version}"]
+    "src/highrl/__main__.py" = ["- highrl v{version}"]
     ".github/workflows/build.yml" = ["          auditwheel repair --plat manylinux_2_17_x86_64 dist/highrl-{version}-cp38-cp38-linux_x86_64.whl"]
-
-[mypy]
-ignore-missing-import = true

@@ -16,7 +16,7 @@ INF = 921600  # w * h = 1280 * 720
 def get_region_coordinates(
     harmonic_number: int,
     eps: int,
-    coords: List[Union[int, float]],
+    robot_goal_coords: List[Union[int, float]],
 ) -> Tuple[List[List[float]], List[Callable[[float], List[float]]]]:
     """Calculates the boundaries for the current harmonic
 
@@ -28,19 +28,19 @@ def get_region_coordinates(
     Returns:
         Tuple[List[List[int]], List[Callable[[float], List[float]]]]: limiting coords & lines
     """
-    px, py, gx, gy = coords
-    if (gx - px) == 0:
-        slope = 99999
+    robot_x, robot_y, goal_x, goal_y = robot_goal_coords
+    if (goal_x - robot_x) == 0:
+        slope = 99999.0
     else:
-        slope = (gy - py) / ((gx - px))
-    intercept = (gx * py - gy * px) / ((gx - px))
+        slope = (goal_y - robot_y) / ((goal_x - robot_x))
+    intercept = (goal_x * robot_y - goal_y * robot_x) / ((goal_x - robot_x))
     shift_amount = eps * harmonic_number
     if slope == 0:
         top_intercept = 99999
         bottom_intercept = 99999
     else:
-        top_intercept = (slope * gy + gx) / (slope)
-        bottom_intercept = (slope * py + px) / (slope)
+        top_intercept = (slope * goal_y + goal_x) / (slope)
+        bottom_intercept = (slope * robot_y + robot_x) / (slope)
 
     def left_line(x_coords: float) -> List[float]:
         return [x_coords, slope * x_coords + (intercept + shift_amount)]
@@ -59,16 +59,25 @@ def get_region_coordinates(
     # |       |
     # p3-----p4
     scale_factor = slope / (slope**2 + 1)
-    x1: float = scale_factor * (top_intercept - (intercept + shift_amount))
-    x2: float = scale_factor * (top_intercept - (intercept - shift_amount))
-    x3: float = scale_factor * (bottom_intercept - (intercept - shift_amount))
-    x4: float = scale_factor * (bottom_intercept - (intercept + shift_amount))
-    x_coords = [x1, x2, x3, x4]
+    top_left_x: float = scale_factor * (top_intercept - (intercept + shift_amount))
+    top_right_x: float = scale_factor * (top_intercept - (intercept - shift_amount))
+    botton_left_x: float = scale_factor * (
+        bottom_intercept - (intercept - shift_amount)
+    )
+    botton_right_x: float = scale_factor * (
+        bottom_intercept - (intercept + shift_amount)
+    )
+    x_coords = [top_left_x, top_right_x, botton_left_x, botton_right_x]
     points = [
         right_line(x_coords[i]) if ((i & 1) ^ (i >> 1)) else left_line(x_coords[i])
         for i in range(4)
     ]
-    lines = [left_line, top_line, right_line, bottom_line]
+    lines: List[Callable[[float], List[float]]] = [
+        left_line,
+        top_line,
+        right_line,
+        bottom_line,
+    ]
     return points, lines
 
 
