@@ -1,7 +1,7 @@
 """
 Implementation of features exctractors for both the teacher and the robot
 """
-
+from typing import Optional
 import gym
 import torch.nn as nn
 import torch as th
@@ -86,6 +86,7 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
         extractors = {}
 
         total_concat_size = 0
+        chosen_model: Optional[nn.Module] = None
         # We need to know size of the output of this extractor,
         # so go over all the spaces and compute output feature sizes
         for key, subspace in observation_space.spaces.items():  # type: ignore
@@ -96,7 +97,7 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
                 total_concat_size += subspace.shape[1] // 4 * subspace.shape[2] // 4
             elif key == "vector":
                 # Run through a simple MLP
-                extractors[key] = nn.Linear(subspace.shape[0], 16)
+                extractors[key] = extractors[key]= nn.Linear(subspace.shape[0], 16)
                 total_concat_size += 16
 
         self.extractors = nn.ModuleDict(extractors)

@@ -56,7 +56,7 @@ class RobotEnv(Env):
         self.robot = Robot()
         self.viewer = None
         self.args = args
-        self.reward = 0
+        self.reward: float = 0
         self.episodes = 1
         self.episode_reward: float = 0
         self.episode_steps: int = 0
@@ -67,10 +67,10 @@ class RobotEnv(Env):
 
         self.done = False
 
-        self.robot_initial_px: float = 0
-        self.robot_initial_py: float = 0
-        self.robot_goal_px: float = 0
-        self.robot_goal_py: float = 0
+        self.robot_initial_px: int = 0
+        self.robot_initial_py: int = 0
+        self.robot_goal_px: int = 0
+        self.robot_goal_py: int = 0
 
         self.is_initial_state = True
 
@@ -219,7 +219,7 @@ class RobotEnv(Env):
 
         return reward
 
-    def set_robot_position(self, px: float, py: float, gx: float, gy: float) -> None:
+    def set_robot_position(self, px: int, py: int, gx: int, gy: int) -> None:
         """Initializes robot and goal positions
         Should be called from ``teacher``
 
@@ -234,8 +234,8 @@ class RobotEnv(Env):
         self.robot_goal_px = gx
         self.robot_goal_py = gy
         # TODO: change arguement types for both functions below
-        self.robot.set_position([px, py])
-        self.robot.set_goal_position([gx, gy])
+        self.robot.set_position((px, py))
+        self.robot.set_goal_position((gx, gy))
 
     def add_boarder_obstacles(self) -> None:
         """Creates border obstacles to limit the allowable navigation area"""
@@ -468,8 +468,8 @@ class RobotEnv(Env):
         """
         if self.done or self.is_initial_state:
             print("reseting robot env ...")
-            self.robot.set_position([self.robot_initial_px, self.robot_initial_py])
-            self.robot.set_goal_position([self.robot_goal_px, self.robot_goal_py])
+            self.robot.set_position((self.robot_initial_px, self.robot_initial_py))
+            self.robot.set_goal_position((self.robot_goal_px, self.robot_goal_py))
             self.total_reward += self.episode_reward
             if self.is_initial_state:
                 self.results = []
