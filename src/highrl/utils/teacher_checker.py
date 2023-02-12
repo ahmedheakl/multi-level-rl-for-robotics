@@ -36,8 +36,8 @@ def get_region_coordinates(
     intercept = (goal_x * robot_y - goal_y * robot_x) / ((goal_x - robot_x))
     shift_amount = eps * harmonic_number
     if slope == 0:
-        top_intercept = 99999
-        bottom_intercept = 99999
+        top_intercept = 99999.0
+        bottom_intercept = 99999.0
     else:
         top_intercept = (slope * goal_y + goal_x) / (slope)
         bottom_intercept = (slope * robot_y + robot_x) / (slope)
@@ -105,7 +105,7 @@ def check_if_point_inside_polygen(p: List[int], coords: List[List[float]]) -> bo
     return vertical_check and horizontal_check
 
 
-def check_valid_point(p: List[float], width: int, height: int) -> bool:
+def check_valid_point(p: List[int], width: int, height: int) -> bool:
     """check if input point is within input constraints
 
     Args:
@@ -195,7 +195,7 @@ def convex_hull_compute(points: List[List[int]]) -> List[List[int]]:
         List[List[int]]: points defining convex hull polygen
     """
     points = sorted(points)
-    convex_polygen = []
+    convex_polygen: List  = []
     for _ in range(2):
         sz = len(convex_polygen)
         for p in points:

@@ -89,7 +89,7 @@ class RobotLogCallback(BaseCallback):
         self.last_len_statistics = 0
         self.best_avg_reward = [-np.inf]
         self.last_eval_time = time.time()
-        self.total_time = 0
+        self.total_time:float = 0
 
     def _on_step(self) -> bool:
         """print statistics and save training logs every eval_frequency timesteps.
@@ -190,7 +190,7 @@ class RobotEvalCallback(BaseCallback):
         self,
         new_avg_reward: float,
         model: nn.Module,
-        savepath: str,
+        savepath: Optional[str],
     ) -> None:
         """Save the model if the average reward improved in evaluation.
 
@@ -213,7 +213,7 @@ class RobotEvalCallback(BaseCallback):
                 print("An error occured while saving the model")
 
 
-def save_logs(training_logs: DataFrame, logpath: str, verbose: int) -> None:
+def save_logs(training_logs: DataFrame, logpath: Optional[str], verbose: int) -> None:
     """Saves the training logs of the robot.
 
     Args:
