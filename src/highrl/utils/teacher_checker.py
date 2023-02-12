@@ -23,7 +23,7 @@ def get_region_coordinates(
     Args:
         harmonic_number (int): index of the desired harmonic
         eps (int): translation factor
-        coords (List[Union[int, float]]): robot & goal coords [px, py, gx, py]
+        robot_goal_coords (List[Union[int, float]]): robot & goal coords [px, py, gx, py]
 
     Returns:
         Tuple[List[List[int]], List[Callable[[float], List[float]]]]: limiting coords & lines
