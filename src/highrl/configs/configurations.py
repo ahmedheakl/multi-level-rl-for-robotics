@@ -30,7 +30,7 @@ alpha = 0.4
 progress_discount = 0.4
 
 [render]
-render_each = 200
+render_each = 1
 save_to_file = False
 
 [env]

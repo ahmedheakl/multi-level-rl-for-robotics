@@ -196,6 +196,7 @@ class EvalEnv1DPlayer(RobotEvalEnv):
 
 class EvalEnv2DPlayer(RobotEvalEnv):
     """Robot evaluatiion environment wrapper for running rings lidars readings"""
+
     def __init__(
         self,
         config: configparser.RawConfigParser,
