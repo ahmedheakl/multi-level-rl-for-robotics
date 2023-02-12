@@ -1,13 +1,12 @@
-"""Functions for mathematicals calculations"""
+"""Impelementation of functions for mathematicals calculations"""
 from typing import Tuple, List, Union
 import numpy as np
 
 
 def calculate_norm(point: Tuple[int, int]) -> float:
-    """
-    Calculate norm of a vector
-    v = (x, y)
-    |v| = sqrt(x**2 + y**2)
+    """Calculate norm of a vector
+        v = (x, y)
+        |v| = sqrt(x**2 + y**2)
     """
     x_value, y_value = point
     distance = (x_value**2 + y_value**2) ** 0.5

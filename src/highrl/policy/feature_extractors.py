@@ -12,7 +12,7 @@ class LSTMFeatureExtractor(BaseFeaturesExtractor):
     """_summary_"""
 
     def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 6):  # type: ignore
-        super(LSTMFeatureExtractor, self).__init__(observation_space, features_dim)
+        super().__init__(observation_space, features_dim)
         self.LSTM = nn.LSTM(input_size=features_dim, hidden_size=16, num_layers=1)
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
@@ -24,7 +24,7 @@ class LSTMFeatureExtractor(BaseFeaturesExtractor):
 
 class Robot2DFeatureExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.spaces.Dict, features_dim: int = 37):
-        super(Robot2DFeatureExtractor, self).__init__(
+        super().__init__(
             observation_space=observation_space, features_dim=features_dim
         )
 
@@ -51,7 +51,7 @@ class Robot2DFeatureExtractor(BaseFeaturesExtractor):
 
 class Robot1DFeatureExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.spaces.Dict, features_dim: int = 37):
-        super(Robot1DFeatureExtractor, self).__init__(
+        super().__init__(
             observation_space=observation_space, features_dim=features_dim
         )
 

@@ -268,10 +268,10 @@ class Agent:
                 max_y,
             ],
             [
-                obstacle.px,
-                obstacle.py,
-                obstacle.px + obstacle.width,
-                obstacle.py + obstacle.height,
+                int(obstacle.px),
+                int(obstacle.py),
+                int(obstacle.px + obstacle.width),
+                int(obstacle.py + obstacle.height),
             ],
         ]
         return not (self._overlap_handler(dummy))

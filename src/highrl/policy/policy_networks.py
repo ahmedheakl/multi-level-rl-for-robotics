@@ -21,7 +21,7 @@ class LinearPolicyNetwork(nn.Module):
         last_layer_dim_pi: int = 8,
         last_layer_dim_vf: int = 32,
     ):
-        super(LinearPolicyNetwork, self).__init__()
+        super().__init__()
 
         # IMPORTANT:
         # Save output dimensions, used to create the distributions
@@ -77,7 +77,7 @@ class LinearActorCriticPolicy(ActorCriticPolicy):
         **kwargs,
     ):
 
-        super(LinearActorCriticPolicy, self).__init__(
+        super().__init__(
             observation_space,
             action_space,
             lr_schedule,
@@ -92,3 +92,4 @@ class LinearActorCriticPolicy(ActorCriticPolicy):
 
     def _build_mlp_extractor(self) -> None:
         self.mlp_extractor = LinearPolicyNetwork()
+    
