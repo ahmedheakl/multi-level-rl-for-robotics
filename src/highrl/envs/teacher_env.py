@@ -1,22 +1,22 @@
+"""Implementation of Teacher Environment"""
 from typing import List, Tuple
 from gym import Env, spaces
-from highrl.obstacle.single_obstacle import SingleObstacle
 import numpy as np
-from highrl.utils.calculations import *
-from highrl.policy.feature_extractors import Robot1DFeatureExtractor
+import pandas as pd
+import math
 from stable_baselines3.ppo.ppo import PPO
 from random import uniform
-from highrl.utils.teacher_checker import convex_hull_difficulty
 from time import time
 import configparser
+from highrl.obstacle.single_obstacle import SingleObstacle
+from highrl.policy.feature_extractors import Robot1DFeatureExtractor
 from highrl.envs.env_encoders import (
     RobotEnv1DPlayer,
     RobotEnv2DPlayer,
     EvalEnv1DPlayer,
     EvalEnv2DPlayer,
 )
-import pandas as pd
-import math
+from highrl.utils.teacher_checker import convex_hull_difficulty
 from highrl.callbacks.robot_callback import (
     RobotMaxStepsCallback,
     RobotLogCallback,
@@ -68,8 +68,8 @@ class TeacherEnv(Env):
         )
         self.args = args
         self.episodes = 0
-        self.difficulty_area = 0
-        self.difficulty_obs = 0
+        self.difficulty_area: float = 0
+        self.difficulty_obs: float = 0
         self.time_steps = 0
         self.robot_level = 0
         self.done = 0
@@ -78,9 +78,9 @@ class TeacherEnv(Env):
 
         self.terminal_state_flag = 0
 
-        self.robot_avg_reward = 0
-        self.robot_success_rate = 0
-        self.robot_avg_episode_steps = 0
+        self.robot_avg_reward: float = 0
+        self.robot_success_rate: float = 0
+        self.robot_avg_episode_steps: float = 0
         self.robot_id = 0
         self.penality_time_step = 0
 
@@ -138,7 +138,7 @@ class TeacherEnv(Env):
         )
         self.gamma = config.getfloat("reward", "gamma")
         # start with base difficulty
-        self.desired_difficulty = self.base_difficulty
+        self.desired_difficulty: float = self.base_difficulty
         self.diff_increase_factor = config.getfloat("reward", "diff_increase_factor")
         self.base_num_successes = config.getint("reward", "base_num_successes")
         self.num_successes_increase_factor = config.getfloat(
@@ -176,7 +176,7 @@ class TeacherEnv(Env):
         during this session. This is done for every robot trainig session created by the teacher.
         """
         if len(self.robot_env.results) > 0:
-            total_reward = 0
+            total_reward: float = 0
             total_steps = 0
             num_success = 0
             # sample = [episode_reward, episode_steps, success_flag]
@@ -212,7 +212,7 @@ class TeacherEnv(Env):
             Tuple: observation, reward, done, info
         """
         self.time_steps += 1
-        self.reward = 0
+        self.reward: float = 0
 
         ######################### Initiate Robot Env ############################
 
@@ -292,7 +292,7 @@ class TeacherEnv(Env):
             self.base_difficulty * (self.diff_increase_factor) ** self.episodes
         )
 
-        self.num_successes = (
+        self.num_successes = int(
             self.base_num_successes
             * (self.num_successes_increase_factor) ** self.episodes
         )
@@ -382,7 +382,7 @@ class TeacherEnv(Env):
             self.robot_success_rate,
         ]
 
-    def get_obstacles_from_action(self, action: np.array):
+    def get_obstacles_from_action(self, action: List):
         """Convert action from index-format to function-format.
         The output of the planner is treated as a list of functions,
         each with valuable points in the domain from x -> [0, max_obs].
@@ -436,7 +436,7 @@ class TeacherEnv(Env):
             h_func = h_func // height
         return obstacles
 
-    def _get_robot_position_from_action(self, action: dict) -> Tuple:
+    def _get_robot_position_from_action(self, action: List) -> Tuple:
         """Clip robot and goal positions to make sure they are inside the environment dimensions
 
         Args:

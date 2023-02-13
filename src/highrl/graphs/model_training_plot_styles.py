@@ -80,16 +80,6 @@ def train_stats_averaged_x (df,x,name):
     plot_train('# of training episodes','Success rate','Success rate in training'
                ,iteration_n,average_succ,success_name)
 
-def train_stats_averaged_x (df,x,name):
-    iteration_n,average_reward,average_succ = average_x(df,x)
-
-    reward_name = name + 'reward_graph.svg'
-    success_name = name + 'success_rate_graph.svg'
-    plot_train('# of training episodes','Average reward','Average reward in training'
-               ,iteration_n,average_reward,reward_name)
-    plot_train('# of training episodes','Success rate','Success rate in training'
-               ,iteration_n,average_succ,success_name)
-
 def train_stats_max_x (df,x,name):
     iteration_n,average_reward = max_x(df,x)
 

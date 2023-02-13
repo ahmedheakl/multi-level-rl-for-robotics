@@ -14,7 +14,9 @@ import math
 class TeacherCheckerTest(unittest.TestCase):
     def test_region_coords_easy(self):
         value = sorted(
-            get_region_coordinates(harmonic_number=1, eps=1, coords=[2, 3, 4, 5])[0]
+            get_region_coordinates(
+                harmonic_number=1, eps=1, robot_goal_coords=[2, 3, 4, 5]
+            )[0]
         )
         expected = sorted([[3.5, 5.5], [4.5, 4.5], [1.5, 3.5], [2.5, 2.5]])
         for p in range(len(expected)):
@@ -26,7 +28,9 @@ class TeacherCheckerTest(unittest.TestCase):
             )
 
     def test_region_lines(self):
-        _, lines = get_region_coordinates(harmonic_number=1, eps=1, coords=[2, 3, 4, 5])
+        _, lines = get_region_coordinates(
+            harmonic_number=1, eps=1, robot_goal_coords=[2, 3, 4, 5]
+        )
         input_coords = [3.5, 3.5, 4.5, 2.5]
         expected = [5.5, 5.5, 4.5, 2.5]
         points = [lines[i](input_coords[i])[1] for i in range(len(lines))]
@@ -43,7 +47,9 @@ class TeacherCheckerTest(unittest.TestCase):
             raise cls.failureException(msg)
 
     def test_region_coords_hard(self):
-        value = get_region_coordinates(harmonic_number=1, eps=1, coords=[2, 3, 4, 7])[0]
+        value = get_region_coordinates(
+            harmonic_number=1, eps=1, robot_goal_coords=[2, 3, 4, 7]
+        )[0]
         expected = [[3.6, 7.2], [4.4, 6.8], [2.4, 2.8], [1.6, 3.2]]
         self.addTypeEqualityFunc(list, self.float_comparer)
         for p in range(len(expected)):
@@ -55,9 +61,9 @@ class TeacherCheckerTest(unittest.TestCase):
             )
 
     def test_check_if_point_inside(self):
-        coords = get_region_coordinates(harmonic_number=1, eps=1, coords=[2, 3, 4, 7])[
-            0
-        ]
+        coords = get_region_coordinates(
+            harmonic_number=1, eps=1, robot_goal_coords=[2, 3, 4, 7]
+        )[0]
         points: List[List[float]] = [
             [3, 5],
             [2, 3],
@@ -75,7 +81,7 @@ class TeacherCheckerTest(unittest.TestCase):
 
     def test_valid_path_existance_true(self):
         coords, _ = get_region_coordinates(
-            harmonic_number=1, eps=1, coords=[2, 3, 4, 5]
+            harmonic_number=1, eps=1, robot_goal_coords=[2, 3, 4, 5]
         )
         obstacles = Obstacles([SingleObstacle(1, 4, 2, 1)])
         value = check_valid_path_existance(
@@ -88,7 +94,7 @@ class TeacherCheckerTest(unittest.TestCase):
 
     def test_valid_path_existance_false(self):
         coords, _ = get_region_coordinates(
-            harmonic_number=1, eps=1, coords=[2, 3, 4, 7]
+            harmonic_number=1, eps=1, robot_goal_coords=[2, 3, 4, 7]
         )
 
         obstacles = Obstacles([SingleObstacle(1, 4, 3, 1)])

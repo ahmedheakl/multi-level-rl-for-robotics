@@ -1,6 +1,4 @@
-"""
-This module contains:
-    Colors configurations of for rendering robot training window
+"""Colors configurations
 """
 
 import numpy as np

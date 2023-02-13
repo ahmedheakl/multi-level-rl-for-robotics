@@ -1,9 +1,4 @@
-"""
-Creates and manages robot agents.
-
-Contains:
-    Robot Class: class specific for robots. This class inherits from the Agent class
-"""
+"""Implementation for Robot code"""
 from highrl.agents.agent import Agent
 
 
