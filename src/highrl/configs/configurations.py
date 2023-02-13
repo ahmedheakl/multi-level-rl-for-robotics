@@ -1,4 +1,4 @@
-# ---------------------ROBOT CONFIGURATIONS-----------------#
+"""Configurations for training and inference"""
 robot_config_str = """
 [dimensions]
 width = 1280
@@ -9,9 +9,9 @@ goal_radius = 10
 [timesteps]
 delta_t = 0.2
 # 1e3
-max_episode_steps = 100
+max_episode_steps = 1000
 # 1e5
-max_session_steps = 300
+max_session_steps = 1000
 
 [lidar]
 n_angles = 1080
@@ -51,8 +51,11 @@ base_difficulty = 590
 overlap_goal_penality = -100
 infinite_difficulty_penality = -100
 too_close_to_goal_penality = -50
+is_goal_or_robot_overlap_obstacles_penality = -100
 gamma = 0.4
 diff_increase_factor = 1.15
+base_num_successes = 5
+num_successes_increase_factor = 1.2
 
 [env]
 advance_probability = 0.9
@@ -69,16 +72,17 @@ small_obstacles_min_dim = 50
 lidar_mode = flat
 
 [render]
-render_eval = True
+render_eval = False
 
 [statistics]
 scenario = train
 collect_statistics = True
 robot_log_eval_freq = 100
-n_robot_eval_episodes = 1
+n_robot_eval_episodes = 0
+save_model_freq = 1
 
 [timesteps]
-max_sessions = 100
+max_sessions = 5
 """
 
 # ---------------------EVALUATIONS CONFIGURATIONS-----------------#

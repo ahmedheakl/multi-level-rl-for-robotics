@@ -4,7 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "highrl"
+<<<<<<< HEAD
 version = "0.1.6"
+=======
+version = "0.1.5"
+>>>>>>> bf3549fb333198de18e08fb09f2a4a3b37139db9
 description = "Two level RL for robots navigation"
 readme = "README.md"
 authors = [{ name = "Ahmed Heakl", email = "ahmed.heakl@ejust.edu.eg" }]
