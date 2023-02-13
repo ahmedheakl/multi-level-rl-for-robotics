@@ -1,62 +1,83 @@
-from highrl.obstacle.obstacles import Obstacles
-from highrl.utils.calculations import cross_product_point_line, cross_product_triangle, point_to_point_distance
-import numpy as np
-from highrl.agents.robot import Robot
+"""Difficulty computation implementation for the teacher"""
 from typing import Tuple, List, Union, Callable
+import numpy as np
+from highrl.obstacle.obstacles import Obstacles
+from highrl.utils.calculations import (
+    cross_product_point_line,
+    cross_product_triangle,
+    point_to_point_distance,
+)
+from highrl.agents.robot import Robot
 
 
-INF = 921600 # w * h = 1280 * 720
+INF = 921600  # w * h = 1280 * 720
 
 
 def get_region_coordinates(
-    harmonic_number: int, eps: int, coords: List[Union[int, float]]
+    harmonic_number: int,
+    eps: int,
+    robot_goal_coords: List[Union[int, float]],
 ) -> Tuple[List[List[float]], List[Callable[[float], List[float]]]]:
     """Calculates the boundaries for the current harmonic
 
     Args:
         harmonic_number (int): index of the desired harmonic
         eps (int): translation factor
-        coords (List[Union[int, float]]): robot & goal coords [px, py, gx, py]
+        robot_goal_coords (List[Union[int, float]]): robot & goal coords [px, py, gx, py]
 
     Returns:
         Tuple[List[List[int]], List[Callable[[float], List[float]]]]: limiting coords & lines
     """
-    px, py, gx, gy = coords
-    slope = (gy - py) / (gx - px)
-    intercept = (gx * py - gy * px) / (gx - px)
+    robot_x, robot_y, goal_x, goal_y = robot_goal_coords
+    if (goal_x - robot_x) == 0:
+        slope = 99999.0
+    else:
+        slope = (goal_y - robot_y) / ((goal_x - robot_x))
+    intercept = (goal_x * robot_y - goal_y * robot_x) / ((goal_x - robot_x))
     shift_amount = eps * harmonic_number
-    top_intercept = (slope * gy + gx) / slope
-    bottom_intercept = (slope * py + px) / slope
+    if slope == 0:
+        top_intercept = 99999.0
+        bottom_intercept = 99999.0
+    else:
+        top_intercept = (slope * goal_y + goal_x) / (slope)
+        bottom_intercept = (slope * robot_y + robot_x) / (slope)
 
-    def left_line(x: float) -> List[float]:
-        return [x, slope * x + (intercept + shift_amount)]
+    def left_line(x_coords: float) -> List[float]:
+        return [x_coords, slope * x_coords + (intercept + shift_amount)]
 
-    def right_line(x: float) -> List[float]:
-        return [x, slope * x + (intercept - shift_amount)]
+    def right_line(x_coords: float) -> List[float]:
+        return [x_coords, slope * x_coords + (intercept - shift_amount)]
 
-    def bottom_line(x: float) -> List[float]:
-        return [x, -1 / slope * x + bottom_intercept]
+    def bottom_line(x_coords: float) -> List[float]:
+        return [x_coords, -1 / slope * x_coords + bottom_intercept]
 
-    def top_line(x: float) -> List[float]:
-        return [x, -1 / slope * x + top_intercept]
+    def top_line(x_coords: float) -> List[float]:
+        return [x_coords, -1 / slope * x_coords + top_intercept]
 
-    """
-    p1-----p2
-    |       |
-    |       |
-    p3-----p4
-    """
+    # p1-----p2
+    # |       |
+    # |       |
+    # p3-----p4
     scale_factor = slope / (slope**2 + 1)
-    x1: float = scale_factor * (top_intercept - (intercept + shift_amount))
-    x2: float = scale_factor * (top_intercept - (intercept - shift_amount))
-    x3: float = scale_factor * (bottom_intercept - (intercept - shift_amount))
-    x4: float = scale_factor * (bottom_intercept - (intercept + shift_amount))
-    x_coords = [x1, x2, x3, x4]
+    top_left_x: float = scale_factor * (top_intercept - (intercept + shift_amount))
+    top_right_x: float = scale_factor * (top_intercept - (intercept - shift_amount))
+    botton_left_x: float = scale_factor * (
+        bottom_intercept - (intercept - shift_amount)
+    )
+    botton_right_x: float = scale_factor * (
+        bottom_intercept - (intercept + shift_amount)
+    )
+    x_coords = [top_left_x, top_right_x, botton_left_x, botton_right_x]
     points = [
         right_line(x_coords[i]) if ((i & 1) ^ (i >> 1)) else left_line(x_coords[i])
         for i in range(4)
     ]
-    lines = [left_line, top_line, right_line, bottom_line]
+    lines: List[Callable[[float], List[float]]] = [
+        left_line,
+        top_line,
+        right_line,
+        bottom_line,
+    ]
     return points, lines
 
 
@@ -84,7 +105,7 @@ def check_if_point_inside_polygen(p: List[int], coords: List[List[float]]) -> bo
     return vertical_check and horizontal_check
 
 
-def check_valid_point(p: List[float], width: int, height: int) -> bool:
+def check_valid_point(p: List[int], width: int, height: int) -> bool:
     """check if input point is within input constraints
 
     Args:
@@ -105,7 +126,7 @@ def check_valid_path_existance(
     height: int,
     robot_pos: List[int],
     goal_pos: List[int],
-    omit_first_four: bool = True
+    omit_first_four: bool = True,
 ) -> bool:
     """Check if there is a valid path in the input segment
 
@@ -133,7 +154,7 @@ def check_valid_path_existance(
         for y in range(height + 1):
             current.append(".")
         env_map.append(current)
-        
+
     for i, obstacle in enumerate(obstacles):
         if omit_first_four and i < 4:
             continue
@@ -163,6 +184,7 @@ def check_valid_path_existance(
                 queue.append([nx, ny])
     return False
 
+
 def convex_hull_compute(points: List[List[int]]) -> List[List[int]]:
     """Compute convex hull polygen of input points
 
@@ -173,7 +195,7 @@ def convex_hull_compute(points: List[List[int]]) -> List[List[int]]:
         List[List[int]]: points defining convex hull polygen
     """
     points = sorted(points)
-    convex_polygen = []
+    convex_polygen: List  = []
     for _ in range(2):
         sz = len(convex_polygen)
         for p in points:
@@ -186,6 +208,7 @@ def convex_hull_compute(points: List[List[int]]) -> List[List[int]]:
         convex_polygen.pop(-1)
         points.reverse()
     return convex_polygen
+
 
 def get_area_of_convex_polygen(points: List[List[int]]) -> float:
     """Compute the area of a polygen using its points
@@ -202,14 +225,15 @@ def get_area_of_convex_polygen(points: List[List[int]]) -> float:
     array_points = np.array(points, dtype=np.float32)
     area = 0
     for i in range(num):
-        area += np.cross(array_points[i], array_points[i+1])
+        area += np.cross(array_points[i], array_points[i + 1])
     area = abs(area)
     return area
 
-def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, height: int) -> Tuple[float, int]:
-    """Calculates env complexity using `convex_hull` algorithm
-    
-    Read more about `convex hull problem <https://en.wikipedia.org/wiki/Convex_hull>`_.
+
+def convex_hull_difficulty(
+    obstacles: Obstacles, robot: Robot, width: int, height: int
+) -> Tuple[float, int]:
+    """Calculate env complexity using convex_hull algorithm
 
     Args:
         obstacles (Obstacles): env obstacles
@@ -226,7 +250,9 @@ def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, heigh
     harmonic = 1
     while True:
         coords, _ = get_region_coordinates(harmonic, eps, [px, py, gx, gy])
-        if check_valid_path_existance(obstacles, coords, width, height, [px, py], [gx, gy]):
+        if check_valid_path_existance(
+            obstacles, coords, width, height, [px, py], [gx, gy]
+        ):
             points = [[px, py], [gx, gy]]
             num_overlap_obstacles = 0
             for obstacle in obstacles:
@@ -239,7 +265,7 @@ def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, heigh
                 num_overlap_obstacles += overlapped
             convex_polygen = convex_hull_compute(points)
             if num_overlap_obstacles == 0:
-                
+
                 return point_to_point_distance((px, py), (gx, gy)), 0
             return get_area_of_convex_polygen(convex_polygen), num_overlap_obstacles
         max_x, max_y = np.max(np.array(coords), axis=0)
@@ -248,4 +274,3 @@ def convex_hull_difficulty(obstacles: Obstacles, robot: Robot, width: int, heigh
         if max_x >= width and max_y >= height and min_x <= 0 and min_y <= 0:
             break
     return INF, max(0, len(obstacles.obstacles_list) - 4)
-            
