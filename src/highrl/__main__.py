@@ -20,7 +20,7 @@ Do not forget to specify the output dir for models saving
     
 Version
 ------------------
- - highrl v0.1.1
+ - highrl v0.1.6
 """
 
 import os
