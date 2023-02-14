@@ -231,13 +231,6 @@ class TeacherEnv(Env):
 
         self.robot_env.reset()
 
-        self.difficulty_area, self.difficulty_obs = convex_hull_difficulty(
-            self.robot_env.obstacles,
-            self.robot_env.robot,
-            self.robot_env.width,
-            self.robot_env.height,
-        )
-        is_passed_inf_diff = self.difficulty_area >= self.INF_DIFFICULTY
         is_goal_overlap_robot = self.robot_env.robot.is_robot_overlap_goal()
         is_goal_or_robot_overlap_obstacles = 0
         for obstacle in self.robot_env.obstacles.obstacles_list:
@@ -251,6 +244,19 @@ class TeacherEnv(Env):
                 )
             )
         is_goal_or_robot_overlap_obstacles = is_goal_or_robot_overlap_obstacles > 0
+        if is_goal_overlap_robot or is_goal_or_robot_overlap_obstacles:
+            self.difficulty_area = self.INF_DIFFICULTY
+            self.difficulty_obs = 0
+            is_passed_inf_diff = True
+        else:
+            self.difficulty_area, self.difficulty_obs = convex_hull_difficulty(
+                self.robot_env.obstacles,
+                self.robot_env.robot,
+                self.robot_env.width,
+                self.robot_env.height,
+            )
+            is_passed_inf_diff = self.difficulty_area >= self.INF_DIFFICULTY
+
         print(
             f"is_goal_or_robot_overlap_obstacles = {is_goal_or_robot_overlap_obstacles}"
         )
@@ -305,7 +311,7 @@ class TeacherEnv(Env):
             self.robot_id += 1
             # fmt: off
             print("initiating model ...")
-            model = PPO("MultiInputPolicy", self.robot_env, policy_kwargs=policy_kwargs, verbose=2, device=device)
+            model = PPO("MultiInputPolicy", self.robot_env, policy_kwargs=policy_kwargs, verbose=2, device=device,)
         else:
             print("loading model ...")
             model = PPO.load(self.previous_save_path, self.robot_env, device=device)

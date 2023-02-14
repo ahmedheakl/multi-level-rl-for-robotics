@@ -28,6 +28,7 @@ from highrl.utils.action import ActionXY
 from highrl.utils.calculations import point_to_point_distance
 from highrl.agents.robot import Robot
 from highrl.obstacle.obstacles import Obstacles
+from torch.utils.tensorboard import SummaryWriter
 
 
 class RobotEnv(Env):
@@ -101,6 +102,8 @@ class RobotEnv(Env):
                     "wall_time",
                 ]
             )
+        self.tb_writer = SummaryWriter(log_dir="runs")
+        self.summary_writer = SummaryWriter(log_dir="runs")
 
     def _configure(self, config: configparser.RawConfigParser) -> None:
         """Configure environment variables using input config object
@@ -168,6 +171,16 @@ class RobotEnv(Env):
         )
 
         self.episode_reward += self.reward
+        self.summary_writer.add_scalar(
+            "reward",
+            self.reward,
+            self.total_steps,
+        )
+        self.tb_writer.add_scalar(
+            "episode_reward",
+            self.episode_reward,
+            self.total_steps,
+        )
 
         if self.episode_steps % self.render_each == 0:
             self.render(save_to_file=self.save_to_file)
