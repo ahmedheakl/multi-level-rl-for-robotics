@@ -1,7 +1,7 @@
+from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 import gym
 import torch.nn as nn
 import torch as th
-from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 from stable_baselines3.common.policies import ActorCriticPolicy
 
 
@@ -92,4 +92,3 @@ class LinearActorCriticPolicy(ActorCriticPolicy):
 
     def _build_mlp_extractor(self) -> None:
         self.mlp_extractor = LinearPolicyNetwork()
-    
