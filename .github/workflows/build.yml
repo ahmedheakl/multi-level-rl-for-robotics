@@ -42,7 +42,7 @@ jobs:
       - name: Build distribution
         run: |
           python -m build
-          auditwheel repair --plat manylinux_2_17_x86_64 dist/highrl-0.1.6-cp38-cp38-linux_x86_64.whl
+          auditwheel repair --plat manylinux_2_17_x86_64 dist/highrl-0.2.0-cp38-cp38-linux_x86_64.whl
           mv wheelhouse/* dist
           rm dist/*-cp38-cp38-linux_x86_64.whl
       - name: Upload and check
