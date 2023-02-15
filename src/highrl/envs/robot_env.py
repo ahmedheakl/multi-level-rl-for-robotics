@@ -102,8 +102,8 @@ class RobotEnv(Env):
                     "wall_time",
                 ]
             )
-        self.tb_writer = SummaryWriter(log_dir="runs")
-        self.summary_writer = SummaryWriter(log_dir="runs")
+        self.robot_episode_reward_writer = SummaryWriter(log_dir="runs")
+        self.robot_reward_writer = SummaryWriter(log_dir="runs")
 
     def _configure(self, config: configparser.RawConfigParser) -> None:
         """Configure environment variables using input config object
@@ -171,12 +171,12 @@ class RobotEnv(Env):
         )
 
         self.episode_reward += self.reward
-        self.summary_writer.add_scalar(
+        self.robot_reward_writer.add_scalar(
             "reward",
             self.reward,
             self.total_steps,
         )
-        self.tb_writer.add_scalar(
+        self.robot_episode_reward_writer.add_scalar(
             "episode_reward",
             self.episode_reward,
             self.total_steps,

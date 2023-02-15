@@ -27,6 +27,7 @@ from stable_baselines3.common.callbacks import CallbackList
 from prettytable import PrettyTable
 import argparse
 from os import path
+from torch.utils.tensorboard import SummaryWriter
 
 
 class TeacherEnv(Env):
@@ -98,6 +99,13 @@ class TeacherEnv(Env):
                     "robot_num_successes",  # robot num_successes in this teacher session
                 ]
             )
+        self.teacher_reward_writer = SummaryWriter(log_dir="runs")
+        self.robot_num_successes_writer = SummaryWriter(log_dir="runs")
+        self.robot_avg_reward_writer = SummaryWriter(log_dir="runs")
+        self.robot_avg_episode_steps_writer = SummaryWriter(log_dir="runs")
+        self.robot_success_rate_writer = SummaryWriter(log_dir="runs")
+        self.robot_level_writer = SummaryWriter(log_dir="runs")
+
         # self.eval_env = RobotEvalEnv(config=eval_config, args=self.args)
 
         if self.lidar_mode == "flat":
@@ -200,6 +208,21 @@ class TeacherEnv(Env):
                     f"{self.robot_success_rate:0.2f}",
                 ]
             )
+            self.robot_avg_reward_writer.add_scalar(
+                "robot_avg_reward",
+                self.robot_avg_reward,
+                self.time_steps,
+            )
+            self.robot_avg_episode_steps_writer.add_scalar(
+                "robot_avg_episode_steps",
+                self.robot_avg_episode_steps,
+                self.time_steps,
+            )
+            self.robot_success_rate_writer.add_scalar(
+                "robot_success_rate",
+                self.robot_success_rate,
+                self.time_steps,
+            )
             print(results_table)
 
     def step(self, action: List) -> Tuple:
@@ -285,6 +308,21 @@ class TeacherEnv(Env):
                     self.robot_env.num_successes,
                 ]
             self.penality_time_step = self.time_steps
+            self.teacher_reward_writer.add_scalar(
+                "teacher_reward",
+                self.reward,
+                self.time_steps,
+            )
+            self.robot_num_successes_writer.add_scalar(
+                "robot_num_successes",
+                self.robot_env.num_successes,
+                self.time_steps,
+            )
+            self.robot_level_writer.add_scalar(
+                "robot_level",
+                self.robot_level,
+                self.time_steps,
+            )
             return self._make_obs(), self.reward, self.done, {}
         else:
             self.penality_time_step = 0
@@ -366,6 +404,22 @@ class TeacherEnv(Env):
                 self.robot_level,
                 self.robot_env.num_successes
             ]
+
+            self.teacher_reward_writer.add_scalar(
+                "teacher_reward",
+                self.reward,
+                self.time_steps,
+            )
+            self.robot_num_successes_writer.add_scalar(
+                "robot_num_successes",
+                self.robot_env.num_successes,
+                self.robot_env.total_steps,
+            )
+            self.robot_level_writer.add_scalar(
+                "robot_level",
+                self.robot_level,
+                self.time_steps,
+            )
 
         self.robot_level = (self.robot_level + advance_flag) * advance_flag
         self.robot_env.num_successes = 0
