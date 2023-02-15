@@ -11,7 +11,7 @@ delta_t = 0.2
 # 1e3
 max_episode_steps = 1000
 # 1e5
-max_session_steps = 1000
+max_session_steps = 2000
 
 [lidar]
 n_angles = 1080
@@ -82,7 +82,7 @@ n_robot_eval_episodes = 0
 save_model_freq = 1
 
 [timesteps]
-max_sessions = 5
+max_sessions = 100
 """
 
 # ---------------------EVALUATIONS CONFIGURATIONS-----------------#
