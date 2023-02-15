@@ -74,7 +74,9 @@ class RobotEnv(Env):
         self.robot_goal_py: int = 0
 
         self.is_initial_state = True
-
+        self.tensorboard_dir = "runs"
+        self.rwrd_grph_name = "reward"
+        self.eps_rwrd_grph_name = "episode_reward"
         # Results of each episode
         # Contains [episode_reward, episode_steps, success_flag]
         self.results: List[Tuple[float, int, bool]] = []
@@ -102,8 +104,7 @@ class RobotEnv(Env):
                     "wall_time",
                 ]
             )
-        self.robot_episode_reward_writer = SummaryWriter(log_dir="runs")
-        self.robot_reward_writer = SummaryWriter(log_dir="runs")
+        self.robot_writer = SummaryWriter(log_dir=self.tensorboard_dir)
 
     def _configure(self, config: configparser.RawConfigParser) -> None:
         """Configure environment variables using input config object
@@ -171,13 +172,13 @@ class RobotEnv(Env):
         )
 
         self.episode_reward += self.reward
-        self.robot_reward_writer.add_scalar(
-            "reward",
+        self.robot_writer.add_scalar(
+            self.rwrd_grph_name,
             self.reward,
             self.total_steps,
         )
-        self.robot_episode_reward_writer.add_scalar(
-            "episode_reward",
+        self.robot_writer.add_scalar(
+            self.eps_rwrd_grph_name,
             self.episode_reward,
             self.total_steps,
         )
