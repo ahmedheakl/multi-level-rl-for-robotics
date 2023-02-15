@@ -23,12 +23,13 @@ from highrl.configs.colors import (
     nosecolor,
     agentcolor,
 )
+from torch.utils.tensorboard import SummaryWriter
+
 from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.utils.action import ActionXY
 from highrl.utils.calculations import point_to_point_distance
 from highrl.agents.robot import Robot
 from highrl.obstacle.obstacles import Obstacles
-from torch.utils.tensorboard import SummaryWriter
 
 
 class RobotEnv(Env):
@@ -74,7 +75,7 @@ class RobotEnv(Env):
         self.robot_goal_py: int = 0
 
         self.is_initial_state = True
-        self.tensorboard_dir = "runs"
+        self.tensorboard_dir = "runs/robot"
         self.rwrd_grph_name = "reward"
         self.eps_rwrd_grph_name = "episode_reward"
         # Results of each episode

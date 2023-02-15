@@ -85,7 +85,7 @@ class TeacherEnv(Env):
         self.robot_id = 0
         self.penality_time_step = 0
 
-        self.tensorboard_dir = "runs"
+        self.tensorboard_dir = "runs/teacher"
         self.rob_avg_rwrd_grph_name = "robot_avg_reward"
         self.rob_avg_eps_steps_grph_name = "robot_avg_episode_steps"
         self.rob_suc_rate_grph_name = "robot_success_rate"
