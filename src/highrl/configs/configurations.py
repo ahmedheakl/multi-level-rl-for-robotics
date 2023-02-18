@@ -1,4 +1,4 @@
-# ---------------------ROBOT CONFIGURATIONS-----------------#
+"""Configurations for training and inference"""
 robot_config_str = """
 [dimensions]
 width = 1280
@@ -11,7 +11,7 @@ delta_t = 1
 # 1e3
 max_episode_steps = 1000
 # 1e5
-max_session_steps = 10000
+max_session_steps = 2000
 
 [lidar]
 n_angles = 1080

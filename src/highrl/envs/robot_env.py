@@ -1,28 +1,46 @@
-from typing import Any, List
-from gym import Env, spaces
-from highrl.utils.action import *
-from highrl.obstacle.obstacles import Obstacles
-import numpy as np
-from CMap2D import render_contours_in_lidar
+"""Implementation of Robot Environment"""
 
-from pose2d import apply_tf_to_vel, inverse_pose2d, apply_tf_to_pose
-from highrl.utils.calculations import *
+from typing import List, Tuple
 import threading
-from highrl.agents.robot import Robot
-from highrl.obstacle.single_obstacle import SingleObstacle
-from highrl.configs.colors import *
-import configparser
-import pandas as pd
 import time
 import argparse
-from os import path
+import configparser
+from os import path, mkdir
+import pandas as pd
+import numpy as np
+from CMap2D import render_contours_in_lidar
+from gym import Env, spaces
+from gym.envs.classic_control import rendering
+import pyglet
+from pyglet import gl
+from pose2d import apply_tf_to_vel, inverse_pose2d, apply_tf_to_pose
+from highrl.configs.colors import (
+    white_color,
+    bgcolor,
+    obstcolor,
+    goalcolor,
+    goallinecolor,
+    nosecolor,
+    agentcolor,
+)
+from torch.utils.tensorboard import SummaryWriter
+
+from highrl.obstacle.single_obstacle import SingleObstacle
+from highrl.utils.action import ActionXY
+from highrl.utils.calculations import point_to_point_distance
+from highrl.agents.robot import Robot
+from highrl.obstacle.obstacles import Obstacles
 
 
 class RobotEnv(Env):
+    """Robot Environment Class used in training and testing"""
+
     def __init__(
-        self, config: configparser.RawConfigParser, args: argparse.Namespace
+        self,
+        config: configparser.RawConfigParser,
+        args: argparse.Namespace,
     ) -> None:
-        super(RobotEnv, self).__init__()
+        super().__init__()
         self.action_space_names = ["ActionXY", "ActionRot"]
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
         self.observation_space = spaces.Dict(
@@ -40,27 +58,35 @@ class RobotEnv(Env):
         self.robot = Robot()
         self.viewer = None
         self.args = args
-        self.reward = 0
-        self.episode_reward = 0
-        self.episode_steps = 0
-        self.total_reward = 0
-        self.total_steps = 0
-        self.success_flag = False
-        self.num_successes = 0
+        self.reward: float = 0
+        self.episodes = 1
+        self.episode_reward: float = 0
+        self.episode_steps: int = 0
+        self.total_reward: float = 0
+        self.total_steps: int = 0
+        self.success_flag: bool = False
+        self.num_successes: int = 0
 
         self.done = False
 
-        self.robot_initial_px = 0
-        self.robot_initial_py = 0
-        self.robot_goal_px = 0
-        self.robot_goal_py = 0
+        self.robot_initial_px: int = 0
+        self.robot_initial_py: int = 0
+        self.robot_goal_px: int = 0
+        self.robot_goal_py: int = 0
 
         self.is_initial_state = True
+        self.tensorboard_dir = "runs/robot"
+        self.rwrd_grph_name = "reward"
+        self.eps_rwrd_grph_name = "episode_reward"
+        # Results of each episode
+        # Contains [episode_reward, episode_steps, success_flag]
+        self.results: List[Tuple[float, int, bool]] = []
 
-        """Results of each episode
-        Contains [episode_reward, episode_steps, success_flag]
-        """
-        self.results = []
+        self.lidar_scan: np.ndarray = np.array([])
+        self.lidar_angles: np.ndarray = np.array([])
+
+        self.contours: np.ndarray = np.array([])
+        self.flat_contours: np.ndarray = np.array([])
 
         self._configure(config=config)
 
@@ -79,9 +105,10 @@ class RobotEnv(Env):
                     "wall_time",
                 ]
             )
+        self.robot_writer = SummaryWriter(log_dir=self.tensorboard_dir)
 
     def _configure(self, config: configparser.RawConfigParser) -> None:
-        """Configure the environment using input config file
+        """Configure environment variables using input config object
 
         Args:
             config (configparser.RawConfigParser): input config object
@@ -117,14 +144,14 @@ class RobotEnv(Env):
         self.collect_statistics = config.getboolean("statistics", "collect_statistics")
         self.scenario = config.get("statistics", "scenario")
 
-    def step(self, action: List):
-        """Step into the new state using an action given by the agent model
+    def step(self, action: List) -> Tuple:
+        """Step into a new state using an action given by the robot model
 
         Args:
-            action (list): velocity action (vx, vy) provided by the agent model
+            action (List): velocity action (vx, vy) provided by the robot model
 
         Returns:
-            dict : environment state as the agent observation
+            Tuple : observation, reward, done, info
         """
         self.reward = 0
         self.episode_steps += 1
@@ -146,6 +173,17 @@ class RobotEnv(Env):
         )
 
         self.episode_reward += self.reward
+        self.robot_writer.add_scalar(
+            self.rwrd_grph_name,
+            self.reward,
+            self.total_steps,
+        )
+        self.robot_writer.add_scalar(
+            self.eps_rwrd_grph_name,
+            self.episode_reward,
+            self.total_steps,
+        )
+
         if self.episode_steps % self.render_each == 0:
             self.render(save_to_file=self.save_to_file)
 
@@ -164,17 +202,16 @@ class RobotEnv(Env):
         # log data
         if self.done:
             self.num_successes += self.success_flag
-            self.results.append(
-                [self.episode_reward, self.episode_steps, self.success_flag]
-            )
+            result = (self.episode_reward, self.episode_steps, self.success_flag)
+            self.results.append(result)
 
         return self._make_obs(), self.reward, self.done, {}
 
     def __get_reward(self) -> float:
-        """Calculate current reward
+        """Calculates current reward
 
         Returns:
-            float: reward
+            float: current reward value
         """
         reward = 0.0
         if self.detect_collison():
@@ -193,12 +230,13 @@ class RobotEnv(Env):
         if self.episode_steps >= self.max_episode_steps:
             self.done = True
             self.success_flag = False
+            self.episodes += 1
 
         return reward
 
-    def set_robot_position(self, px: float, py: float, gx: float, gy: float) -> None:
-        """Initialize robot/goal position
-        Should be called from teacher
+    def set_robot_position(self, px: int, py: int, gx: int, gy: int) -> None:
+        """Initializes robot and goal positions
+        Should be called from ``teacher``
 
         Args:
             px (float): x_position of robot
@@ -210,11 +248,12 @@ class RobotEnv(Env):
         self.robot_initial_py = py
         self.robot_goal_px = gx
         self.robot_goal_py = gy
-
-        self.robot.set_position([px, py])
-        self.robot.set_goal_position([gx, gy])
+        # TODO: change arguement types for both functions below
+        self.robot.set_position((px, py))
+        self.robot.set_goal_position((gx, gy))
 
     def add_boarder_obstacles(self) -> None:
+        """Creates border obstacles to limit the allowable navigation area"""
         # fmt: off
         self.obstacles = Obstacles([
                 SingleObstacle(-self.epsilon, 0, self.epsilon, self.height),  # left obstacle
@@ -223,11 +262,11 @@ class RobotEnv(Env):
                 SingleObstacle(0, self.height, self.width, self.epsilon),  # top obstacle
         ])
 
-    def _make_obs(self):
-        """Create agent observation from environment state and LiDAR
+    def _make_obs(self) -> dict:
+        """Creates robot observation from environment state and LiDAR
 
         Returns:
-            dict: agent observation
+            dict: robot observation
         """
         robot = self.robot
         lidar_pos = np.array([robot.px, robot.py, robot.theta], dtype=np.float32)
@@ -256,14 +295,14 @@ class RobotEnv(Env):
         return {"lidar": self.lidar_scan, "robot": robotstate_obs}
 
     def render(
-        self, close: Any = False, save_to_file: Any = False, show_score: Any = True
-    ):
-        """Render robot and obstacles on an openGL window using gym viewer
+        self, close: bool = False, save_to_file: bool = False, show_score: bool = True
+    ) -> bool:
+        """Renders robot and obstacles on an openGL window using gym viewer
 
         Args:
             close (bool, optional): flag to close the environment window. Defaults to False.
             save_to_file (bool, optional): flag to save render data to a file. Defaults to False.
-            show_score (boo, optional): flag to show reward on window. Defaults to True.
+            show_score (bool, optional): flag to show reward on window. Defaults to True.
 
         Returns:
             bool: flag to check the status of the openGL window
@@ -271,18 +310,11 @@ class RobotEnv(Env):
         if close:
             if self.viewer is not None:
                 self.viewer.close()
-            return
-        WINDOW_W = self.width
-        WINDOW_H = self.height
-        VP_W = WINDOW_W
-        VP_H = WINDOW_H
-        from gym.envs.classic_control import rendering
-        import pyglet
-        from pyglet import gl
+            return False
 
         # Create viewer
         if self.viewer is None:
-            self.viewer = rendering.Viewer(WINDOW_W, WINDOW_H)
+            self.viewer = rendering.Viewer(self.width, self.height)
             self.transform = rendering.Transform()
             self.transform.set_scale(10, 10)
             self.transform.set_translation(128, 128)
@@ -290,7 +322,7 @@ class RobotEnv(Env):
                 "0000",
                 font_size=12,
                 x=20,
-                y=int(WINDOW_H * 2.5 / 40.00),
+                y=int(self.height * 2.5 / 40.00),
                 anchor_x="left",
                 anchor_y="center",
                 color=white_color,
@@ -299,7 +331,7 @@ class RobotEnv(Env):
                 "0000",
                 font_size=12,
                 x=20,
-                y=int((WINDOW_H * 1.6) // 40.00),
+                y=int((self.height * 1.6) // 40.00),
                 anchor_x="left",
                 anchor_y="center",
                 color=white_color,
@@ -330,13 +362,13 @@ class RobotEnv(Env):
             win.switch_to()
             win.dispatch_events()
             win.clear()
-            gl.glViewport(0, 0, VP_W, VP_H)
+            gl.glViewport(0, 0, self.width, self.height)
             # Green background
             gl.glBegin(gl.GL_QUADS)
             gl.glColor4f(bgcolor[0], bgcolor[1], bgcolor[2], 1.0)
-            gl.glVertex3f(0, VP_H, 0)
-            gl.glVertex3f(VP_W, VP_H, 0)
-            gl.glVertex3f(VP_W, 0, 0)
+            gl.glVertex3f(0, self.height, 0)
+            gl.glVertex3f(self.width, self.height, 0)
+            gl.glVertex3f(self.width, 0, 0)
             gl.glVertex3f(0, 0, 0)
             gl.glEnd()
             # Transform
@@ -412,19 +444,20 @@ class RobotEnv(Env):
             self.iteration_label.draw()
             win.flip()
             if save_to_file:
-                pyglet.image.get_buffer_manager().get_color_buffer().save(
-                    path.join(
-                        self.args.env_render_path,
-                        "{:08}.png".format(self.episode_steps),
-                    )
+                save_folder = path.join(self.args.env_render_path, f"{self.episodes}")
+                if not path.isdir(save_folder):
+                    mkdir(save_folder)
+                save_path = path.join(
+                    save_folder, "{:08}.png".format(self.episode_steps)
                 )
+                pyglet.image.get_buffer_manager().get_color_buffer().save(save_path)
             return self.viewer.isopen
 
-    def detect_collison(self):
-        """Detect if the agent has collided with any obstacle
+    def detect_collison(self) -> bool:
+        """Detects if the robot has collided with any obstacles
 
         Returns:
-            bool: flag to check collisions
+            bool: flag to check collisions. Ouputs True if there is collision
         """
         collision_flag = False
         for obstacle in self.obstacles.obstacles_list:
@@ -432,13 +465,13 @@ class RobotEnv(Env):
         return collision_flag
 
     def _convert_action_to_ActionXY_format(self, action: List) -> ActionXY:
-        """Convert action array into action object
+        """Converts action array into action object
 
         Args:
-            action (List): list of velocities given by agent model
+            action (List): list of velocities representing the robot action
 
         Returns:
-            ActionXY: same action by given in object format
+            ActionXY: same action but given in object format
         """
         return ActionXY(action[0], action[1], 0)
 
@@ -450,8 +483,8 @@ class RobotEnv(Env):
         """
         if self.done or self.is_initial_state:
             print("reseting robot env ...")
-            self.robot.set_position([self.robot_initial_px, self.robot_initial_py])
-            self.robot.set_goal_position([self.robot_goal_px, self.robot_goal_py])
+            self.robot.set_position((self.robot_initial_px, self.robot_initial_py))
+            self.robot.set_goal_position((self.robot_goal_px, self.robot_goal_py))
             self.total_reward += self.episode_reward
             if self.is_initial_state:
                 self.results = []

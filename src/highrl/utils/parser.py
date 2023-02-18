@@ -1,11 +1,13 @@
-import argparse
-from rich_argparse import RichHelpFormatter
+"""Parser implementation for HighRL library"""
+from typing import Tuple
 from os import path, getcwd
 import os
-from configparser import RawConfigParser
-from highrl.configs import robot_config_str, teacher_config_str, eval_config_str
-from typing import Tuple
+import argparse
 import getpass
+from configparser import RawConfigParser
+from rich_argparse import RichHelpFormatter
+from highrl.configs import robot_config_str, teacher_config_str, eval_config_str
+
 from highrl import __version__
 
 
@@ -24,17 +26,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-v",
         "--version",
+        version=__version__,
         action="version",
-        version=f"Version: {__version__}",
     )
     parser.add_argument(
         "--device-used-for-training",
         type=str,
-        default="none",
+        default="cpu",
         dest="device_used",
-        choices=["CPU", "GPU"],
-        help="what device to use for training (CPU/GPU)",
+        help="what device to use for training (cpu/cuda) (default: %(default)s)",
     )
+    parser.add_argument(
+        "--initial-teacher-model",
+        type=str,
+        default="none",
+        dest="initial_teacher_model",
+        help="path of initial teacher model used in training (default: %(default)s)",
+    )
+
     parser.add_argument(
         "--robot-config",
         type=str,
@@ -56,14 +65,20 @@ def parse_args() -> argparse.Namespace:
         dest="eval_config_path",
         help="path of configuration file of teacher environment",
     )
-    parser.add_argument("--mode", type=str, default="train", choices=["train", "test"])
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default="train",
+        choices=["train", "test"],
+        help="Whether to run model for training or inference (default: %(default)s)",
+    )
     parser.add_argument(
         "--env-mode",
         type=str,
         default="teacher",
         dest="env_mode",
         choices=["teacher", "robot"],
-        help="which environment to use through training/testing",
+        help="which environment to use through training/testing (default: %(default)s)",
     )
 
     parser.add_argument(
@@ -71,14 +86,14 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=-1,
         dest="render_each",
-        help="the frequency of rendering for robot environment",
+        help="the frequency of rendering for robot environment (default: %(default)s)",
     )
     parser.add_argument(
         "--output-dir",
         type=str,
         default="desktop",
         dest="output_dir",
-        help="relative path to output results for robot mode",
+        help="relative path to output results for robot mode (default: %(default)s)",
     )
     parser.add_argument(
         "--lidar-mode",
@@ -86,7 +101,7 @@ def parse_args() -> argparse.Namespace:
         choices=["flat", "rings"],
         default="flat",
         dest="lidar_mode",
-        help="mode to process lidar flat=1D, rings=2D",
+        help="mode to process lidar flat=1D, rings=2D (default: %(default)s)",
     )
 
     args = parser.parse_args()
@@ -95,24 +110,27 @@ def parse_args() -> argparse.Namespace:
 
 
 def generate_agents_config(
-    robot_config_path: str, teacher_config_path: str, eval_config_path: str
-) -> Tuple[RawConfigParser, RawConfigParser, RawConfigParser]:
+    robot_config_path: str,
+    teacher_config_path: str,
+    eval_config_path: str,
+) -> Tuple[RawConfigParser, ...]:
     """Generates the robot and teacher configs
 
     Args:
-        robot_config_path (str): path of the config file for robot
-        teacher_config_path (str): path of the config file for teacher
+        robot_config_path (str): path of the config file for robot env
+        teacher_config_path (str): path of the config file for teacher env
+        eval_config_path (str): path of the config file for eval env
 
     Returns:
-        Tuple[RawConfigParser, RawConfigParser]: config files
+        Tuple[RawConfigParser, ...]: Tuple of config objects for teacher, robot and eval envs
     """
     robot_config = None
     teacher_config = None
     eval_config = None
     if robot_config_path != "none":
         robot_config_path = path.join(getcwd(), robot_config_path)
-        assert (
-            path.exists(robot_config_path) == True
+        assert path.exists(
+            robot_config_path
         ), f"path {robot_config_path} does not exist"
         robot_config = RawConfigParser()
         robot_config.read(robot_config_path)
@@ -122,9 +140,7 @@ def generate_agents_config(
 
     if eval_config_path != "none":
         eval_config_path = path.join(getcwd(), eval_config_path)
-        assert (
-            path.exists(eval_config_path) == True
-        ), f"path {eval_config_path} does not exist"
+        assert path.exists(eval_config_path), f"path {eval_config_path} does not exist"
         eval_config = RawConfigParser()
         eval_config.read(eval_config_path)
     else:
@@ -133,8 +149,8 @@ def generate_agents_config(
 
     if teacher_config_path != "none":
         teacher_config_path = path.join(getcwd(), teacher_config_path)
-        assert (
-            path.exists(teacher_config_path) == True
+        assert path.exists(
+            teacher_config_path
         ), f"path {teacher_config_path} does not exist"
         teacher_config = RawConfigParser()
         teacher_config.read(teacher_config_path)

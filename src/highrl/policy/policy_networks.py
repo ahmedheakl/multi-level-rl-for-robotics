@@ -1,7 +1,7 @@
+from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 import gym
 import torch.nn as nn
 import torch as th
-from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 from stable_baselines3.common.policies import ActorCriticPolicy
 
 
@@ -18,10 +18,10 @@ class LinearPolicyNetwork(nn.Module):
     def __init__(
         self,
         feature_dim: int = 16,
-        last_layer_dim_pi: int = 7,
+        last_layer_dim_pi: int = 8,
         last_layer_dim_vf: int = 32,
     ):
-        super(LinearPolicyNetwork, self).__init__()
+        super().__init__()
 
         # IMPORTANT:
         # Save output dimensions, used to create the distributions
@@ -37,7 +37,7 @@ class LinearPolicyNetwork(nn.Module):
             nn.Linear(64, 32),
             nn.ReLU(),
             nn.Linear(32, last_layer_dim_pi),
-            nn.ReLU(),
+            nn.Sigmoid(),
         )
         # Value network
         self.value_net = nn.Sequential(
@@ -205,7 +205,7 @@ class LinearActorCriticPolicy(ActorCriticPolicy):
         **kwargs,
     ):
 
-        super(LinearActorCriticPolicy, self).__init__(
+        super().__init__(
             observation_space,
             action_space,
             lr_schedule,

@@ -1,3 +1,6 @@
+"""Colors configurations
+"""
+
 import numpy as np
 
 green_color = (50, 225, 30)

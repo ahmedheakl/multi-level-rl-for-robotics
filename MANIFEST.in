@@ -1,0 +1,2 @@
+include cython_packages/lidar2d_fast.pyx
+include requirements.txt

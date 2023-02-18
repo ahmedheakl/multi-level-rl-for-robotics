@@ -1,4 +1,5 @@
+"""Implementation of action type for robot"""
 from collections import namedtuple
 
-ActionXY = namedtuple('ActionXY', ['vx', 'vy', 'w'])  # should we add rotation ??!
+ActionXY = namedtuple('ActionXY', ['vx', 'vy', 'w']) 
 ActionRot = namedtuple('ActionRot', ['v', 'r'])
