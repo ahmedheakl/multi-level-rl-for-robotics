@@ -121,7 +121,8 @@ def main() -> None:
     """Main script implementation"""
     args = parse_args()
     print(f">>> Start training {args.env_mode} ... ")
-
+    os.environ["TRAIN_DEVICE"] = args.device_used
+    print("DEVICE:", os.environ["TRAIN_DEVICE"])
     if args.env_mode == "teacher":
         train_teacher(args)
     else:

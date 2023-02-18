@@ -1,8 +1,10 @@
+"""Implementation of feature extractors for both robot and teacher"""
 import gym
-import torch.nn as nn
+from torch import nn
 import torch as th
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
-from typing import Callable, Dict, List, Optional, Tuple, Type, Union
+
+from highrl.utils.utils import get_device
 
 
 class LSTMFeatureExtractor(BaseFeaturesExtractor):
@@ -19,16 +21,15 @@ class LSTMFeatureExtractor(BaseFeaturesExtractor):
         hidden_dim: int = 16,
         num_layers: int = 1,
     ) -> None:
-        super(LSTMFeatureExtractor, self).__init__(observation_space, features_dim)
-        self.device = th.device("cuda" if th.cuda.is_available() else "cpu")
-
+        super().__init__(observation_space, features_dim)
         self.hidden_dim = hidden_dim
         self.init_hidden()
         self.linear = nn.Linear(features_dim, hidden_dim)
         self.gru = nn.GRU(hidden_dim, hidden_dim, num_layers=num_layers)
 
-    def init_hidden(self):
-        self.hidden = th.zeros(1, 1, self.hidden_dim, device=self.device)
+    def init_hidden(self) -> None:
+        """Initialize hidden vector"""
+        self.hidden = th.zeros(1, 1, self.hidden_dim, device=get_device())
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
 
@@ -50,9 +51,7 @@ class LSTMFeatureExtractor(BaseFeaturesExtractor):
 
 class Robot2DFeatureExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.spaces.Dict, features_dim: int = 37):
-        super(Robot2DFeatureExtractor, self).__init__(
-            observation_space=observation_space, features_dim=features_dim
-        )
+        super().__init__(observation_space=observation_space, features_dim=features_dim)
 
         n_input_channels = 1
         self.cnn = nn.Sequential(
@@ -77,9 +76,7 @@ class Robot2DFeatureExtractor(BaseFeaturesExtractor):
 
 class Robot1DFeatureExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.spaces.Dict, features_dim: int = 37):
-        super(Robot1DFeatureExtractor, self).__init__(
-            observation_space=observation_space, features_dim=features_dim
-        )
+        super().__init__(observation_space=observation_space, features_dim=features_dim)
 
         n_input_channels = 1
         self.cnn = nn.Sequential(

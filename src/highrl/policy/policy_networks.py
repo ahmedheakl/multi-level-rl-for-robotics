@@ -4,6 +4,8 @@ import torch.nn as nn
 import torch as th
 from stable_baselines3.common.policies import ActorCriticPolicy
 
+from highrl.utils.utils import get_device
+
 
 class LinearPolicyNetwork(nn.Module):
     """
@@ -101,8 +103,7 @@ class LSTMPolicyNetwork(nn.Module):
         self.out = nn.Linear(hidden_dim, last_layer_dim_pi)
         self.logsoftmax = nn.LogSoftmax(dim=0)
         self.softmax = nn.Softmax(dim=0)
-        self.device = th.device("cuda" if th.cuda.is_available() else "cpu")
-        self.hidden = th.zeros(1, 1, hidden_dim, device=self.device)
+        self.hidden = th.zeros(1, 1, hidden_dim, device=get_device())
 
         # Value network
         self.value_net = nn.Sequential(
@@ -161,7 +162,7 @@ class LSTMPolicyNetwork(nn.Module):
         Returns:
             th.Tensor: outputs(num_obs + 2, 4)
         """
-        decoder_input = th.zeros(1, 4).to(self.device)  # <SOS>
+        decoder_input = th.zeros(1, 4).to(get_device())  # <SOS>
 
         # first output = [px, py, gx, gy]
         # input_dims : [1, 4], [1, 16]
@@ -178,7 +179,7 @@ class LSTMPolicyNetwork(nn.Module):
         num_sm_obs = th.round(obs_count[2] * self.max_small_obs).int().item()
 
         target_length = num_big_obs + num_med_obs + num_sm_obs
-        outputs = th.zeros(self.max_num_obs + 2, 1, self.latent_dim_pi).to(self.device)
+        outputs = th.zeros(self.max_num_obs + 2, 1, self.latent_dim_pi).to(get_device())
 
         outputs[0] = robot_pos
         outputs[1] = obs_count
