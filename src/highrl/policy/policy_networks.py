@@ -80,8 +80,8 @@ class LSTMPolicyNetwork(nn.Module):
     """
 
     hidden_dim = 16
-    last_layer_dim_pi = 4
-    last_layer_dim_vf = 32
+    latent_dim_pi = 4
+    latent_dim_vf = 32
 
     def __init__(
         self,
@@ -95,9 +95,9 @@ class LSTMPolicyNetwork(nn.Module):
         # IMPORTANT:
         # Save output dimensions, used to create the distributions
         self.net_dims = GRUDims(max_big_obs, max_med_obs, max_small_obs)
-        self.embedding = nn.Linear(self.last_layer_dim_pi, self.hidden_dim)
+        self.embedding = nn.Linear(self.latent_dim_pi, self.hidden_dim)
         self.gru = nn.GRU(self.hidden_dim, self.hidden_dim)
-        self.out = nn.Linear(self.hidden_dim, self.last_layer_dim_pi)
+        self.out = nn.Linear(self.hidden_dim, self.latent_dim_pi)
         self.softmax = nn.Softmax(dim=0)
         self.hidden = th.zeros(1, 1, self.hidden_dim, device=get_device())
         inner_dim = 32
@@ -109,7 +109,7 @@ class LSTMPolicyNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(inner_dim * 2, inner_dim),
             nn.ReLU(),
-            nn.Linear(inner_dim, self.last_layer_dim_vf),
+            nn.Linear(inner_dim, self.latent_dim_vf),
             nn.ReLU(),
         )
 
@@ -182,7 +182,7 @@ class LSTMPolicyNetwork(nn.Module):
         outputs = th.zeros(
             self.net_dims.get_max_num_obs() + 2,
             1,
-            self.last_layer_dim_pi,
+            self.latent_dim_pi,
         )
         outputs = outputs.to(get_device())
 
