@@ -1,6 +1,8 @@
+"""Implementation for the policy networks"""
 from typing import Callable, Dict, List, Optional, Tuple, Type, Union
-import gym
-import torch.nn as nn
+from dataclasses import dataclass
+from gym import spaces
+from torch import nn
 import torch as th
 from stable_baselines3.common.policies import ActorCriticPolicy
 
@@ -8,13 +10,8 @@ from highrl.utils.utils import get_device
 
 
 class LinearPolicyNetwork(nn.Module):
-    """
-    Custom network for policy and value function.
+    """Custom network for policy and value function.
     It receives as input the features extracted by the feature extractor.
-
-    :param feature_dim: dimension of the features extracted with the features_extractor (e.g. features from a CNN)
-    :param last_layer_dim_pi: (int) number of units for the last layer of the policy network
-    :param last_layer_dim_vf: (int) number of units for the last layer of the value network
     """
 
     def __init__(
@@ -27,93 +24,92 @@ class LinearPolicyNetwork(nn.Module):
 
         # IMPORTANT:
         # Save output dimensions, used to create the distributions
-        self.latent_dim_pi = last_layer_dim_pi
-        self.latent_dim_vf = last_layer_dim_vf
-
+        inner_dim = 32
         # Policy network
         self.policy_net = nn.Sequential(
-            nn.Linear(feature_dim, 128),
+            nn.Linear(feature_dim, inner_dim * 4),
             nn.ReLU(),
-            nn.Linear(128, 64),
+            nn.Linear(inner_dim * 4, inner_dim * 2),
             nn.ReLU(),
-            nn.Linear(64, 32),
+            nn.Linear(inner_dim * 2, inner_dim),
             nn.ReLU(),
-            nn.Linear(32, last_layer_dim_pi),
+            nn.Linear(inner_dim, last_layer_dim_pi),
             nn.Sigmoid(),
         )
         # Value network
         self.value_net = nn.Sequential(
-            nn.Linear(feature_dim, 128),
+            nn.Linear(feature_dim, inner_dim * 4),
             nn.ReLU(),
-            nn.Linear(128, 64),
+            nn.Linear(inner_dim * 4, inner_dim * 2),
             nn.ReLU(),
-            nn.Linear(64, 32),
+            nn.Linear(inner_dim * 2, inner_dim),
             nn.ReLU(),
-            nn.Linear(32, last_layer_dim_vf),
+            nn.Linear(inner_dim, last_layer_dim_vf),
             nn.ReLU(),
         )
 
     def forward(self, features: th.Tensor) -> Tuple[th.Tensor, th.Tensor]:
-        """
-        :return: (th.Tensor, th.Tensor) latent_policy, latent_value of the specified network.
-            If all layers are shared, then ``latent_policy == latent_value``
-        """
+        """Forward pass through both actor/critic networks"""
         return self.policy_net(features), self.value_net(features)
 
     def forward_actor(self, features: th.Tensor) -> th.Tensor:
+        """Forward pass through the actor network"""
         return self.policy_net(features)
 
     def forward_critic(self, features: th.Tensor) -> th.Tensor:
+        """Forward pass through the critic network"""
         return self.value_net(features)
 
 
-class LSTMPolicyNetwork(nn.Module):
-    """
-    Custom network for policy and value function.
-    It receives as input the features extracted by the feature extractor.
+@dataclass
+class GRUDims:
+    """Dimension variables for GRU model"""
 
-    :param feature_dim: dimension of the features extracted with the features_extractor (e.g. features from a CNN)
-    :param last_layer_dim_pi: (int) number of units for the last layer of the policy network
-    :param last_layer_dim_vf: (int) number of units for the last layer of the value network
+    max_big_obs: int = 2
+    max_med_obs: int = 5
+    max_small_obs: int = 7
+
+    def get_max_num_obs(self) -> int:
+        """Retrieve the sum of obstacles"""
+        return self.max_big_obs + self.max_med_obs + self.max_small_obs
+
+
+class LSTMPolicyNetwork(nn.Module):
+    """Custom network for policy and value function.
+    It receives as input the features extracted by the feature extractor.
     """
+
+    hidden_dim = 16
+    last_layer_dim_pi = 4
+    last_layer_dim_vf = 32
 
     def __init__(
         self,
         feature_dim: int = 16,
-        last_layer_dim_pi: int = 4,
-        last_layer_dim_vf: int = 32,
         max_big_obs: int = 2,
         max_med_obs: int = 5,
         max_small_obs: int = 7,
-        hidden_dim: int = 16,
     ):
-        super(LSTMPolicyNetwork, self).__init__()
+        super().__init__()
 
         # IMPORTANT:
         # Save output dimensions, used to create the distributions
-        self.latent_dim_pi = last_layer_dim_pi
-        self.latent_dim_vf = last_layer_dim_vf
-        self.max_big_obs = max_big_obs
-        self.max_med_obs = max_med_obs
-        self.max_small_obs = max_small_obs
-        self.max_num_obs = max_big_obs + max_med_obs + max_small_obs
-
-        self.embedding = nn.Linear(last_layer_dim_pi, hidden_dim)
-        self.gru = nn.GRU(hidden_dim, hidden_dim)
-        self.out = nn.Linear(hidden_dim, last_layer_dim_pi)
-        self.logsoftmax = nn.LogSoftmax(dim=0)
+        self.net_dims = GRUDims(max_big_obs, max_med_obs, max_small_obs)
+        self.embedding = nn.Linear(self.last_layer_dim_pi, self.hidden_dim)
+        self.gru = nn.GRU(self.hidden_dim, self.hidden_dim)
+        self.out = nn.Linear(self.hidden_dim, self.last_layer_dim_pi)
         self.softmax = nn.Softmax(dim=0)
-        self.hidden = th.zeros(1, 1, hidden_dim, device=get_device())
-
+        self.hidden = th.zeros(1, 1, self.hidden_dim, device=get_device())
+        inner_dim = 32
         # Value network
         self.value_net = nn.Sequential(
-            nn.Linear(feature_dim, 128),
+            nn.Linear(feature_dim, inner_dim * 4),
             nn.ReLU(),
-            nn.Linear(128, 64),
+            nn.Linear(inner_dim * 4, inner_dim * 2),
             nn.ReLU(),
-            nn.Linear(64, 32),
+            nn.Linear(inner_dim * 2, inner_dim),
             nn.ReLU(),
-            nn.Linear(32, last_layer_dim_vf),
+            nn.Linear(inner_dim, self.last_layer_dim_vf),
             nn.ReLU(),
         )
 
@@ -129,13 +125,17 @@ class LSTMPolicyNetwork(nn.Module):
         return self.forward_actor(features), self.value_net(features)
 
     def decoder_policy(
-        self, input_tensor: th.Tensor, hidden_tensor: th.Tensor
+        self,
+        input_tensor: th.Tensor,
+        hidden_tensor: th.Tensor,
     ) -> Tuple[th.Tensor, ...]:
         """Foward pass through decoder policy net
 
         Args:
-            input_tensor (th.Tensor): <SOS> for _first layer_, and output from last layer for _other layers_
-            hidden_tensor (th.Tensor): features for _first layer_, and hidden from last layer for _other layers_
+            input_tensor (th.Tensor): <SOS> for _first layer_, and output
+            from last layer for _other layers_
+            hidden_tensor (th.Tensor): features for _first layer_, and hidden
+            from last layer for _other layers_
 
         Returns:
            Tuple[th.Tensor, ...] : output(1, 4), hidden(1, 16), logits(1, 4): un-normalized outputs
@@ -174,35 +174,43 @@ class LSTMPolicyNetwork(nn.Module):
         p_out, hidden, logits = self.decoder_policy(p_out, hidden)
         obs_count = self.softmax(logits[0])
 
-        num_big_obs = th.round(obs_count[0] * self.max_big_obs).int().item()
-        num_med_obs = th.round(obs_count[1] * self.max_med_obs).int().item()
-        num_sm_obs = th.round(obs_count[2] * self.max_small_obs).int().item()
+        num_big_obs = int(th.round(obs_count[0] * self.net_dims.max_big_obs).item())
+        num_med_obs = int(th.round(obs_count[1] * self.net_dims.max_med_obs).item())
+        num_sm_obs = int(th.round(obs_count[2] * self.net_dims.max_small_obs).item())
 
         target_length = num_big_obs + num_med_obs + num_sm_obs
-        outputs = th.zeros(self.max_num_obs + 2, 1, self.latent_dim_pi).to(get_device())
+        outputs = th.zeros(
+            self.net_dims.get_max_num_obs() + 2,
+            1,
+            self.last_layer_dim_pi,
+        )
+        outputs = outputs.to(get_device())
 
         outputs[0] = robot_pos
         outputs[1] = obs_count
 
-        for t in range(2, target_length + 2):
+        for target_index in range(2, target_length + 2):
             p_out, hidden, logits = self.decoder_policy(p_out, hidden)
-            outputs[t] = self.softmax(logits[0])
+            outputs[target_index] = self.softmax(logits[0])
         print("outputs shape = ", outputs.shape)
         return outputs
 
     def forward_critic(self, features: th.Tensor) -> th.Tensor:
+        """Forward pass through the critic network"""
         return self.value_net(features)
 
 
 class LinearActorCriticPolicy(ActorCriticPolicy):
+    """ActorCritic policy implementation using a linear model"""
+
     def __init__(
         self,
-        observation_space: gym.spaces.Space,
-        action_space: gym.spaces.Space,
+        observation_space: spaces.Space,
+        action_space: spaces.Space,
         lr_schedule: Callable[[float], float],
+        *args,
         net_arch: Optional[List[Union[int, Dict[str, List[int]]]]] = None,
         activation_fn: Type[nn.Module] = nn.Tanh,
-        *args,
         **kwargs,
     ):
 
@@ -217,6 +225,7 @@ class LinearActorCriticPolicy(ActorCriticPolicy):
         )
         # disable orthogonal initialization
         self.ortho_init = False
+        self._build_mlp_extractor()
 
     def _build_mlp_extractor(self) -> None:
         self.mlp_extractor = LSTMPolicyNetwork()

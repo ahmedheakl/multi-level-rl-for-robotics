@@ -23,7 +23,7 @@ import argparse
 from time import time
 from stable_baselines3.ppo.ppo import PPO
 from stable_baselines3.common.callbacks import CallbackList
-from highrl.policy.feature_extractors import LSTMFeatureExtractor
+from highrl.policy.feature_extractors import GRUFeatureExtractor
 from highrl.policy.policy_networks import LinearActorCriticPolicy
 from highrl.utils.parser import parse_args, generate_agents_config, handle_output_dir
 from highrl.callbacks.teacher_callback import (
@@ -70,7 +70,7 @@ def train_teacher(args: argparse.Namespace) -> None:
         args=args,
     )
     policy_kwargs = {
-        "features_extractor_class": LSTMFeatureExtractor,
+        "features_extractor_class": GRUFeatureExtractor,
         "features_extractor_kwargs": {"features_dim": 6},
     }
     logpath = os.path.join(args.teacher_logs_path, "teacher_logs.csv")
