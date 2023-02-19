@@ -87,7 +87,7 @@ def train_teacher(args: argparse.Namespace) -> None:
     teacher_save_model_callback = TeacherSaveModelCallback(
         train_env=teacher_env,
         save_path=save_model_path,
-        save_freq=teacher_env.teacher_save_model_freq,
+        save_freq=teacher_env.cfg.teacher_save_model_freq,
     )
     callback = CallbackList(
         [

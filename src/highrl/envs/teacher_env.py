@@ -1,5 +1,4 @@
 """Implementation of Teacher Environment"""
-import math
 from typing import List, Tuple
 import argparse
 from random import uniform
@@ -10,7 +9,7 @@ from os import path
 from gym import Env, spaces
 import numpy as np
 from prettytable import PrettyTable
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from stable_baselines3.common.callbacks import CallbackList
 from stable_baselines3.ppo.ppo import PPO
 from highrl.utils.teacher_checker import convex_hull_difficulty
@@ -20,7 +19,6 @@ from highrl.callbacks.robot_callback import (
     RobotEvalCallback,
     RobotSuccessesCallback,
 )
-from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.policy.feature_extractors import Robot1DFeatureExtractor
 from highrl.envs.env_encoders import (
     RobotEnv1DPlayer,
@@ -28,6 +26,7 @@ from highrl.envs.env_encoders import (
     EvalEnv1DPlayer,
     EvalEnv2DPlayer,
 )
+from highrl.utils.utils import get_obstacles_from_action, configure_teacher
 
 
 class TeacherEnv(Env):
@@ -53,7 +52,7 @@ class TeacherEnv(Env):
             ValueError: raises error if the user entered a lidar mode other than flat or rings
         """
 
-        super(TeacherEnv, self).__init__()
+        super().__init__()
         self.action_space_names = [
             "robot_x",
             "robot_y",
@@ -93,9 +92,9 @@ class TeacherEnv(Env):
         self.rob_num_suc_grph_name = "robot_num_successes"
         self.rob_lvl_grph_name = "robot_level"
 
-        self._configure(config=teacher_config)
+        self.cfg = configure_teacher(teacher_config)
         self.session_statistics = None
-        if self.collect_statistics:
+        if self.cfg.collect_statistics:
             self.session_statistics = pd.DataFrame(
                 columns=[
                     "robot_id",
@@ -111,75 +110,15 @@ class TeacherEnv(Env):
 
         # self.eval_env = RobotEvalEnv(config=eval_config, args=self.args)
 
-        if self.lidar_mode == "flat":
+        if self.cfg.lidar_mode == "flat":
             self.robot_env = RobotEnv1DPlayer(config=robot_config, args=self.args)
             self.eval_env = EvalEnv1DPlayer(config=eval_config, args=self.args)
 
-        elif self.lidar_mode == "rings":
+        elif self.cfg.lidar_mode == "rings":
             self.robot_env = RobotEnv2DPlayer(config=robot_config, args=self.args)
             self.eval_env = EvalEnv2DPlayer(config=eval_config, args=self.args)
         else:
-            raise ValueError(f"Lidar mode {self.lidar_mode} is not avaliable")
-
-    def _configure(self, config: configparser.RawConfigParser) -> None:
-        """Configure the environment variables using input config object
-        Args:
-            config (configparser.RawConfigParser): input config object
-        """
-        self.config = config
-
-        self.max_robot_episode_steps = config.getint(
-            "timesteps", "max_episode_timesteps"
-        )
-        self.max_session_timesteps = config.getint("timesteps", "max_session_timesteps")
-
-        self.alpha = config.getfloat("reward", "alpha")
-        self.terminal_state_reward = config.getint("reward", "terminal_state_reward")
-        self.max_robot_episode_reward = config.getint("reward", "max_reward")
-        self.base_difficulty = config.getint("reward", "base_difficulty")
-        self.overlap_goal_penality = config.getint("reward", "overlap_goal_penality")
-        self.infinite_difficulty_penality = config.getint(
-            "reward", "infinite_difficulty_penality"
-        )
-        self.too_close_to_goal_penality = config.getint(
-            "reward", "too_close_to_goal_penality"
-        )
-        self.is_goal_or_robot_overlap_obstacles_penality = config.getint(
-            "reward", "is_goal_or_robot_overlap_obstacles_penality"
-        )
-        self.gamma = config.getfloat("reward", "gamma")
-        # start with base difficulty
-        self.desired_difficulty: float = self.base_difficulty
-        self.diff_increase_factor = config.getfloat("reward", "diff_increase_factor")
-        self.base_num_successes = config.getint("reward", "base_num_successes")
-        self.num_successes_increase_factor = config.getfloat(
-            "reward", "num_successes_increase_factor"
-        )
-
-        self.advance_probability = config.getfloat("env", "advance_probability")
-        self.max_hard_obstacles_count = config.getint("env", "max_hard_obstacles_count")
-        self.max_medium_obstacles_count = config.getint(
-            "env", "max_medium_obstacles_count"
-        )
-        self.max_small_obstacles_count = config.getint(
-            "env", "max_small_obstacles_count"
-        )
-        self.hard_obstacles_min_dim = config.getint("env", "hard_obstacles_min_dim")
-        self.hard_obstacles_max_dim = config.getint("env", "hard_obstacles_max_dim")
-        self.medium_obstacles_min_dim = config.getint("env", "medium_obstacles_min_dim")
-        self.medium_obstacles_max_dim = config.getint("env", "medium_obstacles_max_dim")
-        self.small_obstacles_min_dim = config.getint("env", "small_obstacles_min_dim")
-        self.small_obstacles_max_dim = config.getint("env", "small_obstacles_max_dim")
-        self.lidar_mode = config.get("env", "lidar_mode")
-        self.collect_statistics = config.getboolean("statistics", "collect_statistics")
-        self.scenario = config.get("statistics", "scenario")
-        self.robot_log_eval_freq = config.getint("statistics", "robot_log_eval_freq")
-        self.teacher_save_model_freq = config.getint("statistics", "save_model_freq")
-
-        self.n_robot_eval_episodes = config.getint(
-            "statistics", "n_robot_eval_episodes"
-        )
-        self.render_eval = config.getboolean("render", "render_eval")
+            raise ValueError(f"Lidar mode {self.cfg.lidar_mode} is not avaliable")
 
     def _get_robot_metrics(self) -> None:
         """
@@ -229,6 +168,9 @@ class TeacherEnv(Env):
             )
             print(results_table)
 
+    def render(self) -> None:
+        """Idle render"""
+
     def step(self, action: List) -> Tuple:
         """Step into the new state using an action given by the teacher model
 
@@ -249,7 +191,14 @@ class TeacherEnv(Env):
 
         self.robot_env.add_boarder_obstacles()
 
-        obstacles = self.get_obstacles_from_action(action)
+        obstacles = get_obstacles_from_action(
+            action,
+            self.cfg.max_big_obstacles_count,
+            self.cfg.max_med_obstacles_count,
+            self.cfg.max_small_obstacles_count,
+            self.robot_env.width,
+            self.robot_env.height,
+        )
         for obstacle in obstacles:
             self.robot_env.obstacles.obstacles_list.append(obstacle)
 
@@ -301,13 +250,13 @@ class TeacherEnv(Env):
             or is_goal_or_robot_overlap_obstacles
         ):
             self.reward = (
-                self.infinite_difficulty_penality * is_passed_inf_diff
-                + self.overlap_goal_penality * is_goal_overlap_robot
-                + self.is_goal_or_robot_overlap_obstacles_penality
+                self.cfg.infinite_difficulty_penality * is_passed_inf_diff
+                + self.cfg.overlap_goal_penality * is_goal_overlap_robot
+                + self.cfg.is_goal_or_robot_overlap_obstacles_penality
                 * is_goal_or_robot_overlap_obstacles
             )
             self.done = True
-            if self.collect_statistics:
+            if self.cfg.collect_statistics:
                 self.session_statistics.loc[len(self.session_statistics)] = [  # type: ignore
                     self.robot_id,
                     self.reward,
@@ -339,20 +288,20 @@ class TeacherEnv(Env):
             self.penality_time_step = 0
 
         too_close_to_goal_penality = (
-            self.too_close_to_goal_penality
+            self.cfg.too_close_to_goal_penality
             * self.robot_env.robot.is_robot_close_to_goal(min_dist=1000)
         )
 
         self.desired_difficulty = (
-            self.base_difficulty * (self.diff_increase_factor) ** self.episodes
+            self.cfg.base_difficulty * (self.cfg.diff_increase_factor) ** self.episodes
         )
 
         self.num_successes = int(
-            self.base_num_successes
-            * (self.num_successes_increase_factor) ** self.episodes
+            self.cfg.base_num_successes
+            * (self.cfg.num_successes_increase_factor) ** self.episodes
         )
 
-        policy_kwargs = dict(features_extractor_class=Robot1DFeatureExtractor)
+        policy_kwargs = {"features_extractor_class": Robot1DFeatureExtractor}
 
         device = self.args.device_used
 
@@ -379,20 +328,20 @@ class TeacherEnv(Env):
         log_callback = RobotLogCallback(
             train_env=self.robot_env,
             logpath=robot_logpath,
-            eval_frequency=self.robot_log_eval_freq,
+            eval_frequency=self.cfg.robot_log_eval_freq,
             verbose=0,
         )
         robot_max_steps_callback = RobotMaxStepsCallback(
-            max_steps=self.max_session_timesteps, verbose=0
+            max_steps=self.cfg.max_session_timesteps, verbose=0
         )
         eval_callback = RobotEvalCallback(
             eval_env=self.eval_env,
-            n_eval_episodes=self.n_robot_eval_episodes,
+            n_eval_episodes=self.cfg.n_robot_eval_episodes,
             logpath=eval_logpath,
             savepath=eval_model_save_path,
-            eval_frequency=self.max_session_timesteps,
+            eval_frequency=self.cfg.max_session_timesteps,
             verbose=1,
-            render=self.render_eval,
+            render=self.cfg.render_eval,
         )
         successes_callback = RobotSuccessesCallback(num_successes=self.num_successes)
         callback = CallbackList(
@@ -423,9 +372,9 @@ class TeacherEnv(Env):
             self.episodes += 1
 
         # Flag to advance to next level
-        advance_flag = uniform(0, 1) <= self.advance_probability
+        advance_flag = uniform(0, 1) <= self.cfg.advance_probability
 
-        if self.collect_statistics:
+        if self.cfg.collect_statistics:
             self.session_statistics.loc[len(self.session_statistics)] = [  # type: ignore
                 self.robot_id,
                 self.reward,
@@ -461,9 +410,6 @@ class TeacherEnv(Env):
             {"episodes_count": self.episodes},
         )
 
-    def render(self):
-        pass
-
     def _make_obs(self) -> List:
         """Create observations
         Returns:
@@ -477,60 +423,6 @@ class TeacherEnv(Env):
             self.robot_avg_episode_steps,
             self.robot_success_rate,
         ]
-
-    def get_obstacles_from_action(self, action: List):
-        """Convert action from index-format to function-format.
-        The output of the planner is treated as a list of functions,
-        each with valuable points in the domain from x -> [0, max_obs].
-
-        The index is convert into the function by converting the base of the index
-        from decimal(10) base to width/height.
-
-        The function is then sampled at points x -> [0, max_obs] to obtain the corresponding values.
-        There are 4 output values(indexes) from the teacher model:
-            x position of obstacles
-            y position of obstacles
-            w width of obstacles
-            h height of obstacles
-        Each index is treated as a function and converted to obtain the corresponding values
-        using the method described above.
-
-        Args:
-            action (np.array): input action(x, y, w, h)
-
-        Returns:
-            List[SingleObstalce, ...]: list of obtained obstacles
-        """
-        x_func, y_func, w_func, h_func = action[4], action[5], action[6], action[7]
-        max_num_obstacles = (
-            self.max_hard_obstacles_count
-            + self.max_medium_obstacles_count
-            + self.max_small_obstacles_count
-        )
-        width = self.robot_env.width
-        height = self.robot_env.height
-        x_max = width**max_num_obstacles
-        y_max = height**max_num_obstacles
-
-        x_func = math.ceil(x_func * x_max)
-        w_func = math.ceil(w_func * x_max)
-        y_func = math.ceil(y_func * y_max)
-        h_func = math.ceil(h_func * y_max)
-
-        obstacles = []
-        for i in range(max_num_obstacles):
-            x = x_func % width
-            y = y_func % height
-            w = min(w_func % width, width - x)
-            h = min(h_func % height, height - y)
-            obstacle = SingleObstacle(x, y, w, h)
-            obstacles.append(obstacle)
-
-            x_func = x_func // width
-            w_func = w_func // width
-            y_func = y_func // height
-            h_func = h_func // height
-        return obstacles
 
     def _get_robot_position_from_action(self, action: List) -> Tuple:
         """Clip robot and goal positions to make sure they are inside the environment dimensions
@@ -604,24 +496,24 @@ class TeacherEnv(Env):
             float: current reward
         """
         dfc_fact = self.difficulty_area / self.desired_difficulty
-        rwd_fact = float(self.robot_avg_reward / self.max_robot_episode_reward)
+        rwd_fact = float(self.robot_avg_reward / self.cfg.max_robot_episode_reward)
 
-        r_s = self.exp(dfc_fact * rwd_fact, self.alpha)
+        r_s = self.exp(dfc_fact * rwd_fact, self.cfg.alpha)
 
         r_t = (
             self.terminal_state_flag
-            * (1 - self.robot_env.episode_steps / self.max_robot_episode_steps)
-            * self.terminal_state_reward
+            * (1 - self.robot_env.episode_steps / self.cfg.max_robot_episode_steps)
+            * self.cfg.terminal_state_reward
         )
 
-        r_d = (self.difficulty_area - self.desired_difficulty) * self.gamma
+        r_d = (self.difficulty_area - self.desired_difficulty) * self.cfg.gamma
         print(
             dfc_fact,
             type(dfc_fact),
             rwd_fact,
             type(rwd_fact),
-            self.alpha,
-            type(self.alpha),
+            self.cfg.alpha,
+            type(self.cfg.alpha),
         )
 
         reward = r_s + r_t + r_d
