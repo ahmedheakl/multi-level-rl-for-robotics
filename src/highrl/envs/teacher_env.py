@@ -3,15 +3,17 @@ from typing import List, Tuple
 import argparse
 from random import uniform
 from time import time
-import configparser
-import pandas as pd
+from dataclasses import dataclass
+from configparser import RawConfigParser
 from os import path
+import pandas as pd
 from gym import Env, spaces
 import numpy as np
 from prettytable import PrettyTable
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from stable_baselines3.common.callbacks import CallbackList
 from stable_baselines3.ppo.ppo import PPO
+
 from highrl.utils.teacher_checker import convex_hull_difficulty
 from highrl.callbacks.robot_callback import (
     RobotMaxStepsCallback,
@@ -27,25 +29,66 @@ from highrl.envs.env_encoders import (
     EvalEnv2DPlayer,
 )
 from highrl.utils.utils import get_obstacles_from_action, configure_teacher
+from highrl.utils.calculations import neg_exp
+
+
+@dataclass
+class RobotMetrics:
+    """Metrics for the robot session"""
+
+    robot_success_flag: bool = False
+    robot_avg_reward: float = 0.0
+    robot_avg_episode_steps: float = 0.0
+    robot_success_rate: float = 0.0
+    robot_level: int = 0
+    previous_save_path: str = ""
+    robot_id: int = 0
+
+
+@dataclass
+class TeacherMetrics:
+    """Metrics for teacher training"""
+
+    tb_writer: SummaryWriter
+    reward: float = 0.0
+    episodes: int = 0
+    difficulty_area: float = 0.0
+    difficulty_obs: float = 0.0
+    time_steps: int = 0
+    desired_difficulty: float = 0.0
 
 
 class TeacherEnv(Env):
+    """Environment for training the teacher agent"""
 
     INF_DIFFICULTY = 921600  # w * h = 1280 * 720
+    tensorboard_dir: str = "runs/teacher"
+    rob_avg_rwrd_grph_name: str = "robot_avg_reward"
+    rob_avg_eps_steps_grph_name: str = "robot_avg_episode_steps"
+    rob_suc_rate_grph_name: str = "robot_success_rate"
+    techr_rwrd_grph_name: str = "teacher_reward"
+    rob_num_suc_grph_name: str = "robot_num_successes"
+    rob_lvl_grph_name: str = "robot_level"
+    action_space_names: List[str] = [
+        "robot_x",
+        "robot_y",
+        "goal_x",
+        "goal_y",
+    ]
 
     def __init__(
         self,
-        robot_config: configparser.RawConfigParser,
-        eval_config: configparser.RawConfigParser,
-        teacher_config: configparser.RawConfigParser,
+        robot_config: RawConfigParser,
+        eval_config: RawConfigParser,
+        teacher_config: RawConfigParser,
         args: argparse.Namespace,
     ) -> None:
         """Construct the teacher enviornment
 
         Args:
-            robot_config (configparser.RawConfigParser): robot env config object
-            eval_config (configparser.RawConfigParser): eval env config object
-            teacher_config (configparser.RawConfigParser): teacher env config object
+            robot_config (RawConfigParser): robot env config object
+            eval_config (RawConfigParser): eval env config object
+            teacher_config (RawConfigParser): teacher env config object
             args (argparse.Namespace): args namespace with generated files output path
 
         Raises:
@@ -53,12 +96,6 @@ class TeacherEnv(Env):
         """
 
         super().__init__()
-        self.action_space_names = [
-            "robot_x",
-            "robot_y",
-            "goal_x",
-            "goal_y",
-        ]
         self.action_space = spaces.Box(
             low=0.01, high=0.99, shape=(8,), dtype=np.float32
         )
@@ -67,33 +104,41 @@ class TeacherEnv(Env):
             low=-1000, high=1000, shape=(6,), dtype=np.float32
         )
         self.args = args
-        self.episodes = 0
-        self.difficulty_area: float = 0
-        self.difficulty_obs: float = 0
-        self.time_steps = 0
-        self.robot_level = 0
         self.done = 0
-        self.robot_success_flag = 0
-        self.previous_save_path = ""
 
         self.terminal_state_flag = 0
 
-        self.robot_avg_reward: float = 0
-        self.robot_success_rate: float = 0
-        self.robot_avg_episode_steps: float = 0
-        self.robot_id = 0
         self.penality_time_step = 0
 
-        self.tensorboard_dir = "runs/teacher"
-        self.rob_avg_rwrd_grph_name = "robot_avg_reward"
-        self.rob_avg_eps_steps_grph_name = "robot_avg_episode_steps"
-        self.rob_suc_rate_grph_name = "robot_success_rate"
-        self.techr_rwrd_grph_name = "teacher_reward"
-        self.rob_num_suc_grph_name = "robot_num_successes"
-        self.rob_lvl_grph_name = "robot_level"
-
         self.cfg = configure_teacher(teacher_config)
+        self.robot_metrics = RobotMetrics()
         self.session_statistics = None
+
+        self.opt = TeacherMetrics(
+            tb_writer=SummaryWriter(log_dir=self.tensorboard_dir),
+            desired_difficulty=self.cfg.base_difficulty,
+        )
+        self._init_robot_env(robot_config, eval_config)
+        self._init_stats()
+
+    def _init_robot_env(
+        self,
+        robot_config: RawConfigParser,
+        eval_config: RawConfigParser,
+    ) -> None:
+        """Initialize robot environment"""
+        if self.cfg.lidar_mode == "flat":
+            self.robot_env = RobotEnv1DPlayer(config=robot_config, args=self.args)
+            self.eval_env = EvalEnv1DPlayer(config=eval_config, args=self.args)
+
+        elif self.cfg.lidar_mode == "rings":
+            self.robot_env = RobotEnv2DPlayer(config=robot_config, args=self.args)
+            self.eval_env = EvalEnv2DPlayer(config=eval_config, args=self.args)
+        else:
+            raise ValueError(f"Lidar mode {self.cfg.lidar_mode} is not avaliable")
+
+    def _init_stats(self) -> None:
+        """Initialize statistics collection"""
         if self.cfg.collect_statistics:
             self.session_statistics = pd.DataFrame(
                 columns=[
@@ -106,19 +151,6 @@ class TeacherEnv(Env):
                     "robot_num_successes",  # robot num_successes in this teacher session
                 ]
             )
-        self.teacher_writer = SummaryWriter(log_dir=self.tensorboard_dir)
-
-        # self.eval_env = RobotEvalEnv(config=eval_config, args=self.args)
-
-        if self.cfg.lidar_mode == "flat":
-            self.robot_env = RobotEnv1DPlayer(config=robot_config, args=self.args)
-            self.eval_env = EvalEnv1DPlayer(config=eval_config, args=self.args)
-
-        elif self.cfg.lidar_mode == "rings":
-            self.robot_env = RobotEnv2DPlayer(config=robot_config, args=self.args)
-            self.eval_env = EvalEnv2DPlayer(config=eval_config, args=self.args)
-        else:
-            raise ValueError(f"Lidar mode {self.cfg.lidar_mode} is not avaliable")
 
     def _get_robot_metrics(self) -> None:
         """
@@ -135,35 +167,41 @@ class TeacherEnv(Env):
                 total_reward += episode_reward
                 total_steps += episode_steps
                 num_success += success_flag
-            self.robot_success_flag = num_success > 0
-            self.robot_avg_reward = total_reward / len(self.robot_env.results)
-            self.robot_avg_episode_steps = total_steps / len(self.robot_env.results)
-            self.robot_success_rate = num_success / len(self.robot_env.results)
+            self.robot_metrics.robot_success_flag = num_success > 0
+            self.robot_metrics.robot_avg_reward = total_reward / len(
+                self.robot_env.results
+            )
+            self.robot_metrics.robot_avg_episode_steps = total_steps / len(
+                self.robot_env.results
+            )
+            self.robot_metrics.robot_success_rate = num_success / len(
+                self.robot_env.results
+            )
             print(f"======== Session {self.time_steps} Results ========")
             results_table = PrettyTable(
                 field_names=["avg_reward", "avg_ep_steps", "success_rate"]
             )
             results_table.add_row(
                 [
-                    f"{self.robot_avg_reward:0.2f}",
-                    f"{self.robot_avg_episode_steps:0.2f}",
-                    f"{self.robot_success_rate:0.2f}",
+                    f"{self.robot_metrics.robot_avg_reward:0.2f}",
+                    f"{self.robot_metrics.robot_avg_episode_steps:0.2f}",
+                    f"{self.robot_metrics.robot_success_rate:0.2f}",
                 ]
             )
 
-            self.teacher_writer.add_scalar(
+            self.opt.tb_writer.add_scalar(
                 self.rob_avg_rwrd_grph_name,
-                self.robot_avg_reward,
+                self.robot_metrics.robot_avg_reward,
                 self.time_steps,
             )
-            self.teacher_writer.add_scalar(
+            self.opt.tb_writer.add_scalar(
                 self.rob_avg_eps_steps_grph_name,
-                self.robot_avg_episode_steps,
+                self.robot_metrics.robot_avg_episode_steps,
                 self.time_steps,
             )
-            self.teacher_writer.add_scalar(
+            self.opt.tb_writer.add_scalar(
                 self.rob_suc_rate_grph_name,
-                self.robot_success_rate,
+                self.robot_metrics.robot_success_rate,
                 self.time_steps,
             )
             print(results_table)
@@ -181,7 +219,7 @@ class TeacherEnv(Env):
             Tuple: observation, reward, done, info
         """
         self.time_steps += 1
-        self.reward: float = 0
+        self.opt.reward = 0.0
 
         ######################### Initiate Robot Env ############################
 
@@ -221,23 +259,23 @@ class TeacherEnv(Env):
             )
         is_goal_or_robot_overlap_obstacles = is_goal_or_robot_overlap_obstacles > 0
         if is_goal_overlap_robot:
-            self.difficulty_area = 0
-            self.difficulty_obs = 0
+            self.opt.difficulty_area = 0
+            self.opt.difficulty_obs = 0
             is_passed_inf_diff = False
 
         elif is_goal_or_robot_overlap_obstacles:
-            self.difficulty_area = self.INF_DIFFICULTY
-            self.difficulty_obs = 1
+            self.opt.difficulty_area = self.INF_DIFFICULTY
+            self.opt.difficulty_obs = 1
             is_passed_inf_diff = True
 
         else:
-            self.difficulty_area, self.difficulty_obs = convex_hull_difficulty(
+            self.opt.difficulty_area, self.opt.difficulty_obs = convex_hull_difficulty(
                 self.robot_env.obstacles,
                 self.robot_env.robot,
                 self.robot_env.width,
                 self.robot_env.height,
             )
-            is_passed_inf_diff = self.difficulty_area >= self.INF_DIFFICULTY
+            is_passed_inf_diff = self.opt.difficulty_area >= self.INF_DIFFICULTY
 
         print(
             f"is_goal_or_robot_overlap_obstacles = {is_goal_or_robot_overlap_obstacles}"
@@ -249,7 +287,7 @@ class TeacherEnv(Env):
             or is_goal_overlap_robot
             or is_goal_or_robot_overlap_obstacles
         ):
-            self.reward = (
+            self.opt.reward = (
                 self.cfg.infinite_difficulty_penality * is_passed_inf_diff
                 + self.cfg.overlap_goal_penality * is_goal_overlap_robot
                 + self.cfg.is_goal_or_robot_overlap_obstacles_penality
@@ -258,55 +296,56 @@ class TeacherEnv(Env):
             self.done = True
             if self.cfg.collect_statistics:
                 self.session_statistics.loc[len(self.session_statistics)] = [  # type: ignore
-                    self.robot_id,
-                    self.reward,
+                    self.robot_metrics.robot_id,
+                    self.opt.reward,
                     self.robot_env.episode_reward,
-                    self.difficulty_area,
-                    self.difficulty_obs,
-                    self.robot_level,
+                    self.opt.difficulty_area,
+                    self.opt.difficulty_obs,
+                    self.robot_metrics.robot_level,
                     self.robot_env.num_successes,
                 ]
             self.penality_time_step = self.time_steps
 
-            self.teacher_writer.add_scalar(
+            self.opt.tb_writer.add_scalar(
                 self.techr_rwrd_grph_name,
-                self.reward,
+                self.opt.reward,
                 self.time_steps,
             )
-            self.teacher_writer.add_scalar(
+            self.opt.tb_writer.add_scalar(
                 self.rob_num_suc_grph_name,
                 self.robot_env.num_successes,
                 self.time_steps,
             )
-            self.teacher_writer.add_scalar(
+            self.opt.tb_writer.add_scalar(
                 self.rob_lvl_grph_name,
-                self.robot_level,
+                self.robot_metrics.robot_level,
                 self.time_steps,
             )
-            return self._make_obs(), self.reward, self.done, {}
-        else:
-            self.penality_time_step = 0
+            return self._make_obs(), self.opt.reward, self.done, {}
+
+        self.penality_time_step = 0
 
         too_close_to_goal_penality = (
             self.cfg.too_close_to_goal_penality
             * self.robot_env.robot.is_robot_close_to_goal(min_dist=1000)
         )
 
-        self.desired_difficulty = (
-            self.cfg.base_difficulty * (self.cfg.diff_increase_factor) ** self.episodes
+        self.opt.desired_difficulty = (
+            self.cfg.base_difficulty
+            * (self.cfg.diff_increase_factor) ** self.opt.episodes
         )
 
         self.num_successes = int(
             self.cfg.base_num_successes
-            * (self.cfg.num_successes_increase_factor) ** self.episodes
+            * (self.cfg.num_successes_increase_factor) ** self.opt.episodes
         )
 
         policy_kwargs = {"features_extractor_class": Robot1DFeatureExtractor}
 
         device = self.args.device_used
 
-        if int(self.robot_level) == 0:
-            self.robot_id += 1
+        if self.robot_metrics.robot_level == 0:
+            self.robot_metrics.robot_id += 1
 
             print("initiating model ...")
             model = PPO(
@@ -318,7 +357,9 @@ class TeacherEnv(Env):
             )
         else:
             print("loading model ...")
-            model = PPO.load(self.previous_save_path, self.robot_env, device=device)
+            model = PPO.load(
+                self.robot_metrics.previous_save_path, self.robot_env, device=device
+            )
 
         robot_logpath = path.join(self.args.robot_logs_path, "robot_logs.csv")
         eval_logpath = path.join(self.args.robot_logs_path, "robot_eval_logs.csv")
@@ -354,60 +395,62 @@ class TeacherEnv(Env):
 
         print("saving model ...")
         model_save_path = path.join(
-            self.args.robot_models_path, f"train/model_{int(time())}_{self.robot_level}"
+            self.args.robot_models_path,
+            f"train/model_{int(time())}_{self.robot_metrics.robot_level}",
         )
-        self.previous_save_path = model_save_path
+        self.robot_metrics.previous_save_path = model_save_path
         model.save(model_save_path)
 
         ############################# Calculate Statistics and Rewards ##################################
         self._get_robot_metrics()
-        self.terminal_state_flag = self.robot_success_flag and (
-            self.difficulty_area >= self.desired_difficulty
+        self.terminal_state_flag = self.robot_metrics.robot_success_flag and (
+            self.opt.difficulty_area >= self.opt.desired_difficulty
         )
-        self.reward = self.__get_reward() + too_close_to_goal_penality
-        print(self.reward)
+        self.opt.reward = self.__get_reward() + too_close_to_goal_penality
 
         if self.terminal_state_flag:
             self.done = True
-            self.episodes += 1
+            self.opt.episodes += 1
 
         # Flag to advance to next level
         advance_flag = uniform(0, 1) <= self.cfg.advance_probability
 
         if self.cfg.collect_statistics:
             self.session_statistics.loc[len(self.session_statistics)] = [  # type: ignore
-                self.robot_id,
-                self.reward,
+                self.robot_metrics.robot_id,
+                self.opt.reward,
                 self.robot_env.episode_reward,
-                self.difficulty_area,
-                self.difficulty_obs,
-                self.robot_level,
+                self.opt.difficulty_area,
+                self.opt.difficulty_obs,
+                self.robot_metrics.robot_level,
                 self.robot_env.num_successes,
             ]
 
-            self.teacher_writer.add_scalar(
+            self.opt.tb_writer.add_scalar(
                 self.techr_rwrd_grph_name,
-                self.reward,
+                self.opt.reward,
                 self.time_steps,
             )
-            self.teacher_writer.add_scalar(
+            self.opt.tb_writer.add_scalar(
                 self.rob_num_suc_grph_name,
                 self.robot_env.num_successes,
                 self.robot_env.total_steps,
             )
-            self.teacher_writer.add_scalar(
+            self.opt.tb_writer.add_scalar(
                 self.rob_lvl_grph_name,
-                self.robot_level,
+                self.robot_metrics.robot_level,
                 self.time_steps,
             )
 
-        self.robot_level = (self.robot_level + advance_flag) * advance_flag
+        self.robot_metrics.robot_level = (
+            self.robot_metrics.robot_level + advance_flag
+        ) * advance_flag
         self.robot_env.num_successes = 0
         return (
             self._make_obs(),
-            self.reward,
+            self.opt.reward,
             self.done,
-            {"episodes_count": self.episodes},
+            {"episodes_count": self.opt.episodes},
         )
 
     def _make_obs(self) -> List:
@@ -416,12 +459,12 @@ class TeacherEnv(Env):
             List: observation vector
         """
         return [
-            self.robot_level,
-            self.robot_avg_reward,
-            self.difficulty_area,
-            self.difficulty_obs,
-            self.robot_avg_episode_steps,
-            self.robot_success_rate,
+            self.robot_metrics.robot_level,
+            self.robot_metrics.robot_avg_reward,
+            self.opt.difficulty_area,
+            self.opt.difficulty_obs,
+            self.robot_metrics.robot_avg_episode_steps,
+            self.robot_metrics.robot_success_rate,
         ]
 
     def _get_robot_position_from_action(self, action: List) -> Tuple:
@@ -433,14 +476,6 @@ class TeacherEnv(Env):
         Returns:
             Tuple: clipped positions of robot and goal
         """
-        """Convert action form List format to dict format
-
-        Args:
-            action (List): output of teacher model
-
-        Returns:
-            dict: action dictionay (robot_x, robot_y, goal_x, goal_y, hard_obst_cnt, medium_obst_cnt, small_obst_cnt)
-        """
         planner_output = {}
         action[0] = max(action[0], 0.099)
         action[0] = min(action[0], 0.899)
@@ -451,8 +486,8 @@ class TeacherEnv(Env):
         action[3] = max(action[3], 0.1)
         action[3] = min(action[3], 0.9)
 
-        for i in range(len(action)):
-            planner_output["{}".format(self.action_space_names[i])] = action[i]
+        for idx, action_val in enumerate(action):
+            planner_output[self.action_space_names[idx]] = action_val
         print(f"======== Teacher action for Session {self.time_steps} ========")
         names = ["px", "py", "gx", "gy"]
         action_table = PrettyTable()
@@ -495,10 +530,12 @@ class TeacherEnv(Env):
         Returns:
             float: current reward
         """
-        dfc_fact = self.difficulty_area / self.desired_difficulty
-        rwd_fact = float(self.robot_avg_reward / self.cfg.max_robot_episode_reward)
+        dfc_fact = self.opt.difficulty_area / self.opt.desired_difficulty
+        rwd_fact = float(
+            self.robot_metrics.robot_avg_reward / self.cfg.max_robot_episode_reward
+        )
 
-        r_s = self.exp(dfc_fact * rwd_fact, self.cfg.alpha)
+        r_s = neg_exp(dfc_fact * rwd_fact, self.cfg.alpha)
 
         r_t = (
             self.terminal_state_flag
@@ -506,25 +543,10 @@ class TeacherEnv(Env):
             * self.cfg.terminal_state_reward
         )
 
-        r_d = (self.difficulty_area - self.desired_difficulty) * self.cfg.gamma
-        print(
-            dfc_fact,
-            type(dfc_fact),
-            rwd_fact,
-            type(rwd_fact),
-            self.cfg.alpha,
-            type(self.cfg.alpha),
-        )
-
+        r_d = (self.opt.difficulty_area - self.opt.desired_difficulty) * self.cfg.gamma
         reward = r_s + r_t + r_d
 
         return reward
-
-    def exp(self, base, exponent):
-        neg = base < 0.0
-        ans = abs(base) ** exponent
-        ans = ans * ((-1) ** neg)
-        return ans
 
     def reset(self) -> List:
         """Resets teacher state
