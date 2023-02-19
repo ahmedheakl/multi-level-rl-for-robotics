@@ -44,7 +44,6 @@ class GRUFeatureExtractor(BaseFeaturesExtractor):
         observations.clone().detach()
 
         # if robot level is reset, then re-initialize hidden tensor
-        print("observations = ", observations)
         if observations[0][0] == 0:
             self.init_hidden()
 
@@ -52,7 +51,6 @@ class GRUFeatureExtractor(BaseFeaturesExtractor):
         _, hidden = self.gru(embedded, self.hidden)
 
         # returns [1, 1, 16]
-        print("features shape = ", hidden.shape)
         return hidden
 
 

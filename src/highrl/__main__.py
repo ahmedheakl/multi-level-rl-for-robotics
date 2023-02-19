@@ -21,10 +21,12 @@ Version
 import os
 import argparse
 from time import time
+import logging
 from stable_baselines3.ppo.ppo import PPO
 from stable_baselines3.common.callbacks import CallbackList
+
 from highrl.policy.feature_extractors import GRUFeatureExtractor
-from highrl.policy.policy_networks import LinearActorCriticPolicy
+from highrl.policy.policy_networks import GRUActorCriticPolicy
 from highrl.utils.parser import parse_args, generate_agents_config, handle_output_dir
 from highrl.callbacks.teacher_callback import (
     TeacherLogCallback,
@@ -32,6 +34,10 @@ from highrl.callbacks.teacher_callback import (
     TeacherSaveModelCallback,
 )
 from highrl.envs.teacher_env import TeacherEnv
+from highrl.utils.logger import init_logger
+
+init_logger(debug=False)
+_LOG = logging.getLogger(__name__)
 
 
 def train_teacher(args: argparse.Namespace) -> None:
@@ -105,7 +111,7 @@ def train_teacher(args: argparse.Namespace) -> None:
         )
     else:
         model = PPO(
-            LinearActorCriticPolicy,
+            GRUActorCriticPolicy,
             teacher_env,
             verbose=1,
             policy_kwargs=policy_kwargs,
@@ -120,13 +126,14 @@ def train_teacher(args: argparse.Namespace) -> None:
 def main() -> None:
     """Main script implementation"""
     args = parse_args()
-    print(f">>> Start training {args.env_mode} ... ")
+    _LOG.info("Training %s", args.env_mode)
     os.environ["TRAIN_DEVICE"] = args.device_used
-    print("DEVICE:", os.environ["TRAIN_DEVICE"])
     if args.env_mode == "teacher":
         train_teacher(args)
     else:
-        raise NotImplementedError("robot training is not implemented")
+        err_message = "Robot training is not implemented"
+        _LOG.critical(err_message)
+        raise NotImplementedError(err_message)
 
 
 if __name__ == "__main__":

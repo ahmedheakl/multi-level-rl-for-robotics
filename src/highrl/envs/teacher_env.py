@@ -53,7 +53,7 @@ class TeacherEnv(Env):
             ValueError: raises error if the user entered a lidar mode other than flat or rings
         """
 
-        super(TeacherEnv, self).__init__()
+        super().__init__()
         self.action_space_names = [
             "robot_x",
             "robot_y",
@@ -61,7 +61,7 @@ class TeacherEnv(Env):
             "goal_y",
         ]
         self.action_space = spaces.Box(
-            low=0.01, high=0.99, shape=(8,), dtype=np.float32
+            low=0.01, high=0.99, shape=(16, 4), dtype=np.float32
         )
         # [time_steps, robot_level, robot_reward, difficulty_area, difficulty_obs]
         self.observation_space = spaces.Box(

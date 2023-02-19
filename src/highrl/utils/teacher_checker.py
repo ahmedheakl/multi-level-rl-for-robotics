@@ -9,7 +9,6 @@ from highrl.utils.calculations import (
 )
 from highrl.agents.robot import Robot
 
-
 INF = 921600  # w * h = 1280 * 720
 
 

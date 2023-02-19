@@ -1,5 +1,6 @@
 """Implementation for the policy networks"""
 from typing import Callable, Dict, List, Optional, Tuple, Type, Union
+import logging
 from dataclasses import dataclass
 from gym import spaces
 from torch import nn
@@ -7,6 +8,8 @@ import torch as th
 from stable_baselines3.common.policies import ActorCriticPolicy
 
 from highrl.utils.utils import get_device
+
+_LOG = logging.getLogger(__name__)
 
 
 class LinearPolicyNetwork(nn.Module):
@@ -74,7 +77,7 @@ class GRUDims:
         return self.max_big_obs + self.max_med_obs + self.max_small_obs
 
 
-class LSTMPolicyNetwork(nn.Module):
+class GRUPolicyNetwork(nn.Module):
     """Custom network for policy and value function.
     It receives as input the features extracted by the feature extractor.
     """
@@ -192,7 +195,8 @@ class LSTMPolicyNetwork(nn.Module):
         for target_index in range(2, target_length + 2):
             p_out, hidden, logits = self.decoder_policy(p_out, hidden)
             outputs[target_index] = self.softmax(logits[0])
-        print("outputs shape = ", outputs.shape)
+        output_str = f"Action shape: {outputs.shape}"
+        _LOG.debug(output_str)
         return outputs
 
     def forward_critic(self, features: th.Tensor) -> th.Tensor:
@@ -200,7 +204,7 @@ class LSTMPolicyNetwork(nn.Module):
         return self.value_net(features)
 
 
-class LinearActorCriticPolicy(ActorCriticPolicy):
+class GRUActorCriticPolicy(ActorCriticPolicy):
     """ActorCritic policy implementation using a linear model"""
 
     def __init__(
@@ -228,4 +232,4 @@ class LinearActorCriticPolicy(ActorCriticPolicy):
         self._build_mlp_extractor()
 
     def _build_mlp_extractor(self) -> None:
-        self.mlp_extractor = LSTMPolicyNetwork()
+        self.mlp_extractor = GRUPolicyNetwork()
