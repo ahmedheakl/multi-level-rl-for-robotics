@@ -156,7 +156,7 @@ class RobotEnv(Env):
         self.reward = 0
         self.episode_steps += 1
         self.total_steps += 1
-        print("\naction type", type(action))
+
         new_action = self._convert_action_to_ActionXY_format(action)
 
         old_distance_to_goal = point_to_point_distance(

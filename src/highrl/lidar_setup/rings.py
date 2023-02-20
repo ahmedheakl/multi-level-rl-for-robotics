@@ -1,6 +1,6 @@
 import numpy as np
 
-# from lidar2d_fast import fast_lidar_to_rings
+from lidar2d_fast import fast_lidar_to_rings
 
 
 def generate_rings(
