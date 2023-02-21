@@ -1,6 +1,7 @@
 """Difficulty computation implementation for the teacher"""
 from typing import Tuple, List, Union, Callable
 import numpy as np
+
 from highrl.obstacle.obstacles import Obstacles
 from highrl.utils.calculations import (
     cross_product_point_line,
@@ -29,11 +30,8 @@ def get_region_coordinates(
         Tuple[List[List[int]], List[Callable[[float], List[float]]]]: limiting coords & lines
     """
     robot_x, robot_y, goal_x, goal_y = robot_goal_coords
-    if (goal_x - robot_x) == 0:
-        slope = 99999.0
-    else:
-        slope = (goal_y - robot_y) / ((goal_x - robot_x))
-    intercept = (goal_x * robot_y - goal_y * robot_x) / ((goal_x - robot_x))
+    slope = (goal_y - robot_y) / max(goal_x - robot_x, 1e-3)
+    intercept = (goal_x * robot_y - goal_y * robot_x) / max(goal_x - robot_x, 1e-3)
     shift_amount = eps * harmonic_number
     if slope == 0:
         top_intercept = 99999.0
@@ -195,7 +193,7 @@ def convex_hull_compute(points: List[List[int]]) -> List[List[int]]:
         List[List[int]]: points defining convex hull polygen
     """
     points = sorted(points)
-    convex_polygen: List  = []
+    convex_polygen: List = []
     for _ in range(2):
         sz = len(convex_polygen)
         for p in points:

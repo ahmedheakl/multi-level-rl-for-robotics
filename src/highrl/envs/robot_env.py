@@ -4,44 +4,40 @@ from typing import List, Tuple
 import threading
 import time
 import argparse
-import configparser
+from configparser import RawConfigParser
 from os import path, mkdir
-import pandas as pd
 import numpy as np
-from CMap2D import render_contours_in_lidar
+from CMap2D import render_contours_in_lidar  # pylint: disable=no-name-in-module
 from gym import Env, spaces
 from gym.envs.classic_control import rendering
 import pyglet
 from pyglet import gl
 from pose2d import apply_tf_to_vel, inverse_pose2d, apply_tf_to_pose
-from highrl.configs.colors import (
-    white_color,
-    bgcolor,
-    obstcolor,
-    goalcolor,
-    goallinecolor,
-    nosecolor,
-    agentcolor,
-)
-from torch.utils.tensorboard import SummaryWriter
 
 from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.utils.action import ActionXY
 from highrl.utils.calculations import point_to_point_distance
 from highrl.agents.robot import Robot
 from highrl.obstacle.obstacles import Obstacles
+from highrl.utils.utils import Position, configure_robot
+from highrl.configs import colors
+from highrl.utils.robot_utils import RobotOpt
 
 
 class RobotEnv(Env):
     """Robot Environment Class used in training and testing"""
 
+    tensorboard_dir = "runs/robot"
+    rwrd_grph_name = "reward"
+    eps_rwrd_grph_name = "episode_reward"
+    action_space_names = ["ActionXY", "ActionRot"]
+
     def __init__(
         self,
-        config: configparser.RawConfigParser,
+        config: RawConfigParser,
         args: argparse.Namespace,
     ) -> None:
         super().__init__()
-        self.action_space_names = ["ActionXY", "ActionRot"]
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
         self.observation_space = spaces.Dict(
             {
@@ -57,94 +53,17 @@ class RobotEnv(Env):
         self.obstacles = Obstacles()
         self.robot = Robot()
         self.viewer = None
-        self.args = args
-        self.reward: float = 0
-        self.episodes = 1
-        self.episode_reward: float = 0
-        self.episode_steps: int = 0
-        self.total_reward: float = 0
-        self.total_steps: int = 0
-        self.success_flag: bool = False
-        self.num_successes: int = 0
-
-        self.done = False
-
-        self.robot_initial_px: int = 0
-        self.robot_initial_py: int = 0
-        self.robot_goal_px: int = 0
-        self.robot_goal_py: int = 0
-
-        self.is_initial_state = True
-        self.tensorboard_dir = "runs/robot"
-        self.rwrd_grph_name = "reward"
-        self.eps_rwrd_grph_name = "episode_reward"
         # Results of each episode
         # Contains [episode_reward, episode_steps, success_flag]
         self.results: List[Tuple[float, int, bool]] = []
 
-        self.lidar_scan: np.ndarray = np.array([])
-        self.lidar_angles: np.ndarray = np.array([])
+        self.done = False
 
-        self.contours: np.ndarray = np.array([])
-        self.flat_contours: np.ndarray = np.array([])
+        self.cfg = configure_robot(config, args.env_render_path)
+        self.opt = RobotOpt()
+        self.opt.set_tb_writer(self.tensorboard_dir)
 
-        self._configure(config=config)
-
-        self.episode_statistics = None
-        if self.collect_statistics:
-            self.episode_statistics = pd.DataFrame(
-                columns=[
-                    "total_steps",
-                    "episode_steps",
-                    "scenario",
-                    "damage",
-                    "goal_reached",
-                    "total_reward",
-                    "episode_reward",
-                    "reward",
-                    "wall_time",
-                ]
-            )
-        self.robot_writer = SummaryWriter(log_dir=self.tensorboard_dir)
-
-    def _configure(self, config: configparser.RawConfigParser) -> None:
-        """Configure environment variables using input config object
-
-        Args:
-            config (configparser.RawConfigParser): input config object
-        """
-        self.config = config
-
-        self.width = config.getint("dimensions", "width")
-        self.height = config.getint("dimensions", "height")
-        self.robot_radius = config.getint("dimensions", "robot_radius")
-        self.goal_radius = config.getint("dimensions", "goal_radius")
-
-        self.delta_t = config.getfloat("timesteps", "delta_t")
-        self.max_episode_steps = config.getint("timesteps", "max_episode_steps")
-
-        self.n_angles = config.getint("lidar", "n_angles")
-        self.lidar_angle_increment = config.getfloat("lidar", "lidar_angle_increment")
-        self.lidar_min_angle = config.getfloat("lidar", "lidar_min_angle")
-        self.lidar_max_angle = config.getfloat("lidar", "lidar_max_angle")
-
-        self.collision_score = config.getint("reward", "collision_score")
-        self.reached_goal_score = config.getint("reward", "reached_goal_score")
-        self.minimum_velocity = config.getfloat("reward", "minimum_velocity")
-        self.minimum_distance = config.getfloat("reward", "minimum_distance")
-        self.maximum_distance = config.getfloat("reward", "maximum_distance")
-        self.velocity_std = config.getfloat("reward", "velocity_std")
-        self.alpha = config.getfloat("reward", "alpha")
-        self.progress_discount = config.getfloat("reward", "progress_discount")
-
-        self.render_each = config.getint("render", "render_each")
-        self.save_to_file = config.getboolean("render", "save_to_file")
-
-        self.epsilon = config.getint("env", "epsilon")
-        self.collect_statistics = config.getboolean("statistics", "collect_statistics")
-        self.scenario = config.get("statistics", "scenario")
-
-    def step(self, action: List) -> Tuple:
+    def step(self, action: np.ndarray) -> Tuple:
         """Step into a new state using an action given by the robot model
 
         Args:
@@ -153,59 +72,65 @@ class RobotEnv(Env):
         Returns:
             Tuple : observation, reward, done, info
         """
-        self.reward = 0
-        self.episode_steps += 1
-        self.total_steps += 1
+        self.opt.reward = 0
+        self.opt.episode_steps += 1
+        self.opt.total_steps += 1
 
-        new_action = self._convert_action_to_ActionXY_format(action)
+        new_action = self._to_actionxy_format(action)
 
         old_distance_to_goal = point_to_point_distance(
             (self.robot.px, self.robot.py), (self.robot.gx, self.robot.gy)
         )
-        self.robot.step(new_action, self.delta_t)
+        self.robot.step(new_action, self.cfg.delta_t)
         new_distance_to_goal = point_to_point_distance(
             (self.robot.px, self.robot.py), (self.robot.gx, self.robot.gy)
         )
 
-        self.reward = (
+        self.opt.reward = (
             self.__get_reward()
-            + (old_distance_to_goal - new_distance_to_goal) * self.progress_discount
+            + (old_distance_to_goal - new_distance_to_goal) * self.cfg.progress_discount
         )
 
-        self.episode_reward += self.reward
-        self.robot_writer.add_scalar(
+        self.opt.episode_reward += self.opt.reward
+        self.opt.tb_writer.add_scalar(
             self.rwrd_grph_name,
-            self.reward,
-            self.total_steps,
+            self.opt.reward,
+            self.opt.total_steps,
         )
-        self.robot_writer.add_scalar(
+        self.opt.tb_writer.add_scalar(
             self.eps_rwrd_grph_name,
-            self.episode_reward,
-            self.total_steps,
+            self.opt.episode_reward,
+            self.opt.total_steps,
         )
 
-        if self.episode_steps % self.render_each == 0:
-            self.render(save_to_file=self.save_to_file)
+        if self.opt.episode_steps % self.cfg.render_each == 0:
+            self.render(save_to_file=self.cfg.save_to_file)
 
-        if self.collect_statistics:
-            self.episode_statistics.loc[len(self.episode_statistics)] = [  # type: ignore
-                self.total_steps,
-                self.episode_steps,
-                "robot_env_" + self.scenario,
-                100 if self.detect_collison() else 0,
-                self.robot.reached_destination(),
-                self.total_reward,
-                self.episode_reward,
-                self.reward,
-                time.time(),
-            ]
+        if self.cfg.collect_statistics:
+            self.opt.episode_statistics.append(
+                [
+                    self.opt.total_steps,
+                    self.opt.episode_steps,
+                    "robot_env_" + self.cfg.scenario,
+                    100 if self.detect_collison() else 0,
+                    self.robot.reached_destination(),
+                    self.opt.total_reward,
+                    self.opt.episode_reward,
+                    self.opt.reward,
+                    time.time(),
+                ]
+            )
         # log data
         if self.done:
-            self.num_successes += self.success_flag
-            result = (self.episode_reward, self.episode_steps, self.success_flag)
+            self.opt.num_successes += self.opt.success_flag
+            result = (
+                self.opt.episode_reward,
+                self.opt.episode_steps,
+                self.opt.success_flag,
+            )
             self.results.append(result)
 
-        return self._make_obs(), self.reward, self.done, {}
+        return self._make_obs(), self.opt.reward, self.done, {}
 
     def __get_reward(self) -> float:
         """Calculates current reward
@@ -216,50 +141,45 @@ class RobotEnv(Env):
         reward = 0.0
         if self.detect_collison():
             print("|--collision detected--|")
-            reward += self.collision_score
+            reward += self.cfg.collision_score
             self.done = True
-            self.success_flag = False
+            self.opt.success_flag = False
             return reward
 
         if self.robot.reached_destination():
-            reward += self.reached_goal_score
+            reward += self.cfg.reached_goal_score
             self.done = True
-            self.success_flag = True
+            self.opt.success_flag = True
             return reward
 
-        if self.episode_steps >= self.max_episode_steps:
+        if self.opt.episode_steps >= self.cfg.max_episode_steps:
             self.done = True
-            self.success_flag = False
-            self.episodes += 1
+            self.opt.success_flag = False
+            self.opt.episodes += 1
 
         return reward
 
-    def set_robot_position(self, px: int, py: int, gx: int, gy: int) -> None:
+    def set_robot_position(self, robot_pos: Position, goal_pos: Position) -> None:
         """Initializes robot and goal positions
         Should be called from ``teacher``
 
         Args:
-            px (float): x_position of robot
-            py (float): y_position of robot
-            gx (float): x_position of goal
-            py (float): y_position of goal
+            robot_pos (Position): Position of the robot
+            goal_pos (Position): Position of the goal
         """
-        self.robot_initial_px = px
-        self.robot_initial_py = py
-        self.robot_goal_px = gx
-        self.robot_goal_py = gy
-        # TODO: change arguement types for both functions below
-        self.robot.set_position((px, py))
-        self.robot.set_goal_position((gx, gy))
+        self.opt.robot_init_pos = robot_pos
+        self.opt.goal_init_pos = goal_pos
+        self.robot.set_position(robot_pos)
+        self.robot.set_goal_position(goal_pos)
 
     def add_boarder_obstacles(self) -> None:
         """Creates border obstacles to limit the allowable navigation area"""
         # fmt: off
         self.obstacles = Obstacles([
-                SingleObstacle(-self.epsilon, 0, self.epsilon, self.height),  # left obstacle
-                SingleObstacle(0, -self.epsilon, self.width, self.epsilon),  # bottom obstacle
-                SingleObstacle(self.width, 0, self.epsilon, self.height),  # right obstacle
-                SingleObstacle(0, self.height, self.width, self.epsilon),  # top obstacle
+                SingleObstacle(-self.cfg.epsilon, 0, self.cfg.epsilon, self.cfg.height),  # left obstacle
+                SingleObstacle(0, -self.cfg.epsilon, self.cfg.width, self.cfg.epsilon),  # bottom obstacle
+                SingleObstacle(self.cfg.width, 0, self.cfg.epsilon, self.cfg.height),  # right obstacle
+                SingleObstacle(0, self.cfg.height, self.cfg.width, self.cfg.epsilon),  # top obstacle
         ])
 
     def _make_obs(self) -> dict:
@@ -270,19 +190,20 @@ class RobotEnv(Env):
         """
         robot = self.robot
         lidar_pos = np.array([robot.px, robot.py, robot.theta], dtype=np.float32)
-        ranges = np.ones((self.n_angles,), dtype=np.float32) * 25.0
+        ranges = np.ones((self.cfg.n_angles,), dtype=np.float32)
+        ranges.fill(25.0)
         angles = (
             np.linspace(
-                self.lidar_min_angle,
-                self.lidar_max_angle - self.lidar_angle_increment,
-                self.n_angles,
+                self.cfg.lidar_min_angle,
+                self.cfg.lidar_max_angle - self.cfg.lidar_angle_increment,
+                self.cfg.n_angles,
             )
             + lidar_pos[2]
         )
-        render_contours_in_lidar(ranges, angles, self.flat_contours, lidar_pos[:2])
+        render_contours_in_lidar(ranges, angles, self.opt.flat_contours, lidar_pos[:2])
 
-        self.lidar_scan = ranges
-        self.lidar_angles = angles
+        self.opt.lidar_scan = ranges
+        self.opt.lidar_angles = angles
 
         baselink_in_world = np.array([robot.px, robot.py, robot.theta])
         world_in_baselink = inverse_pose2d(baselink_in_world)
@@ -292,10 +213,14 @@ class RobotEnv(Env):
         goal_in_baselink = apply_tf_to_pose(goal_in_world, world_in_baselink)
         robotstate_obs = np.hstack([goal_in_baselink[:2], robotvel_in_baselink])
 
-        return {"lidar": self.lidar_scan, "robot": robotstate_obs}
+        return {"lidar": self.opt.lidar_scan, "robot": robotstate_obs}
 
     def render(
-        self, close: bool = False, save_to_file: bool = False, show_score: bool = True
+        self,
+        mode="human",
+        close: bool = False,
+        save_to_file: bool = False,
+        show_score: bool = True,
     ) -> bool:
         """Renders robot and obstacles on an openGL window using gym viewer
 
@@ -314,7 +239,7 @@ class RobotEnv(Env):
 
         # Create viewer
         if self.viewer is None:
-            self.viewer = rendering.Viewer(self.width, self.height)
+            self.viewer = rendering.Viewer(self.cfg.width, self.cfg.height)
             self.transform = rendering.Transform()
             self.transform.set_scale(10, 10)
             self.transform.set_translation(128, 128)
@@ -322,29 +247,29 @@ class RobotEnv(Env):
                 "0000",
                 font_size=12,
                 x=20,
-                y=int(self.height * 2.5 / 40.00),
+                y=int(self.cfg.height * 2.5 / 40.00),
                 anchor_x="left",
                 anchor_y="center",
-                color=white_color,
+                color=colors.white_color,
             )
             self.iteration_label = pyglet.text.Label(
                 "0000",
                 font_size=12,
                 x=20,
-                y=int((self.height * 1.6) // 40.00),
+                y=int((self.cfg.height * 1.6) // 40.00),
                 anchor_x="left",
                 anchor_y="center",
-                color=white_color,
+                color=colors.white_color,
             )
             self.transform = rendering.Transform()
             self.image_lock = threading.Lock()
 
-        def make_circle(c, r, res=10):
+        def make_circle(coords: Tuple[int, int], radius: int, res=10) -> np.ndarray:
             """Create circle points
 
             Args:
-                c (list): center of the circle
-                r (float): radius of the circle
+                coords (list): center of the circle
+                radius (float): radius of the circle
                 res (int, optional): resolution of points. Defaults to 10.
 
             Returns:
@@ -352,8 +277,8 @@ class RobotEnv(Env):
             """
             thetas = np.linspace(0, 2 * np.pi, res + 1)[:-1]
             verts = np.zeros((res, 2))
-            verts[:, 0] = c[0] + r * np.cos(thetas)
-            verts[:, 1] = c[1] + r * np.sin(thetas)
+            verts[:, 0] = coords[0] + radius * np.cos(thetas)
+            verts[:, 1] = coords[1] + radius * np.sin(thetas)
             return verts
 
         with self.image_lock:
@@ -362,55 +287,53 @@ class RobotEnv(Env):
             win.switch_to()
             win.dispatch_events()
             win.clear()
-            gl.glViewport(0, 0, self.width, self.height)
+            gl.glViewport(0, 0, self.cfg.width, self.cfg.height)
             # Green background
             gl.glBegin(gl.GL_QUADS)
-            gl.glColor4f(bgcolor[0], bgcolor[1], bgcolor[2], 1.0)
-            gl.glVertex3f(0, self.height, 0)
-            gl.glVertex3f(self.width, self.height, 0)
-            gl.glVertex3f(self.width, 0, 0)
+            gl.glColor4f(*colors.bgcolor, 1.0)
+            gl.glVertex3f(0, self.cfg.height, 0)
+            gl.glVertex3f(self.cfg.width, self.cfg.height, 0)
+            gl.glVertex3f(self.cfg.width, 0, 0)
             gl.glVertex3f(0, 0, 0)
             gl.glEnd()
             # Transform
-            rx = self.robot.px
-            ry = self.robot.py
-            rt = self.robot.theta
+            rob_x = self.robot.px
+            rob_y = self.robot.py
             self.transform.enable()  # applies T_sim_in_viewport to below coords (all in sim frame)
             # Map closed obstacles ---
-            self.obstacle_vertices = self.contours
+            self.obstacle_vertices = self.opt.contours
             for poly in self.obstacle_vertices:
                 gl.glBegin(gl.GL_LINE_LOOP)
-                gl.glColor4f(obstcolor[0], obstcolor[1], obstcolor[2], 1)
+                gl.glColor4f(*colors.obstcolor, 1)
                 for vert in poly:
                     gl.glVertex3f(vert[0], vert[1], 0)
                 gl.glEnd()
-            # TODO: show lidar
             # Agent body
-            for n, agent in enumerate([self.robot]):
-                px = agent.px
-                py = agent.py
+            for idx, agent in enumerate([self.robot]):
+                agent_x = agent.px
+                agent_y = agent.py
                 angle = self.robot.fix(agent.theta + np.pi / 2, 2 * np.pi)
-                r = agent.radius
+                agent_r = agent.radius
                 # Agent as Circle
-                poly = make_circle((px, py), r)
+                poly = make_circle((agent_x, agent_y), agent_r)
                 gl.glBegin(gl.GL_POLYGON)
-                if n == 0:
+                if idx == 0:
                     color = np.array([1.0, 1.0, 1.0])
                 else:
-                    color = agentcolor
-                gl.glColor4f(color[0], color[1], color[2], 1)
+                    color = colors.agentcolor
+                gl.glColor4f(*color, 1)
                 for vert in poly:
                     gl.glVertex3f(vert[0], vert[1], 0)
                 gl.glEnd()
                 # Direction triangle
-                xnose = px + r * np.cos(angle)
-                ynose = py + r * np.sin(angle)
-                xright = px + 0.3 * r * -np.sin(angle)
-                yright = py + 0.3 * r * np.cos(angle)
-                xleft = px - 0.3 * r * -np.sin(angle)
-                yleft = py - 0.3 * r * np.cos(angle)
+                xnose = agent_x + agent_r * np.cos(angle)
+                ynose = agent_y + agent_r * np.sin(angle)
+                xright = agent_x + 0.3 * agent_r * -np.sin(angle)
+                yright = agent_y + 0.3 * agent_r * np.cos(angle)
+                xleft = agent_x - 0.3 * agent_r * -np.sin(angle)
+                yleft = agent_y - 0.3 * agent_r * np.cos(angle)
                 gl.glBegin(gl.GL_TRIANGLES)
-                gl.glColor4f(nosecolor[0], nosecolor[1], nosecolor[2], 1)
+                gl.glColor4f(*colors.nosecolor, 1)
                 gl.glVertex3f(xnose, ynose, 0)
                 gl.glVertex3f(xright, yright, 0)
                 gl.glVertex3f(xleft, yleft, 0)
@@ -418,19 +341,18 @@ class RobotEnv(Env):
             # Goal
             xgoal = self.robot.gx
             ygoal = self.robot.gy
-            r = self.robot.goal_radius
-
+            rgoal = self.robot.goal_radius
             # Goal markers
             gl.glBegin(gl.GL_POLYGON)
-            gl.glColor4f(goalcolor[0], goalcolor[1], goalcolor[2], 1)
-            triangle = make_circle((xgoal, ygoal), r)
+            gl.glColor4f(*colors.goalcolor, 1)
+            triangle = make_circle((xgoal, ygoal), rgoal)
             for vert in triangle:
                 gl.glVertex3f(vert[0], vert[1], 0)
             gl.glEnd()
             # Goal line
             gl.glBegin(gl.GL_LINE_LOOP)
-            gl.glColor4f(goallinecolor[0], goallinecolor[1], goallinecolor[2], 1)
-            gl.glVertex3f(rx, ry, 0)
+            gl.glColor4f(*colors.goallinecolor, 1)
+            gl.glVertex3f(rob_x, rob_y, 0)
             gl.glVertex3f(xgoal, ygoal, 0)
             gl.glEnd()
             # --
@@ -438,18 +360,18 @@ class RobotEnv(Env):
 
             self.score_label.text = ""
             if show_score:
-                self.score_label.text = "R {:0.4f}".format(self.reward)
-                self.iteration_label.text = "iter {}".format(self.episode_steps)
+                self.score_label.text = f"R {self.opt.reward:0.4f}"
+                self.iteration_label.text = "Iter {self.episode_steps}"
             self.score_label.draw()
             self.iteration_label.draw()
             win.flip()
             if save_to_file:
-                save_folder = path.join(self.args.env_render_path, f"{self.episodes}")
+                save_folder = path.join(
+                    self.cfg.env_render_path, f"{self.opt.episodes}"
+                )
                 if not path.isdir(save_folder):
                     mkdir(save_folder)
-                save_path = path.join(
-                    save_folder, "{:08}.png".format(self.episode_steps)
-                )
+                save_path = path.join(save_folder, f"{self.opt.episode_steps:08}.png")
                 pyglet.image.get_buffer_manager().get_color_buffer().save(save_path)
             return self.viewer.isopen
 
@@ -464,15 +386,8 @@ class RobotEnv(Env):
             collision_flag |= self.robot.is_overlapped(obstacle=obstacle)
         return collision_flag
 
-    def _convert_action_to_ActionXY_format(self, action: List) -> ActionXY:
-        """Converts action array into action object
-
-        Args:
-            action (List): list of velocities representing the robot action
-
-        Returns:
-            ActionXY: same action but given in object format
-        """
+    def _to_actionxy_format(self, action: np.ndarray) -> ActionXY:
+        """Converts action array into action `ActionXY` object"""
         return ActionXY(action[0], action[1], 0)
 
     def reset(self) -> dict:
@@ -481,20 +396,23 @@ class RobotEnv(Env):
         Returns:
             dict: observation of the current environment state
         """
-        if self.done or self.is_initial_state:
+        if self.done or self.opt.is_initial_state:
             print("reseting robot env ...")
-            self.robot.set_position((self.robot_initial_px, self.robot_initial_py))
-            self.robot.set_goal_position((self.robot_goal_px, self.robot_goal_py))
-            self.total_reward += self.episode_reward
-            if self.is_initial_state:
+            self.robot.set_position(self.opt.robot_init_pos)
+            self.robot.set_goal_position(self.opt.goal_init_pos)
+            self.opt.total_reward += self.opt.episode_reward
+            if self.opt.is_initial_state:
                 self.results = []
-                self.total_reward = 0
-                self.total_steps = 0
+                self.opt.total_reward = 0
+                self.opt.total_steps = 0
 
-            self.success_flag = False
-            self.is_initial_state = False
-            self.episode_steps = 0
+            self.opt.success_flag = False
+            self.opt.is_initial_state = False
+            self.opt.episode_steps = 0
             self.done = False
-            self.episode_reward = 0
-            self.flat_contours, self.contours = self.obstacles.get_flatten_contours()
+            self.opt.episode_reward = 0
+            (
+                self.opt.flat_contours,
+                self.opt.contours,
+            ) = self.obstacles.get_flatten_contours()
         return self._make_obs()

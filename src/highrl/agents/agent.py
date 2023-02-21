@@ -6,6 +6,7 @@ from numpy.linalg import norm
 from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.utils.action import ActionXY
 from highrl.utils.calculations import point_to_point_distance
+from highrl.utils.utils import Position
 
 
 class Agent:
@@ -116,21 +117,23 @@ class Agent:
         """
         return self.px, self.py
 
-    def set_position(self, position: Tuple[int, int]) -> None:
+    def set_position(self, position: Position) -> None:
         """Sets agent position.
 
         Args:
             position (Tuple[int, int]): (agent x position, agent y position)
         """
-        self.px, self.py = position
+        self.px = position.x_pos
+        self.py = position.y_pos
 
-    def set_goal_position(self, position: Tuple[int, int]) -> None:
+    def set_goal_position(self, position: Position) -> None:
         """Sets goal position.
 
         Args:
             position (Tuple[int, int]): (goal x position, goal y position)
         """
-        self.gx, self.gy = position
+        self.gx = position.x_pos
+        self.gy = position.y_pos
 
     def get_goal_position(self) -> Tuple[int, int]:
         """Gets the goal postion.

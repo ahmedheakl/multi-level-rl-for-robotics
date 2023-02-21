@@ -1,8 +1,8 @@
 """Configurations for training and inference"""
 robot_config_str = """
 [dimensions]
-width = 1280
-height = 720
+width = 256
+height = 256
 robot_radius = 20
 goal_radius = 10
 
@@ -30,7 +30,7 @@ alpha = 0.4
 progress_discount = 0.4
 
 [render]
-render_each = 1
+render_each = 500
 save_to_file = False
 
 [env]
@@ -88,8 +88,8 @@ max_sessions = 100
 # ---------------------EVALUATIONS CONFIGURATIONS-----------------#
 eval_config_str = """
 [dimensions]
-width = 1080
-height = 720
+width = 256
+height = 256
 robot_radius = 20
 goal_radius = 10
 
