@@ -79,7 +79,7 @@ def get_region_coordinates(
     return points, lines
 
 
-def check_if_point_inside_polygen(p: List[int], coords: List[List[float]]) -> bool:
+def check_if_point_inside_polygen(point: List[int], coords: List[List[int]]) -> bool:
     """Check if the input point is inside input polygen
 
     Args:
@@ -96,14 +96,14 @@ def check_if_point_inside_polygen(p: List[int], coords: List[List[float]]) -> bo
         "right": [coords[2], coords[1]],
     }
     # [top, bot, left, right]
-    dirs = [cross_product_point_line(p, *line) for line in lines_coords.values()]
+    dirs = [cross_product_point_line(point, *line) for line in lines_coords.values()]
     eps = 1e-5
     vertical_check = (dirs[0] * dirs[1]) <= eps
     horizontal_check = (dirs[2] * dirs[3]) <= eps
     return vertical_check and horizontal_check
 
 
-def check_valid_point(p: List[int], width: int, height: int) -> bool:
+def check_valid_point(point: List[int], width: int, height: int) -> bool:
     """check if input point is within input constraints
 
     Args:
@@ -114,12 +114,12 @@ def check_valid_point(p: List[int], width: int, height: int) -> bool:
     Returns:
         bool: flag whether point satisfies constraints
     """
-    return p[0] >= 0 and p[1] >= 0 and p[0] <= width and p[1] <= height
+    return point[0] >= 0 and point[1] >= 0 and point[0] <= width and point[1] <= height
 
 
 def check_valid_path_existance(
     obstacles: Obstacles,
-    coords: List[List[float]],
+    coords: List[List[int]],
     width: int,
     height: int,
     robot_pos: List[int],
