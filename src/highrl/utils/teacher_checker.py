@@ -1,5 +1,5 @@
 """Difficulty computation implementation for the teacher"""
-from typing import Tuple, List, Union, Callable
+from typing import Tuple, List, Union
 import numpy as np
 
 from highrl.obstacle.obstacles import Obstacles
@@ -11,51 +11,53 @@ from highrl.utils.calculations import (
 from highrl.agents.robot import Robot
 
 
-INF = 921600  # w * h = 1280 * 720
+INF = 256 * 256  # w * h
 
 
 def get_region_coordinates(
     harmonic_number: int,
     eps: int,
-    robot_goal_coords: List[Union[int, float]],
-) -> Tuple[List[List[float]], List[Callable[[float], List[float]]]]:
+    robot_goal_coords: List[int],
+) -> List[List[int]]:
     """Calculates the boundaries for the current harmonic
 
     Args:
         harmonic_number (int): index of the desired harmonic
         eps (int): translation factor
-        robot_goal_coords (List[Union[int, float]]): robot & goal coords [px, py, gx, py]
+        robot_goal_coords (List[int]): robot & goal coords [px, py, gx, py]
 
     Returns:
-        Tuple[List[List[int]], List[Callable[[float], List[float]]]]: limiting coords & lines
+        List[List[int]]: limiting coords & lines
     """
+    # Get the line coordinates connecting the goal and the robot
     robot_x, robot_y, goal_x, goal_y = robot_goal_coords
     slope = (goal_y - robot_y) / max(goal_x - robot_x, 1e-3)
     intercept = (goal_x * robot_y - goal_y * robot_x) / max(goal_x - robot_x, 1e-3)
+
     shift_amount = eps * harmonic_number
-    if slope == 0:
-        top_intercept = 99999.0
-        bottom_intercept = 99999.0
-    else:
-        top_intercept = (slope * goal_y + goal_x) / (slope)
-        bottom_intercept = (slope * robot_y + robot_x) / (slope)
 
-    def left_line(x_coords: float) -> List[float]:
-        return [x_coords, slope * x_coords + (intercept + shift_amount)]
+    # Top and bottom line intercepts with the y-axis
+    top_intercept = (slope * goal_y + goal_x) / max(slope, 1e-4)
+    bottom_intercept = (slope * robot_y + robot_x) / max(slope, 1e-4)
 
-    def right_line(x_coords: float) -> List[float]:
-        return [x_coords, slope * x_coords + (intercept - shift_amount)]
+    def left_line(x_coords: float) -> List[int]:
+        return list(map(int, [x_coords, slope * x_coords + (intercept + shift_amount)]))
 
-    def bottom_line(x_coords: float) -> List[float]:
-        return [x_coords, -1 / slope * x_coords + bottom_intercept]
+    def right_line(x_coords: float) -> List[int]:
+        return list(map(int, [x_coords, slope * x_coords + (intercept - shift_amount)]))
 
-    def top_line(x_coords: float) -> List[float]:
-        return [x_coords, -1 / slope * x_coords + top_intercept]
-
+    # Coordinates of the points and lines (top_line, bottom ... etc)
+    # Left Line: <p1, p3>
+    # Right Line: <p2, p3>
+    # Top Line: <p1, p2>
+    # Bottom Line: <p3, p4>
     # p1-----p2
     # |       |
     # |       |
     # p3-----p4
+
+    # Scale factor is just a part of the equations to calculate the coordinates
+    # of the x-axis
     scale_factor = slope / (slope**2 + 1)
     top_left_x: float = scale_factor * (top_intercept - (intercept + shift_amount))
     top_right_x: float = scale_factor * (top_intercept - (intercept - shift_amount))
@@ -66,20 +68,16 @@ def get_region_coordinates(
         bottom_intercept - (intercept + shift_amount)
     )
     x_coords = [top_left_x, top_right_x, botton_left_x, botton_right_x]
+
+    # Compute point coordinates for defining the rectangle drawn above
     points = [
         right_line(x_coords[i]) if ((i & 1) ^ (i >> 1)) else left_line(x_coords[i])
         for i in range(4)
     ]
-    lines: List[Callable[[float], List[float]]] = [
-        left_line,
-        top_line,
-        right_line,
-        bottom_line,
-    ]
-    return points, lines
+    return points
 
 
-def check_if_point_inside_polygen(p: List[int], coords: List[List[float]]) -> bool:
+def check_if_point_inside_polygen(point: List[int], coords: List[List[int]]) -> bool:
     """Check if the input point is inside input polygen
 
     Args:
@@ -96,30 +94,94 @@ def check_if_point_inside_polygen(p: List[int], coords: List[List[float]]) -> bo
         "right": [coords[2], coords[1]],
     }
     # [top, bot, left, right]
-    dirs = [cross_product_point_line(p, *line) for line in lines_coords.values()]
+    dirs = [cross_product_point_line(point, *line) for line in lines_coords.values()]
     eps = 1e-5
     vertical_check = (dirs[0] * dirs[1]) <= eps
     horizontal_check = (dirs[2] * dirs[3]) <= eps
     return vertical_check and horizontal_check
 
 
-def check_valid_point(p: List[int], width: int, height: int) -> bool:
+def check_valid_point(point: np.ndarray, env_size: int) -> bool:
     """check if input point is within input constraints
 
+    Note that that environment width and height are supposed to
+    be equal.
+
     Args:
-        p (List[int]): input point coordinates
-        width (int): width constraint
-        height (int): height constraint
+        p (np.ndarray): Input point coordinates
+        env_size (int): Environment size
 
     Returns:
         bool: flag whether point satisfies constraints
     """
-    return p[0] >= 0 and p[1] >= 0 and p[0] <= width and p[1] <= height
+    return (point < env_size).all() and (point >= 0).all()
+
+
+def if_there_is_a_path(
+    obstacles: Obstacles,
+    width: int,
+    height: int,
+    robot_pos: List[int],
+    goal_pos: List[int],
+) -> bool:
+    """Check if the generated env from the teacher has a valid path"""
+    delta_x = [-1, -1, -1, 0, 0, 1, 1, 1]
+    delta_y = [-1, 0, 1, -1, 1, -1, 0, 1]
+    num_dirs = 8
+    # initialization
+    rob_x, rob_y = robot_pos
+    goal_x, goal_y = goal_pos
+
+    # Intializing empty map
+    # "." represents an empty space in the map
+    env_map = []
+    for _ in range(width + 1):
+        current = []
+        for _ in range(height + 1):
+            current.append(".")
+        env_map.append(current)
+
+    # Filling obstacles spaces with "X" as means
+    # of representing occupancy in the map
+    for _, obstacle in enumerate(obstacles):
+        points = obstacle.get_grid_points()
+        for point in points:
+            x_pos, y_pos = point
+            if check_valid_point(point, width):
+                env_map[x_pos][y_pos] = "X"
+    # Breadth first search till you either find the
+    # goal or you stop (aka. no valid in this map)
+    # Intializing the queue with the robot position
+    queue = [[rob_x, rob_y]]
+    env_map[rob_x][rob_y] = "X"
+
+    # Loop till you are out of non-visited points
+    while len(queue) > 0:
+        x_pos, y_pos = queue.pop(0)
+
+        # If goal is found, STOP
+        if x_pos == goal_x and y_pos == goal_y:
+            return True
+
+        # Loop over all directions
+        for idx in range(num_dirs):
+            new_x = x_pos + delta_x[idx]
+            new_y = y_pos + delta_y[idx]
+            gen_point = np.array([new_x, new_y], dtype=np.int16)
+            if check_valid_point(gen_point, width) and env_map[new_x][new_y] == ".":
+                # If the new point is inside the rectangle (between robot and goal),
+                # it's within the boundaries of the env, and it's not occupied, add it
+                # to the list of points to be explored.
+                env_map[new_x][new_y] = "X"
+                queue.append([new_x, new_y])
+
+    # If we reach here, the goal has not been reached
+    return False
 
 
 def check_valid_path_existance(
     obstacles: Obstacles,
-    coords: List[List[float]],
+    coords: List[List[int]],
     width: int,
     height: int,
     robot_pos: List[int],
@@ -129,57 +191,75 @@ def check_valid_path_existance(
     """Check if there is a valid path in the input segment
 
     Args:
-        obstacles (Obstacles): obstacles object
-        coords (List[List[int]]): coordinates defining the segment
-        width (int): width of the env
-        height (int): height of the env
-        robot_pos (List[int]): robot position
-        goal_pos (List[int]): goal position
-        omit_first_four (bool): whether to ignore the first four obstacles which usually represent the boarder of the env
+        obstacles (Obstacles): Obstacles object
+        coords (List[List[int]]): Coordinates defining the segment
+        width (int): Width of the env
+        height (int): Height of the env
+        robot_pos (List[int]): Robot position
+        goal_pos (List[int]): Goal position
+        omit_first_four (bool): Whether to ignore the first four obstacles which usually
+        represent the boarder of the env
 
     Returns:
         bool: flag whether there exists a path
     """
-    dx = [-1, -1, -1, 0, 0, 1, 1, 1]
-    dy = [-1, 0, 1, -1, 1, -1, 0, 1]
+    delta_x = [-1, -1, -1, 0, 0, 1, 1, 1]
+    delta_y = [-1, 0, 1, -1, 1, -1, 0, 1]
     num_dirs = 8
     # initialization
-    px, py = robot_pos
-    gx, gy = goal_pos
+    rob_x, rob_y = robot_pos
+    goal_x, goal_y = goal_pos
+
+    # Intializing empty map
+    # "." represents an empty space in the map
     env_map = []
-    for x in range(width + 1):
+    for _ in range(width + 1):
         current = []
-        for y in range(height + 1):
+        for _ in range(height + 1):
             current.append(".")
         env_map.append(current)
 
+    # Filling obstacles spaces with "X" as means
+    # of representing occupancy in the map
     for i, obstacle in enumerate(obstacles):
         if omit_first_four and i < 4:
             continue
         points = obstacle.get_grid_points()
-        for p in points:
-            if check_if_point_inside_polygen(p, coords):
-                x, y = p
-                env_map[x][y] = "X"
-    # bfs
-    queue = [[px, py]]
+        for point in points:
+            if check_if_point_inside_polygen(point, coords):
+                x_pos, y_pos = point
+                env_map[x_pos][y_pos] = "X"
+    # Breadth first search till you either find the
+    # goal or you stop (aka. no valid in this map)
+    # Intializing the queue with the robot position
+    queue = [[rob_x, rob_y]]
+    env_map[rob_x][rob_y] = "X"
+
+    # Loop till you are out of non-visited points
     while len(queue) > 0:
-        x, y = queue.pop(0)
-        env_map[x][y] = "X"
-        if x == gx and y == gy:
+        x_pos, y_pos = queue.pop(0)
+
+        # If goal is found, STOP
+        if x_pos == goal_x and y_pos == goal_y:
             return True
-        for k in range(num_dirs):
-            nx = x + dx[k]
-            ny = y + dy[k]
-            gen_point = [nx, ny]
-            gen_point = np.array(gen_point, dtype=np.float32).tolist()
+
+        # Loop over all directions
+        for idx in range(num_dirs):
+            new_x = x_pos + delta_x[idx]
+            new_y = y_pos + delta_y[idx]
+            gen_point = np.array([new_x, new_y], dtype=np.int16)
             if (
                 check_if_point_inside_polygen(gen_point, coords)
-                and check_valid_point(gen_point, width, height)
-                and env_map[nx][ny] == "."
+                and check_valid_point(gen_point, width)
+                and env_map[new_x][new_y] == "."
             ):
-                env_map[nx][ny] = "X"
-                queue.append([nx, ny])
+                # If the new point is inside the rectangle (between robot and goal),
+                # it's within the boundaries of the env, and it's not occupied, add it
+                # to the list of points to be explored.
+                env_map[new_x][new_y] = "X"
+                queue.append([new_x, new_y])
+
+    # If we reach here, the goal has not been reached
     return False
 
 
@@ -195,14 +275,15 @@ def convex_hull_compute(points: List[List[int]]) -> List[List[int]]:
     points = sorted(points)
     convex_polygen: List = []
     for _ in range(2):
-        sz = len(convex_polygen)
-        for p in points:
-            while len(convex_polygen) >= sz + 2:
-                s, f = convex_polygen[-2:]
-                if cross_product_triangle(p, f, s) <= 0:
+        num_points = len(convex_polygen)
+        for point in points:
+            while len(convex_polygen) >= num_points + 2:
+                second_point = convex_polygen[-2]
+                first_point = convex_polygen[-1]
+                if cross_product_triangle(point, first_point, second_point) <= 0:
                     break
                 convex_polygen.pop(-1)
-            convex_polygen.append(p)
+            convex_polygen.append(point)
         convex_polygen.pop(-1)
         points.reverse()
     return convex_polygen
@@ -212,10 +293,10 @@ def get_area_of_convex_polygen(points: List[List[int]]) -> float:
     """Compute the area of a polygen using its points
 
     Args:
-        points (List[List[int]]): input points for the polygen
+        points (List[List[int]]): Input points for the polygen
 
     Returns:
-        float: area of input polygen
+        float: Area of input polygen
     """
     assert len(points), "Empty points list"
     num = len(points)
@@ -224,12 +305,14 @@ def get_area_of_convex_polygen(points: List[List[int]]) -> float:
     area = 0
     for i in range(num):
         area += np.cross(array_points[i], array_points[i + 1])
-    area = abs(area)
-    return area
+    return abs(area)
 
 
 def convex_hull_difficulty(
-    obstacles: Obstacles, robot: Robot, width: int, height: int
+    obstacles: Obstacles,
+    robot: Robot,
+    width: int,
+    height: int,
 ) -> Tuple[float, int]:
     """Calculate env complexity using convex_hull algorithm
 
@@ -244,10 +327,19 @@ def convex_hull_difficulty(
     """
     px, py = robot.get_position()
     gx, gy = robot.get_goal_position()
-    eps = 5
+    eps = 1
+    if if_there_is_a_path(
+        obstacles,
+        width,
+        height,
+        robot.get_position(),
+        robot.get_goal_position(),
+    ):
+        return INF, max(0, len(obstacles.obstacles_list) - 4)
+    # Harmonic represents the number of expansions
     harmonic = 1
     while True:
-        coords, _ = get_region_coordinates(harmonic, eps, [px, py, gx, gy])
+        coords = get_region_coordinates(harmonic, eps, [px, py, gx, gy])
         if check_valid_path_existance(
             obstacles, coords, width, height, [px, py], [gx, gy]
         ):
@@ -269,6 +361,9 @@ def convex_hull_difficulty(
         max_x, max_y = np.max(np.array(coords), axis=0)
         min_x, min_y = np.min(np.array(coords), axis=0)
         harmonic += 1
+        print(max_x, max_y, min_x, min_y, harmonic)
+        if max_x <= 0 or max_y <= 0:
+            break
         if max_x >= width and max_y >= height and min_x <= 0 and min_y <= 0:
             break
     return INF, max(0, len(obstacles.obstacles_list) - 4)
