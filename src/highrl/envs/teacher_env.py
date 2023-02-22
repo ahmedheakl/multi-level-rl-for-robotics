@@ -9,7 +9,7 @@ import numpy as np
 from prettytable import PrettyTable
 
 from highrl.envs import env_encoders as env_enc
-from highrl.utils.utils import configure_teacher
+from highrl.utils.general import configure_teacher
 from highrl.utils import training_utils as train_utils
 from highrl.utils import teacher_utils as teach_utils
 
@@ -19,7 +19,7 @@ _LOG = logging.getLogger(__name__)
 class TeacherEnv(Env):
     """Environment for training the teacher agent"""
 
-    infinite_difficulty: int = 256 * 256  # w * h
+    infinite_difficulty: int = 1080 * 720  # w * h
     tensorboard_dir: str = "runs/teacher"
     rob_avg_rwrd_grph_name: str = "robot_avg_reward"
     rob_avg_eps_steps_grph_name: str = "robot_avg_episode_steps"

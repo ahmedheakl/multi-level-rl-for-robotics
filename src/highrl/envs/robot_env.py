@@ -20,7 +20,7 @@ from highrl.utils.action import ActionXY
 from highrl.utils.calculations import point_to_point_distance
 from highrl.agents.robot import Robot
 from highrl.obstacle.obstacles import Obstacles
-from highrl.utils.utils import Position, configure_robot
+from highrl.utils.general import Position, configure_robot
 from highrl.configs import colors
 from highrl.utils.robot_utils import RobotOpt
 
