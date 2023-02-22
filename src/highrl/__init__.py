@@ -1,5 +1,3 @@
-"""Setting up pre-call methods and library version"""
-import os
+# Version of highrl package
+__version__ = "0.2.1"
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Shutting up tensorflow warnings
-__version__ = "1.0.0"
