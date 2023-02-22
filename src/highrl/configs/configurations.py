@@ -3,8 +3,8 @@ robot_config_str = """
 [dimensions]
 width = 256
 height = 256
-robot_radius = 20
-goal_radius = 10
+robot_radius = 5
+goal_radius = 2
 
 [timesteps]
 delta_t = 0.2
@@ -62,12 +62,12 @@ advance_probability = 0.9
 max_hard_obstacles_count = 2
 max_medium_obstacles_count = 5
 max_small_obstacles_count = 7
-hard_obstacles_max_dim = 300
-hard_obstacles_min_dim = 200
-medium_obstacles_max_dim = 200
-medium_obstacles_min_dim = 100
-small_obstacles_max_dim = 100
-small_obstacles_min_dim = 50
+hard_obstacles_max_dim = 10
+hard_obstacles_min_dim = 9
+medium_obstacles_max_dim = 5
+medium_obstacles_min_dim = 4
+small_obstacles_max_dim = 4
+small_obstacles_min_dim = 3
 # {flat: 1D, rings: 2D}
 lidar_mode = flat
 

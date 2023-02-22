@@ -62,6 +62,7 @@ class RobotEnv(Env):
         self.cfg = configure_robot(config, args.env_render_path)
         self.opt = RobotOpt()
         self.opt.set_tb_writer(self.tensorboard_dir)
+        self.robot.set_radius(self.cfg.robot_radius, self.cfg.goal_radius)
 
     def step(self, action: np.ndarray) -> Tuple:
         """Step into a new state using an action given by the robot model

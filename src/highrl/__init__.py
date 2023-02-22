@@ -2,4 +2,4 @@
 import os
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Shutting up tensorflow warnings
-__version__ = "0.1.6"
+__version__ = "1.0.0"

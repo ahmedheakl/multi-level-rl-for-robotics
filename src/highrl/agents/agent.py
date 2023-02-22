@@ -161,6 +161,11 @@ class Agent:
         self.vy = velocity[1]
         self.w = velocity[2]
 
+    def set_radius(self, agent_radius: int, goal_radius: int) -> None:
+        """Setter for the goal and agent radius"""
+        self.radius = agent_radius
+        self.goal_radius = goal_radius
+
     def check_validity(self, action: Any):
         """Checks if action is in right format.
 
