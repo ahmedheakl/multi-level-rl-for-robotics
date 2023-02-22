@@ -129,10 +129,3 @@ def generate_downsampling_map(I, J):
         for j in range(J)
     ]
     return i_to_j, j_to_ii
-
-
-if __name__ == "__main__":
-    ring_def = generate_rings()
-    # linear ramp
-    scans = np.ones((1, 1080)) * (np.arange(1080) / 1080.0 * 25.0)[None, :]
-    rings = ring_def["lidar_to_rings"](scans.astype(np.float32))

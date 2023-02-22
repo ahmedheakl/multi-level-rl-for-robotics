@@ -1,6 +1,7 @@
 """Implementation of Teacher Environment"""
 from typing import List, Tuple
 import argparse
+import logging
 from random import uniform
 from configparser import RawConfigParser
 from gym import Env, spaces
@@ -11,6 +12,8 @@ from highrl.envs import env_encoders as env_enc
 from highrl.utils.utils import configure_teacher
 from highrl.utils import training_utils as train_utils
 from highrl.utils import teacher_utils as teach_utils
+
+_LOG = logging.getLogger(__name__)
 
 
 class TeacherEnv(Env):
@@ -99,7 +102,7 @@ class TeacherEnv(Env):
         self.robot_metrics.avg_reward = total_reward / len(self.opt.results)
         self.robot_metrics.avg_episode_steps = total_steps / len(self.opt.results)
         self.robot_metrics.success_rate = num_success / len(self.opt.results)
-        print(f"======== Session {self.opt.time_steps} Results ========")
+        _LOG.info("Session %i Results", self.opt.time_steps)
         results_table = PrettyTable(
             field_names=["avg_reward", "avg_ep_steps", "success_rate"]
         )
@@ -110,7 +113,6 @@ class TeacherEnv(Env):
                 f"{self.robot_metrics.success_rate:0.2f}",
             ]
         )
-        print(results_table)
 
         self.opt.tb_writer.add_scalar(
             self.rob_avg_rwrd_grph_name,
@@ -127,7 +129,7 @@ class TeacherEnv(Env):
             self.robot_metrics.success_rate,
             self.opt.time_steps,
         )
-        print(results_table)
+        _LOG.info(results_table)
 
     def render(self, mode):
         """Idle render"""

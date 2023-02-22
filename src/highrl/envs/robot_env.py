@@ -4,6 +4,7 @@ from typing import List, Tuple
 import threading
 import time
 import argparse
+import logging
 from configparser import RawConfigParser
 from os import path, mkdir
 import numpy as np
@@ -22,6 +23,9 @@ from highrl.obstacle.obstacles import Obstacles
 from highrl.utils.utils import Position, configure_robot
 from highrl.configs import colors
 from highrl.utils.robot_utils import RobotOpt
+
+
+_LOG = logging.getLogger(__name__)
 
 
 class RobotEnv(Env):
@@ -141,7 +145,7 @@ class RobotEnv(Env):
         """
         reward = 0.0
         if self.detect_collison():
-            print("|--collision detected--|")
+            _LOG.warning("COLLISION DETECTED")
             reward += self.cfg.collision_score
             self.done = True
             self.opt.success_flag = False
@@ -382,7 +386,7 @@ class RobotEnv(Env):
             dict: observation of the current environment state
         """
         if self.done or self.opt.is_initial_state:
-            print("reseting robot env ...")
+            _LOG.info("Reseting robot env ...")
             self.robot.set_position(self.opt.robot_init_pos)
             self.robot.set_goal_position(self.opt.goal_init_pos)
             self.opt.total_reward += self.opt.episode_reward

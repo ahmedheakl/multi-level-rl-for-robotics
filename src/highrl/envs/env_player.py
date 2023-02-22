@@ -119,7 +119,7 @@ class EnvPlayer(object):
                 if not self.boost:
                     self.realtime_rate.sleep()
             # step once
-            obs, rew, done, info = self.env.step(self.action)
+            _, _, done, _ = self.env.step(self.action)
             self.env.render(save_to_file=self.save_to_file)
             #         impglet
             #         pygage.get_buffer_manager().get_color_buffer().save("/tmp/env{:05}.png".format(i))
