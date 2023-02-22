@@ -139,3 +139,18 @@ def cross_product_triangle(
     pnt1 = np.array(p_first, dtype=np.float32)
     pnt2 = np.array(p_sec, dtype=np.float32)
     return np.cross((pnt1 - ground_point), (pnt2 - ground_point)).tolist()
+
+def neg_exp(base: float, exponent: float) -> float:
+    """Exponentiation for negative numbers
+
+    Args:
+        base (float): Base of exponent
+        exponent (float): Exponent
+
+    Returns:
+        float: sign * (|base|**exponont)
+    """
+    neg = base < 0.0
+    ans = abs(base) ** exponent
+    ans = ans * ((-1) ** neg)
+    return ans

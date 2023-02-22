@@ -1,9 +1,10 @@
-from highrl.obstacle.single_obstacle import SingleObstacle
+from typing import List
 import numpy as np
+from highrl.obstacle.single_obstacle import SingleObstacle
 
 
-class Obstacles(object):
-    def __init__(self, obstacles_list=[]) -> None:
+class Obstacles:
+    def __init__(self, obstacles_list: List[SingleObstacle] = []) -> None:
         self.obstacles_list = obstacles_list
         self.num = 0
 

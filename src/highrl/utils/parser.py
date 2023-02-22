@@ -30,18 +30,18 @@ def parse_args() -> argparse.Namespace:
         action="version",
     )
     parser.add_argument(
-        "--device-used-for-training",
+        "--device",
         type=str,
-        default="cpu",
-        dest="device_used",
-        help="what device to use for training (cpu/cuda) (default: %(default)s)",
+        default="cuda",
+        dest="device",
+        help="What device to use for training (cpu/cuda) (default: %(default)s)",
     )
     parser.add_argument(
         "--initial-teacher-model",
         type=str,
         default="none",
         dest="initial_teacher_model",
-        help="path of initial teacher model used in training (default: %(default)s)",
+        help="Path of initial teacher model used in training (default: %(default)s)",
     )
 
     parser.add_argument(
@@ -56,14 +56,14 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="none",
         dest="teacher_config_path",
-        help="path of configuration file of teacher environment",
+        help="Path of configuration file of teacher environment",
     )
     parser.add_argument(
         "--eval-config",
         type=str,
         default="none",
         dest="eval_config_path",
-        help="path of configuration file of teacher environment",
+        help="Path of configuration file of teacher environment",
     )
     parser.add_argument(
         "--mode",

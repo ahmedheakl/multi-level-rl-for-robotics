@@ -58,8 +58,8 @@ class RobotSuccessesCallback(BaseCallback):
         Returns:
             bool: Flag for aborting training early
         """
-        attribute_name = "num_successes"
-        total_num_successes = self.training_env.get_attr(attribute_name)[0]  # type: ignore
+        attribute_name = "opt"
+        total_num_successes = self.training_env.get_attr(attribute_name)[0].num_successes  # type: ignore
         if total_num_successes >= self.num_successes:
             print(
                 f"{THINK_EMOJI} {THINK_EMOJI} Abort_training {THINK_EMOJI} {THINK_EMOJI}"
@@ -89,7 +89,7 @@ class RobotLogCallback(BaseCallback):
         self.last_len_statistics = 0
         self.best_avg_reward = [-np.inf]
         self.last_eval_time = time.time()
-        self.total_time:float = 0
+        self.total_time: float = 0
 
     def _on_step(self) -> bool:
         """print statistics and save training logs every eval_frequency timesteps.
@@ -104,7 +104,7 @@ class RobotLogCallback(BaseCallback):
                 train_logs = DataFrame()
                 for env in self.training_env.envs:
                     train_logs = concat(
-                        [train_logs, DataFrame.from_records(env.episode_statistics)]
+                        [train_logs, DataFrame.from_records(env.opt.episode_statistics)]
                     )
             else:
                 train_logs = env.episode_statistics
@@ -300,14 +300,14 @@ def run_n_episodes(
     Returns:
         DataFrame: Logs for evaluation episodes.
     """
-    env.episode_statistics["scenario"] = "robot_env_test"
+    env.opt.episode_statistics["scenario"] = "robot_env_test"
     for _ in range(num_eposides):
         obs = env.reset()
         done = False
         while not done:
             action, _ = model.predict(obs, deterministic=True)
             obs, _, done, _ = env.step(action)
-    return env.episode_statistics
+    return env.opt.episode_statistics
 
 
 def print_statistics_eval(
