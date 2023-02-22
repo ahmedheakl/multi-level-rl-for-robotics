@@ -77,5 +77,4 @@ cython_packages/*.c
 cython_packages/*.html
 diff.py
 robot_logs.csv
-*
 
