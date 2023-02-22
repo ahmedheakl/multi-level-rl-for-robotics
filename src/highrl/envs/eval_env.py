@@ -1,21 +1,23 @@
-from typing import List, Tuple
+"""Implementation for the evaluation environemnt"""
+from random import randint
+from argparse import Namespace
+from configparser import RawConfigParser
+
 from highrl.envs.robot_env import RobotEnv
 from highrl.obstacle.single_obstacle import SingleObstacle
-from random import randint, random, uniform
-import configparser
-from os import path
 
 
 class RobotEvalEnv(RobotEnv):
-    def __init__(self, *args, **kwargs):
-        super(RobotEvalEnv, self).__init__(*args, **kwargs)
+    def __init__(self, config: RawConfigParser, args: Namespace):
+        super(RobotEvalEnv, self).__init__(config, args)
+        self._configure(config)
         self.obstacles_configure()
 
-    def _configure(self, config: configparser.RawConfigParser) -> None:
+    def _configure(self, config: RawConfigParser) -> None:
         """Configure the environment using input config file
 
         Args:
-            config (configparser.RawConfigParser): input config object
+            config (RawConfigParser): input config object
         """
         self.config = config
         self.robot_initial_px = config.getint("positions", "robot_initial_px")

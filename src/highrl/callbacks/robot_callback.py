@@ -8,6 +8,7 @@ Contains the following classes:
 """
 from typing import Optional
 import time
+import logging
 import numpy as np
 from torch import nn
 import gym
@@ -16,6 +17,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env.base_vec_env import VecEnv
 
 
+_LOG = logging.getLogger(__name__)
 THINK_EMOJI = "\U0001F914"
 
 
@@ -38,9 +40,7 @@ class RobotMaxStepsCallback(BaseCallback):
         total_steps = self.training_env.get_attr(attr_name="total_steps")[0]  # type: ignore
 
         if total_steps >= self.max_steps:
-            print(
-                f"{THINK_EMOJI} {THINK_EMOJI} Abort_training {THINK_EMOJI} {THINK_EMOJI}"
-            )
+            _LOG.warning("%s Abort_training %s", THINK_EMOJI, THINK_EMOJI)
             return False
         return True
 
@@ -58,12 +58,10 @@ class RobotSuccessesCallback(BaseCallback):
         Returns:
             bool: Flag for aborting training early
         """
-        attribute_name = "num_successes"
-        total_num_successes = self.training_env.get_attr(attribute_name)[0]  # type: ignore
+        attribute_name = "opt"
+        total_num_successes = self.training_env.get_attr(attribute_name)[0].num_successes  # type: ignore
         if total_num_successes >= self.num_successes:
-            print(
-                f"{THINK_EMOJI} {THINK_EMOJI} Abort_training {THINK_EMOJI} {THINK_EMOJI}"
-            )
+            _LOG.warning("%s Abort_training %s", THINK_EMOJI, THINK_EMOJI)
             return False
         return True
 
@@ -89,7 +87,7 @@ class RobotLogCallback(BaseCallback):
         self.last_len_statistics = 0
         self.best_avg_reward = [-np.inf]
         self.last_eval_time = time.time()
-        self.total_time:float = 0
+        self.total_time: float = 0
 
     def _on_step(self) -> bool:
         """print statistics and save training logs every eval_frequency timesteps.
@@ -104,10 +102,10 @@ class RobotLogCallback(BaseCallback):
                 train_logs = DataFrame()
                 for env in self.training_env.envs:
                     train_logs = concat(
-                        [train_logs, DataFrame.from_records(env.episode_statistics)]
+                        [train_logs, DataFrame.from_records(env.opt.episode_statistics)]
                     )
             else:
-                train_logs = env.episode_statistics
+                train_logs = env.opt.episode_statistics
 
             last_added_train_logs = train_logs[self.last_len_statistics :]
             elapsed = time.time() - self.last_eval_time
@@ -206,11 +204,13 @@ class RobotEvalCallback(BaseCallback):
         if savepath is not None:
             try:
                 model.save(savepath)
-                print(f"Model saved to {savepath} (avg reward: {new_avg_reward}).")
+                _LOG.info(
+                    "Model saved to %s (avg reward: %d).", savepath, new_avg_reward
+                )
             except AttributeError:
-                print("Could not save")
+                _LOG.error("Could not save")
             else:
-                print("An error occured while saving the model")
+                _LOG.error("An error occured while saving the model")
 
 
 def save_logs(training_logs: DataFrame, logpath: Optional[str], verbose: int) -> None:
@@ -223,7 +223,7 @@ def save_logs(training_logs: DataFrame, logpath: Optional[str], verbose: int) ->
     """
     training_logs.to_csv(logpath)
     if verbose > 1:
-        print(f"Logs saved to {logpath}")
+        _LOG.info("Training logs saved to %s", logpath)
 
 
 def print_statistics_train(
@@ -243,19 +243,18 @@ def print_statistics_train(
     """
     scenarios = sorted(list(set(train_logs["scenario"].values)))
     rewards = train_logs["reward"].values
-    print(f"Statistics for {n_train_steps:10d} steps")
+    _LOG.debug("Statistics for %10i steps", n_train_steps)
     num_episodes = len(train_logs)
     stats = f"Steps Per Env = {n_calls:5d} ,"
     stats += f"Total Steps = {n_train_steps:5d} ,"
     stats += f"Total episodes = {num_episodes:5d}"
     stats += f"done in {elapsed_time} sec"
-    print(stats)
     for scenario in scenarios:
         is_scenario = train_logs["scenario"].values == scenario
         scenario_rewards = rewards[is_scenario]
         avg_scenario_rewards = np.mean(scenario_rewards).item()
         num_scenarios = len(scenario_rewards)
-        print(f"Avg rewards (train): {avg_scenario_rewards:.4f} ({num_scenarios}")
+        _LOG.info(f"Avg rewards (train): {avg_scenario_rewards:.4f} ({num_scenarios}")
 
 
 def print_statistics_for_n_steps(
@@ -274,15 +273,16 @@ def print_statistics_for_n_steps(
     scenarios = sorted(list(set(logs["scenario"].values)))
     rewards = logs["reward"].values
     # print statistics
-    print(f"Statistics for last {num_steps} steps")
+    _LOG.debug(f"Statistics for last {num_steps} steps")
     num_eposides = len(logs)
-    print(f"Total episodes = {num_eposides:5d} done in {elapsed_time} secs")
+    _LOG.debug(f"Total episodes = {num_eposides:5d} done in {elapsed_time} secs")
     for scenario in scenarios:
         is_scenario = logs["scenario"].values == scenario
         scenario_rewards = rewards[is_scenario]
         avg_scenario_rewards = np.mean(scenario_rewards).item()
         num_scenarios = len(scenario_rewards)
-        print(f"Avg reward (train): {avg_scenario_rewards:.4f} ({num_scenarios})")
+        stats = f"Avg reward (train): {avg_scenario_rewards:.4f} ({num_scenarios})"
+        _LOG.info(stats)
 
 
 def run_n_episodes(
@@ -300,14 +300,14 @@ def run_n_episodes(
     Returns:
         DataFrame: Logs for evaluation episodes.
     """
-    env.episode_statistics["scenario"] = "robot_env_test"
+    env.opt.episode_statistics["scenario"] = "robot_env_test"
     for _ in range(num_eposides):
         obs = env.reset()
         done = False
         while not done:
             action, _ = model.predict(obs, deterministic=True)
             obs, _, done, _ = env.step(action)
-    return env.episode_statistics
+    return env.opt.episode_statistics
 
 
 def print_statistics_eval(
@@ -322,10 +322,11 @@ def print_statistics_eval(
     """
     scenarios = sorted(list(set(eval_logs["scenario"].values)))
     rewards = eval_logs["reward"].values
-    print(f"Evaluation time : {eval_elapsed} ")
+    _LOG.debug("Evaluation time : %.2f", eval_elapsed)
     for scenario in scenarios:
         is_scenario = eval_logs["scenario"].values == scenario
         scenario_rewards = rewards[is_scenario]
         avg_scenario_rewards = np.mean(scenario_rewards).item()
         num_scenarios = len(scenario_rewards)
-        print(f"{scenario}: {avg_scenario_rewards:.4f} ({num_scenarios})")
+        stats = f"{scenario}: {avg_scenario_rewards:.4f} ({num_scenarios})"
+        _LOG.info(stats)
