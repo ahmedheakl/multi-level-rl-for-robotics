@@ -221,14 +221,12 @@ class RobotEnv(Env):
         mode="human",
         close: bool = False,
         save_to_file: bool = False,
-        show_score: bool = True,
     ) -> bool:
         """Renders robot and obstacles on an openGL window using gym viewer
 
         Args:
             close (bool, optional): flag to close the environment window. Defaults to False.
             save_to_file (bool, optional): flag to save render data to a file. Defaults to False.
-            show_score (bool, optional): flag to show reward on window. Defaults to True.
 
         Returns:
             bool: flag to check the status of the openGL window
@@ -244,18 +242,9 @@ class RobotEnv(Env):
             self.transform = rendering.Transform()
             self.transform.set_scale(10, 10)
             self.transform.set_translation(128, 128)
-            self.score_label = pyglet.text.Label(
-                "0000",
-                font_size=5,
-                x=20,
-                y=int(self.cfg.height * 2.5 / 40.00),
-                anchor_x="left",
-                anchor_y="center",
-                color=colors.white_color,
-            )
             self.iteration_label = pyglet.text.Label(
                 "0000",
-                font_size=5,
+                font_size=7,
                 x=20,
                 y=int((self.cfg.height * 1.6) // 40.00),
                 anchor_x="left",
@@ -358,17 +347,12 @@ class RobotEnv(Env):
             gl.glEnd()
             # --
             self.transform.disable()
-
-            self.score_label.text = ""
-            if show_score:
-                self.score_label.text = f"R {self.opt.reward:0.4f}"
-                self.iteration_label.text = "Iter {self.episode_steps}"
-            self.score_label.draw()
+            self.iteration_label.text = f"Iter {self.opt.episode_steps}"
             self.iteration_label.draw()
             win.flip()
             if save_to_file:
                 save_folder = path.join(
-                    self.cfg.env_render_path, f"{self.opt.episodes}"
+                    self.cfg.env_render_path, str(self.opt.episodes)
                 )
                 if not path.isdir(save_folder):
                     mkdir(save_folder)
