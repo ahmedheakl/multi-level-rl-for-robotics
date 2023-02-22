@@ -246,7 +246,7 @@ class RobotEnv(Env):
             self.transform.set_translation(128, 128)
             self.score_label = pyglet.text.Label(
                 "0000",
-                font_size=12,
+                font_size=5,
                 x=20,
                 y=int(self.cfg.height * 2.5 / 40.00),
                 anchor_x="left",
@@ -255,7 +255,7 @@ class RobotEnv(Env):
             )
             self.iteration_label = pyglet.text.Label(
                 "0000",
-                font_size=12,
+                font_size=5,
                 x=20,
                 y=int((self.cfg.height * 1.6) // 40.00),
                 anchor_x="left",
@@ -265,12 +265,12 @@ class RobotEnv(Env):
             self.transform = rendering.Transform()
             self.image_lock = threading.Lock()
 
-        def make_circle(coords: Tuple[int, int], radius: int, res=10) -> np.ndarray:
+        def make_circle(center: Tuple[int, int], radius: int, res=10) -> np.ndarray:
             """Create circle points
 
             Args:
-                coords (list): center of the circle
-                radius (float): radius of the circle
+                center (list): center of the circle
+                radius (int): radius of the circle
                 res (int, optional): resolution of points. Defaults to 10.
 
             Returns:
@@ -278,8 +278,8 @@ class RobotEnv(Env):
             """
             thetas = np.linspace(0, 2 * np.pi, res + 1)[:-1]
             verts = np.zeros((res, 2))
-            verts[:, 0] = coords[0] + radius * np.cos(thetas)
-            verts[:, 1] = coords[1] + radius * np.sin(thetas)
+            verts[:, 0] = center[0] + radius * np.cos(thetas)
+            verts[:, 1] = center[1] + radius * np.sin(thetas)
             return verts
 
         with self.image_lock:
