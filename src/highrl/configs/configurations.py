@@ -1,17 +1,17 @@
 """Configurations for training and inference"""
 robot_config_str = """
 [dimensions]
-width = 1280
-height = 720
-robot_radius = 20
-goal_radius = 10
+width = 256
+height = 256
+robot_radius = 5
+goal_radius = 2
 
 [timesteps]
 delta_t = 0.2
 # 1e3
 max_episode_steps = 1000
 # 1e5
-max_session_steps = 1000
+max_session_steps = 2000
 
 [lidar]
 n_angles = 1080
@@ -30,7 +30,7 @@ alpha = 0.4
 progress_discount = 0.4
 
 [render]
-render_each = 1
+render_each = 500
 save_to_file = False
 
 [env]
@@ -62,12 +62,12 @@ advance_probability = 0.9
 max_hard_obstacles_count = 2
 max_medium_obstacles_count = 5
 max_small_obstacles_count = 7
-hard_obstacles_max_dim = 300
-hard_obstacles_min_dim = 200
-medium_obstacles_max_dim = 200
-medium_obstacles_min_dim = 100
-small_obstacles_max_dim = 100
-small_obstacles_min_dim = 50
+hard_obstacles_max_dim = 10
+hard_obstacles_min_dim = 9
+medium_obstacles_max_dim = 5
+medium_obstacles_min_dim = 4
+small_obstacles_max_dim = 4
+small_obstacles_min_dim = 3
 # {flat: 1D, rings: 2D}
 lidar_mode = flat
 
@@ -82,14 +82,14 @@ n_robot_eval_episodes = 0
 save_model_freq = 1
 
 [timesteps]
-max_sessions = 5
+max_sessions = 100
 """
 
 # ---------------------EVALUATIONS CONFIGURATIONS-----------------#
 eval_config_str = """
 [dimensions]
-width = 1080
-height = 720
+width = 256
+height = 256
 robot_radius = 20
 goal_radius = 10
 
