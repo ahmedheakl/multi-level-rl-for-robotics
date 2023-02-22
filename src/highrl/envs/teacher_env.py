@@ -16,7 +16,7 @@ from highrl.utils import teacher_utils as teach_utils
 class TeacherEnv(Env):
     """Environment for training the teacher agent"""
 
-    infinite_difficulty: int = 921600  # w * h = 1280 * 720
+    infinite_difficulty: int = 256 * 256  # w * h
     tensorboard_dir: str = "runs/teacher"
     rob_avg_rwrd_grph_name: str = "robot_avg_reward"
     rob_avg_eps_steps_grph_name: str = "robot_avg_episode_steps"
@@ -110,6 +110,7 @@ class TeacherEnv(Env):
                 f"{self.robot_metrics.success_rate:0.2f}",
             ]
         )
+        print(results_table)
 
         self.opt.tb_writer.add_scalar(
             self.rob_avg_rwrd_grph_name,
