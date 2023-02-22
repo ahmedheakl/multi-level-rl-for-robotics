@@ -111,27 +111,29 @@ class TeacherLogCallback(BaseCallback):
             # get session_statistics
             env = self.training_env
             if isinstance(self.training_env, VecEnv):
-                session = DataFrame()
+                sessions = DataFrame()
 
                 for env in self.training_env.envs:  # type: ignore
                     if len(env.opt.session_statistics) != 0:
-                        stats_df = DataFrame.from_records(env.opt.session_statistics)
-                        session = concat([session, stats_df])
+                        session_stats = DataFrame.from_records(
+                            env.opt.session_statistics
+                        )
+                        sessions = concat([sessions, session_stats])
 
                         # new_session = session[self.last_len_statistics:]
                         # new_avg_reward = np.mean(new_S["teacher_reward"].values)
                         if self.logpath:
-                            save_log(session, self.verbose, self.logpath)
+                            save_log(sessions, self.verbose, self.logpath)
             else:
-                session = env.opt.session_statistics
+                sessions = env.opt.session_statistics
                 # new_session = session[self.last_len_statistics :]
                 # new_avg_reward = np.mean(new_S["teacher_reward"].values)
                 assert (
                     self.logpath
                 ), "You have to provide a path to save the session logs"
-                save_log(session, self.verbose, self.logpath)
+                save_log(sessions, self.verbose, self.logpath)
 
-            self.last_len_statistics = len(session)
+            self.last_len_statistics = len(sessions)
         return True
 
 
