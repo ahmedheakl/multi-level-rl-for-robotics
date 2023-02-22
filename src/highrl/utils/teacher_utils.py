@@ -1,13 +1,16 @@
 """Utilties implementation for training the teacher agent"""
 from typing import Tuple, List
 import math
+import logging
 from prettytable import PrettyTable
 
-from highrl.utils.utils import TeacherConfigs, Position
+from highrl.utils.general import TeacherConfigs, Position
 from highrl.utils.training_utils import TeacherMetrics, RobotMetrics
 from highrl.utils.teacher_checker import convex_hull_difficulty
 from highrl.obstacle import SingleObstacle
 from highrl.utils.calculations import neg_exp
+
+_LOG = logging.getLogger(__name__)
 
 
 def compute_difficulty(
@@ -16,7 +19,7 @@ def compute_difficulty(
 ) -> List[bool]:
     """Computing difficulty for the generated actions"""
     is_goal_overlap_robot = opt.robot_env.robot.is_robot_overlap_goal()
-    is_goal_or_robot_overlap_obstacles = 0
+    is_goal_or_robot_overlap_obstacles = False
     for obstacle in opt.robot_env.obstacles.obstacles_list:
         is_goal_or_robot_overlap_obstacles = (
             is_goal_or_robot_overlap_obstacles
@@ -43,9 +46,9 @@ def compute_difficulty(
         )
         is_passed_inf_diff = opt.difficulty_area >= infinite_difficulty
 
-    print(f"is_goal_or_robot_overlap_obstacles = {is_goal_or_robot_overlap_obstacles}")
-    print(f"is_goal_overlap_robot = {is_goal_overlap_robot}")
-    print(f"is_passed_inf_diff = {is_passed_inf_diff}")
+    _LOG.info("Goal/robot overlap obstacles: %s", is_goal_or_robot_overlap_obstacles)
+    _LOG.info("Goal overlap robot: %s", is_goal_overlap_robot)
+    _LOG.info("Passed inf diff: %s", is_passed_inf_diff)
     return [
         is_passed_inf_diff,
         is_goal_overlap_robot,
@@ -125,8 +128,8 @@ def get_robot_position_from_action(
         planner_output[action_names[idx]] = action_val
         action_table.add_column(fieldname=names[idx], column=[action_val])
 
-    print(f"======== Teacher action for Session {opt.time_steps} ========")
-    print(action_table)
+    _LOG.info("====== Teacher action for Session %i ========", opt.time_steps)
+    _LOG.info(action_table)
     robot_pos = Position()
     goal_pos = Position()
     robot_pos.x_pos = min(int(opt.width * planner_output["robot_x"]), opt.width - 2)

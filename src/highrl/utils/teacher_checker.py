@@ -361,7 +361,6 @@ def convex_hull_difficulty(
         max_x, max_y = np.max(np.array(coords), axis=0)
         min_x, min_y = np.min(np.array(coords), axis=0)
         harmonic += 1
-        print(max_x, max_y, min_x, min_y, harmonic)
         if max_x <= 0 or max_y <= 0:
             break
         if max_x >= width and max_y >= height and min_x <= 0 and min_y <= 0:
