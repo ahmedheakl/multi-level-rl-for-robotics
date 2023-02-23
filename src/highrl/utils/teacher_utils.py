@@ -4,11 +4,12 @@ import math
 import logging
 from prettytable import PrettyTable
 
-from highrl.utils.general import TeacherConfigs, Position
+from highrl.utils.general import TeacherConfigs
 from highrl.utils.training_utils import TeacherMetrics, RobotMetrics
 from highrl.utils.teacher_checker import convex_hull_difficulty
 from highrl.obstacle import SingleObstacle
 from highrl.utils.calculations import neg_exp
+from highrl.utils import Position
 
 _LOG = logging.getLogger(__name__)
 
@@ -130,12 +131,12 @@ def get_robot_position_from_action(
 
     _LOG.info("====== Teacher action for Session %i ========", opt.time_steps)
     _LOG.info(action_table)
-    robot_pos = Position()
-    goal_pos = Position()
-    robot_pos.x_pos = min(int(opt.width * planner_output["robot_x"]), opt.width - 2)
-    robot_pos.y_pos = min(int(opt.height * planner_output["robot_y"]), opt.height - 2)
-    goal_pos.x_pos = min(int(opt.width * planner_output["goal_x"]), opt.width - 2)
-    goal_pos.y_pos = min(int(opt.height * planner_output["goal_y"]), opt.height - 2)
+    robot_pos = Position[float](0.0, 0.0)
+    goal_pos = Position[float](0.0, 0.0)
+    robot_pos.x = min(int(opt.width * planner_output["robot_x"]), opt.width - 2)
+    robot_pos.y = min(int(opt.height * planner_output["robot_y"]), opt.height - 2)
+    goal_pos.x = min(int(opt.width * planner_output["goal_x"]), opt.width - 2)
+    goal_pos.y = min(int(opt.height * planner_output["goal_y"]), opt.height - 2)
     return robot_pos, goal_pos
 
 
