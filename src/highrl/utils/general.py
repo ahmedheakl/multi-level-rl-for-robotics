@@ -4,14 +4,6 @@ from configparser import RawConfigParser
 
 
 @dataclass
-class Position:
-    """Position of an agent"""
-
-    x_pos: int = 0
-    y_pos: int = 0
-
-
-@dataclass
 class TeacherConfigs:
     """Configurations for the teacher"""
 
