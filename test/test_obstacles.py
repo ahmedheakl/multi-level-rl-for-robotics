@@ -1,11 +1,16 @@
+"""Tests for obstacles module"""
 import unittest
+import numpy as np
+
 from highrl.obstacle.obstacles import Obstacles
 from highrl.obstacle.single_obstacle import SingleObstacle
-import numpy as np
 
 
 class ObstaclesTest(unittest.TestCase):
-    def test_flatten_contours_single_point(self):
+    """Testing obstacles creations and manipulations"""
+
+    def test_flatten_contours_single_point(self) -> None:
+        """Testing flattening the contours"""
         obstacels_obj = Obstacles([SingleObstacle(0, 0, 10, 10)])
         value = obstacels_obj.get_flatten_contours()[0]
         expected = np.array(
@@ -17,7 +22,8 @@ class ObstaclesTest(unittest.TestCase):
             msg=f"Expected: {expected}, Found: {value}",
         )
 
-    def test_flatten_contours_multiple_points(self):
+    def test_flatten_contours_multiple_points(self) -> None:
+        """Testing flattening the contours"""
         obstacels_obj = Obstacles(
             [SingleObstacle(0, 0, 10, 10), SingleObstacle(5, 10, 25, 30)]
         )

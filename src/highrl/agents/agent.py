@@ -1,12 +1,11 @@
 """Implementation for agents interface"""
-from typing import Any, Tuple, List
+from typing import Any, Tuple, List, Union
 import numpy as np
 from numpy.linalg import norm
 
 from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.utils.action import ActionXY
-from highrl.utils.calculations import point_to_point_distance
-from highrl.utils.general import Position
+from highrl.utils.abstract import Position
 
 
 class Agent:
@@ -29,39 +28,33 @@ class Agent:
 
     def __init__(
         self,
-        px: int = 0,
-        py: int = 0,
-        gx: int = 0,
-        gy: int = 0,
-        gt: int = 0,
-        vx: int = 0,
-        vy: int = 0,
-        w: int = 0,
-        theta: int = 0,
+        pos=Position[float](0.0, 0.0),
+        goal_pos=Position[float](0.0, 0.0),
+        gt: float = 0.0,
+        vx: float = 0.0,
+        vy: float = 0.0,
+        w: float = 0.0,
+        theta: float = 0.0,
         radius: int = 20,
         goal_radius: int = 10,
     ) -> None:
         """Constructs an agent object.
 
         Args:
-            px (int, optional): agent x position. Defaults to 0.
-            py (int, optional): agent y position. Defaults to 0.
-            gx (int, optional): goal x position. Defaults to 0.
-            gy (int, optional): goal y position. Defaults to 0.
-            gt (int, optional): goal orientation angle. Defaults to 0.
-            vx (int, optional): agent x velocity. Defaults to 0.
-            vy (int, optional): agent y velocity. Defaults to 0.
-            w (int, optional): agent angular velocity. Defaults to 0.
-            theta (int, optional): agent angle theta. Defaults to 0.
-            radius (int, optional): agent radius. Defaults to 20.
-            goal_radius (int, optional): goal radius. Defaults to 10.
+            pos (Position, optional): Position of agent. Defaults to (x=0, y=0).
+            gpos (Position, optional): Position of the goal. Defaults to (x=0, y=0).
+            gt (int, optional): Goal orientation angle. Defaults to 0.
+            vx (int, optional): Agent x velocity. Defaults to 0.
+            vy (int, optional): Agent y velocity. Defaults to 0.
+            w (int, optional): Agent angular velocity. Defaults to 0.
+            theta (int, optional): Agent angle theta. Defaults to 0.
+            radius (int, optional): Agent radius. Defaults to 20.
+            goal_radius (int, optional): Goal radius. Defaults to 10.
         """
         self.radius = radius
         self.goal_radius = goal_radius
-        self.px = px
-        self.py = py
-        self.gx = gx
-        self.gy = gy
+        self.pos = pos
+        self.gpos = goal_pos
         self.gt = gt
         self.vx = vx
         self.vy = vy
@@ -70,15 +63,13 @@ class Agent:
 
     def set(
         self,
-        px: int = 0,
-        py: int = 0,
-        gx: int = 0,
-        gy: int = 0,
-        gt: int = 0,
-        vx: int = 0,
-        vy: int = 0,
-        w: int = 0,
-        theta: int = 0,
+        pos=Position[float](0.0, 0.0),
+        goal_pos=Position[float](0.0, 0.0),
+        gt: float = 0,
+        vx: float = 0,
+        vy: float = 0,
+        w: float = 0,
+        theta: float = 0,
         radius: int = 20,
         goal_radius: int = 10,
     ) -> None:
@@ -97,10 +88,8 @@ class Agent:
             radius (int, optional): agent radius. Defaults to 20.
             goal_radius (int, optional): goal radius. Defaults to 10.
         """
-        self.px = px
-        self.py = py
-        self.gx = gx
-        self.gy = gy
+        self.pos = pos
+        self.gpos = goal_pos
         self.gt = gt
         self.vx = vx
         self.vy = vy
@@ -109,49 +98,41 @@ class Agent:
         self.radius = radius
         self.goal_radius = goal_radius
 
-    def get_position(self) -> Tuple[int, int]:
-        """Gets the agent postion.
+    @property
+    def x_pos(self) -> float:
+        """Getter for x_coord"""
+        return self.pos.x
 
-        Returns:
-            Tuple(int, int): (agent x position, agent y position)
-        """
-        return self.px, self.py
+    @property
+    def y_pos(self) -> float:
+        """Getter for y_coord"""
+        return self.pos.y
+
+    def get_position(self) -> Position:
+        """Gets the agent postion"""
+        return self.pos
 
     def set_position(self, position: Position) -> None:
-        """Sets agent position.
-
-        Args:
-            position (Tuple[int, int]): (agent x position, agent y position)
-        """
-        self.px = position.x_pos
-        self.py = position.y_pos
+        """Sets agent position"""
+        self.pos = position
 
     def set_goal_position(self, position: Position) -> None:
-        """Sets goal position.
+        """Sets goal position"""
+        self.gpos = position
 
-        Args:
-            position (Tuple[int, int]): (goal x position, goal y position)
-        """
-        self.gx = position.x_pos
-        self.gy = position.y_pos
+    def get_goal_position(self) -> Position:
+        """Gets the goal postion"""
+        return self.gpos
 
-    def get_goal_position(self) -> Tuple[int, int]:
-        """Gets the goal postion.
-
-        Returns:
-            Tuple[int, int]: (goal x position, goal y position)
-        """
-        return self.gx, self.gy
-
-    def get_velocity(self) -> Tuple[int, int, int]:
+    def get_velocity(self) -> Tuple[float, float, float]:
         """Gets agent velocity vector.
 
         Returns:
-            Tuple[int, int, int]: (agent x velocity, agent y velocity, agent angular velocity)
+            Tuple[float, float, float]: (agent x velocity, agent y velocity, agent angular velocity)
         """
         return self.vx, self.vy, self.w
 
-    def set_velocity(self, velocity: Tuple):
+    def set_velocity(self, velocity: Tuple[float, ...]):
         """Sets agent linear and angular velocity.
 
         Args:
@@ -170,12 +151,6 @@ class Agent:
         """Checks if action is in right format.
 
         The right format is the object forman: ActionXY
-
-        Args:
-            action (Any): action whose format is required to be checked
-
-        Raises:
-            AssertionError: raises error if the action is not in the ActionXY object format
         """
         assert isinstance(action, ActionXY)
 
@@ -193,43 +168,29 @@ class Agent:
             Tuple[int, int, int]: (agent x position, agent y posistion, agent orientation theta)
         """
         self.check_validity(action)
-        v = (action.vx**2 + action.vy**2) ** 0.5
+        velocity = (action.vx**2 + action.vy**2) ** 0.5
         angle = self.fix(np.arctan2(action.vy, action.vx), 2 * np.pi)
-        px = self.px + v * np.cos(self.theta + angle) * delta_t
-        py = self.py + v * np.sin(self.theta + angle) * delta_t
+        x_pos = self.pos.x + velocity * np.cos(self.theta + angle) * delta_t
+        y_pos = self.pos.y + velocity * np.sin(self.theta + angle) * delta_t
         theta = self.fix(self.theta + action.w * delta_t, 2 * np.pi)
 
-        return px, py, theta
+        return x_pos, y_pos, theta
 
-    def step(self, action: ActionXY, delta_t: float) -> None:
-        """Performs an action and update the agent state.
-
-        Args:
-            action (List): action decided by the agent model but in ActionXY object format
-            delta_t (float): time difference between actions
-        """
-        self.check_validity(action)
-        pos = self.compute_position(action, delta_t)
-        self.px, self.py, self.theta = pos
-        self.vx = action.vx
-        self.vy = action.vy
-        self.w = action.w
-
-    def fix(self, x, mod):
+    def fix(self, base: Union[int, float], mod: Union[int, float]) -> Union[int, float]:
         """Fix input x to be in range [0:mod-1].
 
         Args:
-            x (int | float): input range
-            mod (int | float): modulus
+            base (Union[int, float]): input range
+            mod (int): modulus
 
         Returns:
-            int | float: input with desired range
+            Union[int, float]: Input with desired range
         """
-        while x < 0:
-            x += mod
-        while x >= mod:
-            x -= mod
-        return x
+        while base < 0:
+            base += mod
+        while base >= mod:
+            base -= mod
+        return base
 
     def reached_destination(self) -> bool:
         """Determines if agent reached the goal postion.
@@ -237,11 +198,26 @@ class Agent:
         Returns:
             bool: whether the agent has reached the goal or not
         """
-        robot_pos = np.array(self.get_position())
-        goal_pos = np.array(self.get_goal_position())
-        agent_goal_dist = robot_pos - goal_pos
         min_allowed_dist = self.radius + self.goal_radius
-        return norm(agent_goal_dist).item() < min_allowed_dist
+        return self.dist_to_goal() < min_allowed_dist
+
+    def dist_to_goal(self) -> float:
+        """Compute the distance from the agent to the goal"""
+        return norm(self.pos.get_coords() - self.gpos.get_coords()).item()
+
+    def step(self, action: ActionXY, delta_t: float) -> None:
+        """Performs an action and update the agent state.
+        Args:
+            action (List): action decided by the agent model but in ActionXY object format
+            delta_t (float): time difference between actions
+        """
+        self.check_validity(action)
+        pos = self.compute_position(action, delta_t)
+        x_pos, y_pos, self.theta = pos
+        self.pos.set_pos(x_pos, y_pos)
+        self.vx = action.vx
+        self.vy = action.vy
+        self.w = action.w
 
     def is_overlapped(self, obstacle: SingleObstacle, check_target: str = "agent"):
         """Checks if overlap between the agent/goal and an obstacle.
@@ -256,17 +232,17 @@ class Agent:
         assert check_target in [
             "goal",
             "agent",
-        ], f"check target should be goal or agent"
+        ], "Check target should be goal or agent"
         if check_target == "goal":
-            min_x = self.gx - self.goal_radius
-            min_y = self.gy - self.goal_radius
-            max_x = self.gx + self.goal_radius
-            max_y = self.gy + self.goal_radius
+            min_x = self.pos.x - self.goal_radius
+            min_y = self.pos.x - self.goal_radius
+            max_x = self.gpos.x + self.goal_radius
+            max_y = self.gpos.y + self.goal_radius
         else:
-            min_x = self.px - self.radius
-            min_y = self.py - self.radius
-            max_x = self.px + self.radius
-            max_y = self.py + self.radius
+            min_x = self.pos.x - self.radius
+            min_y = self.pos.y - self.radius
+            max_x = self.pos.x + self.radius
+            max_y = self.pos.y + self.radius
 
         dummy = [
             [
@@ -282,7 +258,8 @@ class Agent:
                 int(obstacle.py + obstacle.height),
             ],
         ]
-        return not (self._overlap_handler(dummy))
+        is_overlap: bool = not self._overlap_handler(dummy)
+        return is_overlap
 
     def is_robot_overlap_goal(self) -> bool:
         """Check if robot and goal overlap.
@@ -292,22 +269,23 @@ class Agent:
         """
         dummy = [
             [
-                self.gx - self.goal_radius,
-                self.gy - self.goal_radius,
-                self.gx + self.goal_radius,
-                self.gy + self.goal_radius,
+                self.gpos.x - self.goal_radius,
+                self.gpos.x - self.goal_radius,
+                self.gpos.x + self.goal_radius,
+                self.gpos.x + self.goal_radius,
             ],
             [
-                self.px - self.radius,
-                self.py - self.radius,
-                self.px + self.radius,
-                self.py + self.radius,
+                self.pos.x - self.radius,
+                self.pos.y - self.radius,
+                self.pos.x + self.radius,
+                self.pos.y + self.radius,
             ],
         ]
-        return not (self._overlap_handler(dummy))
+        is_overlap = not self._overlap_handler(dummy)
+        return is_overlap
 
     def is_robot_close_to_goal(self, min_dist: int) -> bool:
-        """Checks to see if the robot is closer than the min distannce to the goal.
+        """Checks if the robot is closer than the min distannce to the goal.
 
            Returns ``True`` if the robot is too close and ``False`` if the robot-goal dist
            did not exceed the min allowed distance.
@@ -318,12 +296,9 @@ class Agent:
         Returns:
             bool: flag to determine if the robot is closer than the max allowed distance or not.
         """
-        distance = point_to_point_distance((self.px, self.py), (self.gx, self.gy)) - (
-            self.radius + self.goal_radius
-        )
-        if distance <= min_dist:
-            return True
-        return False
+        distance = self.dist_to_goal()
+        distance -= self.radius + self.goal_radius
+        return distance <= min_dist
 
     def _overlap_handler(self, dummy: List[List]) -> bool:
         """Check overlap condition between two objects.
@@ -334,7 +309,7 @@ class Agent:
         Returns:
             bool: overlap flag for input objects
         """
-        for i in range(2):
+        for _ in range(2):
             if dummy[0][0] > dummy[1][2] or dummy[0][1] > dummy[1][3]:
                 return True
             dummy[0], dummy[1] = dummy[1], dummy[0]

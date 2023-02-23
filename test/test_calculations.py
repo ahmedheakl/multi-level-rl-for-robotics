@@ -1,40 +1,26 @@
-import math
+"""Testing calculations module"""
 import unittest
-from highrl.utils.calculations import *
+import math
+
+from highrl.utils import Position
 
 
 class TestCalculations(unittest.TestCase):
-    def test_norm_integers(self):
-        value = calculate_norm(point=(3, 4))
-        self.assertEqual(5, value, msg=f"Expected: {5}, found{value}")
+    """Testing calculations"""
 
-    def test_norm_floats(self):
-        value = calculate_norm(point=(3.5, 6.9))
-        self.assertAlmostEqual(
-            7.736924454,
-            value,
-            msg="Expected: {:.3f}, Found: {:.3f}".format(7.736924454, value),
-        )
-
-    def test_difference_vectors(self):
-        value = difference_vectors((3.6, 4.2), (2.5, 8.9))
-        expected = (1.1, -4.7)
-        self.assertEqual(expected, value, msg=f"Expected: {expected}, Found: {value}")
-
-    def test_point_to_point(self):
+    def test_point_to_point(self) -> None:
+        """Testing point to point distance"""
         tests = [
             [(1.0, 1.0), (2.0, 2.0), math.sqrt(2.0)],
             [(5.5, 7.0), (9.0, 1.0), 6.946221995],
         ]
         for test in tests:
-            value = point_to_point_distance(test[0], test[1])
+            p_first = Position[float](test[0][0], test[0][1])
+            p_sec = Position[float](test[1][0], test[1][1])
+            value = p_first.distance(p_sec)
             expected = test[2]
             self.assertAlmostEqual(
                 expected,
                 value,
-                msg="Expected: {:.3f}, Found: {:.3f}".format(expected, value),
+                msg=f"Expected: {expected:.3f}, Found: {value:.3f}",
             )
-
-
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
