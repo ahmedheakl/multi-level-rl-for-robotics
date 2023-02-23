@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
-from highrl.utils.utils import Position
+from highrl.utils.general import Position
 
 
 @dataclass

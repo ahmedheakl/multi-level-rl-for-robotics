@@ -6,7 +6,7 @@ from numpy.linalg import norm
 from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.utils.action import ActionXY
 from highrl.utils.calculations import point_to_point_distance
-from highrl.utils.utils import Position
+from highrl.utils.general import Position
 
 
 class Agent:

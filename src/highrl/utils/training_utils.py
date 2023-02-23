@@ -12,7 +12,7 @@ from torch.utils.tensorboard import SummaryWriter  # type: ignore
 
 from highrl.policy.feature_extractors import Robot1DFeatureExtractor
 from highrl.callbacks import robot_callback
-from highrl.utils.utils import TeacherConfigs
+from highrl.utils.general import TeacherConfigs
 from highrl.envs import env_encoders as env_enc
 
 _LOG = logging.getLogger(__name__)

@@ -4,7 +4,7 @@ import math
 import logging
 from prettytable import PrettyTable
 
-from highrl.utils.utils import TeacherConfigs, Position
+from highrl.utils.general import TeacherConfigs, Position
 from highrl.utils.training_utils import TeacherMetrics, RobotMetrics
 from highrl.utils.teacher_checker import convex_hull_difficulty
 from highrl.obstacle import SingleObstacle

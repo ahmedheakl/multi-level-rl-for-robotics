@@ -9,9 +9,9 @@ goal_radius = 2
 [timesteps]
 delta_t = 0.2
 # 1e3
-max_episode_steps = 1000
+max_episode_steps = 100
 # 1e5
-max_session_steps = 2000
+max_session_steps = 200
 
 [lidar]
 n_angles = 1080
@@ -30,7 +30,7 @@ alpha = 0.4
 progress_discount = 0.4
 
 [render]
-render_each = 500
+render_each = 1
 save_to_file = False
 
 [env]
@@ -77,8 +77,8 @@ render_eval = False
 [statistics]
 scenario = train
 collect_statistics = True
-robot_log_eval_freq = 100
-n_robot_eval_episodes = 0
+robot_log_eval_freq = 5
+n_robot_eval_episodes = 5
 save_model_freq = 1
 
 [timesteps]
@@ -90,8 +90,8 @@ eval_config_str = """
 [dimensions]
 width = 256
 height = 256
-robot_radius = 20
-goal_radius = 10
+robot_radius = 5
+goal_radius = 2
 
 [positions]
 robot_initial_px = 50
@@ -107,9 +107,9 @@ n_small = 9
 [timesteps]
 delta_t = 1
 # 1e3
-max_episode_steps = 3000
+max_episode_steps = 300
 # 1e5
-max_session_steps = 300000
+max_session_steps = 300
 
 [lidar]
 n_angles = 1080

@@ -5,6 +5,7 @@ import threading
 import time
 import argparse
 import logging
+import pandas as pd
 from configparser import RawConfigParser
 from os import path, mkdir
 import numpy as np
@@ -20,7 +21,7 @@ from highrl.utils.action import ActionXY
 from highrl.utils.calculations import point_to_point_distance
 from highrl.agents.robot import Robot
 from highrl.obstacle.obstacles import Obstacles
-from highrl.utils.utils import Position, configure_robot
+from highrl.utils.general import Position, configure_robot
 from highrl.configs import colors
 from highrl.utils.robot_utils import RobotOpt
 
@@ -112,19 +113,18 @@ class RobotEnv(Env):
             self.render(save_to_file=self.cfg.save_to_file)
 
         if self.cfg.collect_statistics:
-            self.opt.episode_statistics.append(
-                [
-                    self.opt.total_steps,
-                    self.opt.episode_steps,
-                    "robot_env_" + self.cfg.scenario,
-                    100 if self.detect_collison() else 0,
-                    self.robot.reached_destination(),
-                    self.opt.total_reward,
-                    self.opt.episode_reward,
-                    self.opt.reward,
-                    time.time(),
-                ]
-            )
+            self.opt.episode_statistics.loc[len(self.opt.episode_statistics)] = [  # type: ignore
+                self.opt.total_steps,
+                self.opt.episode_steps,
+                "robot_env_" + self.cfg.scenario,
+                100 if self.detect_collison() else 0,
+                self.robot.reached_destination(),
+                self.opt.total_reward,
+                self.opt.episode_reward,
+                self.opt.reward,
+                time.time(),
+            ]
+
         # log data
         if self.done:
             self.opt.num_successes += self.opt.success_flag
