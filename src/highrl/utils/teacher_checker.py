@@ -3,7 +3,7 @@ from typing import Tuple, List, Dict
 import numpy as np
 
 from highrl.obstacle.obstacles import Obstacles
-from highrl.utils.abstract import Position
+from highrl.utils import Position
 from highrl.agents.robot import Robot
 
 
@@ -75,8 +75,9 @@ def get_region_coordinates(
     return points
 
 
-def check_if_point_inside_polygen(
-    point: Position[int], coords: List[Position[int]]
+def is_point_inside_polygen(
+    point: Position[int],
+    coords: List[Position[int]],
 ) -> bool:
     """Check if the input point is inside input polygen
 
@@ -222,7 +223,7 @@ def check_valid_path_existance(
         points = obstacle.get_grid_points()
         for point in points:
             pos = Position[int](point[0], point[1])
-            if check_if_point_inside_polygen(pos, coords):
+            if is_point_inside_polygen(pos, coords):
                 x_pos, y_pos = point
                 env_map[x_pos][y_pos] = "X"
     # Breadth first search till you either find the
@@ -243,7 +244,7 @@ def check_valid_path_existance(
         for idx in range(num_dirs):
             new_pos = Position[int](pos.x + delta_x[idx], pos.y + delta_y[idx])
             if (
-                check_if_point_inside_polygen(new_pos, coords)
+                is_point_inside_polygen(new_pos, coords)
                 and check_valid_point(new_pos.get_coords(), width)
                 and env_map[new_pos.x][new_pos.y] == "."
             ):
@@ -345,7 +346,7 @@ def convex_hull_difficulty(
                 obstacle_points = obstacle.get_grid_points()
                 for obs_pos in obstacle_points:
                     pos = Position[int](obs_pos[0], obs_pos[1])
-                    if check_if_point_inside_polygen(pos, coords):
+                    if is_point_inside_polygen(pos, coords):
                         points.append(pos)
                         overlapped = True
                 num_overlap_obstacles += overlapped

@@ -109,23 +109,23 @@ class Agent:
         return self.pos.y
 
     def get_position(self) -> Position:
-        """Gets the agent postion"""
+        """Getter for agent postion"""
         return self.pos
 
     def set_position(self, position: Position) -> None:
-        """Sets agent position"""
+        """Setter for agent position"""
         self.pos = position
 
     def set_goal_position(self, position: Position) -> None:
-        """Sets goal position"""
+        """Setter for goal position"""
         self.gpos = position
 
     def get_goal_position(self) -> Position:
-        """Gets the goal postion"""
+        """Getter for goal postion"""
         return self.gpos
 
     def get_velocity(self) -> Tuple[float, float, float]:
-        """Gets agent velocity vector.
+        """Getter agent velocity vector.
 
         Returns:
             Tuple[float, float, float]: (agent x velocity, agent y velocity, agent angular velocity)
@@ -133,7 +133,7 @@ class Agent:
         return self.vx, self.vy, self.w
 
     def set_velocity(self, velocity: Tuple[float, ...]):
-        """Sets agent linear and angular velocity.
+        """Setter for agent linear and angular velocity.
 
         Args:
             velocity (Tuple[int, int]): (agent x velocity, agent y velocity, agent angular velocity)
@@ -177,14 +177,13 @@ class Agent:
         return x_pos, y_pos, theta
 
     def fix(self, base: Union[int, float], mod: Union[int, float]) -> Union[int, float]:
-        """Fix input x to be in range [0:mod-1].
+        """Change `base` rane to be [0:mod[.
 
-        Args:
-            base (Union[int, float]): input range
-            mod (int): modulus
+        For example, if `base` is an angle and `mod` is 2*pi, then we want
+        to ensure that the angle is always in the range [0:mod[.
 
-        Returns:
-            Union[int, float]: Input with desired range
+        Since Python does not support modulus of floating/negative numbers,
+        the modulus is implemented manually.
         """
         while base < 0:
             base += mod
@@ -220,7 +219,7 @@ class Agent:
         self.w = action.w
 
     def is_overlapped(self, obstacle: SingleObstacle, check_target: str = "agent"):
-        """Checks if overlap between the agent/goal and an obstacle.
+        """Checks if there is an overlap between the agent/goal and a given obstacle.
 
         Args:
             obstacle (SingleObstacle): input obstalce to check overlap with

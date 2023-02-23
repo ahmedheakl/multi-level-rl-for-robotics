@@ -47,7 +47,7 @@ class Position(Generic[T]):
         return np.cross(current.get_coords(), other.get_coords()).item()
 
     def triangle_cross(self, left_pos: TPosition, right_pos: TPosition) -> T:
-        """Triangular cross product between current points and two other points"""
+        """Triangular cross product between current point and two other points"""
         left_diff = left_pos - self
         right_diff = right_pos - self
         return np.cross(left_diff.get_coords(), right_diff.get_coords()).item()

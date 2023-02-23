@@ -5,7 +5,7 @@ import unittest
 from highrl.utils.teacher_checker import (
     get_region_coordinates,
     check_valid_path_existance,
-    check_if_point_inside_polygen,
+    is_point_inside_polygen,
     convex_hull_compute,
 )
 from highrl.obstacle.obstacles import Obstacles
@@ -60,8 +60,7 @@ class TeacherCheckerTest(unittest.TestCase):
             [2, 1],
         ]
         value = [
-            check_if_point_inside_polygen(Position[int](p[0], p[1]), coords)
-            for p in points
+            is_point_inside_polygen(Position[int](p[0], p[1]), coords) for p in points
         ]
         expected = [True] * 2 + [False] + [True] * 2 + [False] * 2
         self.assertListEqual(
@@ -86,7 +85,11 @@ class TeacherCheckerTest(unittest.TestCase):
         )
 
     def test_convex_polygen_compute_easy(self):
-        """Testing convex hull main problem"""
+        """Testing convex hull main problem.
+
+        Convex hull means that if we have a set of points, we want to
+        construct the convex polygen with maximum area from these points.
+        """
         points: List[List[int]] = [[0, 0], [0, 2], [2, 2], [1, 1]]
         pos_points = [Position(p[0], p[1]) for p in points]
         value = sorted(convex_hull_compute(pos_points))
