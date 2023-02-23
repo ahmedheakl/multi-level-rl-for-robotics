@@ -87,6 +87,10 @@ class TeacherEnv(Env):
         """Calculates and prints training session results indicating how well the robot performed
         during this session. This is done for every robot trainig session created by the teacher.
         """
+        len_results_str = f"length of results: {len(self.opt.results)}"
+        results_str = f"results: {self.opt.results}"
+        _LOG.debug(len_results_str)
+        _LOG.debug(results_str)
         if len(self.opt.results) <= 0:
             return
 
@@ -100,10 +104,7 @@ class TeacherEnv(Env):
             total_steps += episode_steps
             num_success += success_flag
         self.robot_metrics.success_flag = num_success > 0
-        len_results_str = f"\nlength of results: {len(self.opt.results)}"
-        results_str = f"\nresults: {self.opt.results}"
-        _LOG.debug(len_results_str)
-        _LOG.debug(results_str)
+
         self.robot_metrics.avg_reward = total_reward / len(self.opt.results)
         self.robot_metrics.avg_episode_steps = total_steps / len(self.opt.results)
         self.robot_metrics.success_rate = num_success / len(self.opt.results)
@@ -229,6 +230,13 @@ class TeacherEnv(Env):
             * (self.cfg.diff_increase_factor) ** self.opt.episodes
         )
 
+        train_utils.start_robot_session(
+            args=self.args,
+            cfg=self.cfg,
+            robot_metrics=self.robot_metrics,
+            opt=self.opt,
+        )
+
         # Calculating statistics and rewards
         self._get_robot_metrics()
         self.opt.terminal_state_flag = self.robot_metrics.success_flag and (
@@ -238,13 +246,6 @@ class TeacherEnv(Env):
         if self.opt.terminal_state_flag:
             self.done = True
             self.opt.episodes += 1
-
-        train_utils.start_robot_session(
-            args=self.args,
-            cfg=self.cfg,
-            robot_metrics=self.robot_metrics,
-            opt=self.opt,
-        )
 
         # Flag to advance to next level
         advance_flag = uniform(0, 1) <= self.cfg.advance_probability
