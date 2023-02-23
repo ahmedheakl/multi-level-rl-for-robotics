@@ -16,11 +16,12 @@ Do not forget to specify the output dir for models saving
 
 Version
 ------------------
- - highrl v1.0.0
+ - highrl v1.1.0
 """
 import os
 import argparse
 from time import time
+import logging
 from stable_baselines3.ppo.ppo import PPO
 from stable_baselines3.common.callbacks import CallbackList
 
@@ -29,6 +30,10 @@ from highrl.policy.policy_networks import LinearActorCriticPolicy
 from highrl.utils.parser import parse_args, generate_agents_config, handle_output_dir
 from highrl.callbacks import teacher_callback as t_callback
 from highrl.envs.teacher_env import TeacherEnv
+from highrl.utils.logger import init_logger
+
+init_logger()
+_LOG = logging.getLogger(__name__)
 
 
 def train_teacher(args: argparse.Namespace) -> None:
@@ -119,12 +124,14 @@ def train_teacher(args: argparse.Namespace) -> None:
 def main() -> None:
     """Main script implementation"""
     args = parse_args()
-    print(f">>> Start training {args.env_mode} ... ")
+    _LOG.info("Starting training %s", args.env_mode)
 
     if args.env_mode == "teacher":
         train_teacher(args)
     else:
-        raise NotImplementedError("robot training is not implemented")
+        err_message = "Robot training is not implemented"
+        _LOG.critical(err_message)
+        raise NotImplementedError(err_message)
 
 
 if __name__ == "__main__":

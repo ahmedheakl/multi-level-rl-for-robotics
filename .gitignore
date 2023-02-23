@@ -79,5 +79,5 @@ diff.py
 robot_logs.csv
 runs/
 .mypy_cache/
-
+coloredlogs
 
