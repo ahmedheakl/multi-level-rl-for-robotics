@@ -12,7 +12,7 @@ INF = 256 * 256  # w * h
 
 def get_region_coordinates(
     harmonic_number: int,
-    eps: int,
+    eps: float,
     robot_goal_coords: List[int],
 ) -> List[Position]:
     """Calculates the boundaries for the current harmonic
@@ -125,7 +125,7 @@ def if_there_is_a_path(
     height: int,
     robot_pos: Position[int],
     goal_pos: Position[int],
-) -> bool:
+) -> Tuple[bool, int, int]:
     """Check if the generated env from the teacher has a valid path"""
     delta_x = [-1, -1, -1, 0, 0, 1, 1, 1]
     delta_y = [-1, 0, 1, -1, 1, -1, 0, 1]
@@ -133,11 +133,17 @@ def if_there_is_a_path(
     # Intializing empty map
     # "." represents an empty space in the map
     env_map = []
-    for _ in range(width + 1):
+
+    # Parent list for storing the cell previous
+    parent: List[List[Position[int]]] = []
+    for x_pos in range(width + 1):
         current = []
-        for _ in range(height + 1):
+        current_parent = []
+        for y_pos in range(height + 1):
             current.append(".")
+            current_parent.append(Position[int](x_pos, y_pos))
         env_map.append(current)
+        parent.append(current_parent)
 
     # Filling obstacles spaces with "X" as means
     # of representing occupancy in the map
@@ -159,7 +165,13 @@ def if_there_is_a_path(
 
         # If goal is found, STOP
         if pos == goal_pos:
-            return True
+            max_div_x = 0
+            max_div_y = 0
+            while pos != robot_pos:
+                max_div_x = max(max_div_x, abs(pos.x - robot_pos.x))
+                max_div_y = max(max_div_y, abs(pos.y - robot_pos.y))
+                pos = parent[pos.x][pos.y]
+            return False, max_div_x, max_div_y
 
         # Loop over all directions
         for idx in range(num_dirs):
@@ -173,9 +185,10 @@ def if_there_is_a_path(
                 # to the list of points to be explored.
                 env_map[new_pos.x][new_pos.y] = "X"
                 queue.append(new_pos)
+                parent[new_pos.x][new_pos.y] = pos
 
     # If we reach here, the goal has not been reached
-    return False
+    return False, 0, 0
 
 
 def check_valid_path_existance(
@@ -209,9 +222,9 @@ def check_valid_path_existance(
     # Intializing empty map
     # "." represents an empty space in the map
     env_map = []
-    for _ in range(width + 1):
+    for x_pos in range(width + 1):
         current = []
-        for _ in range(height + 1):
+        for y_pos in range(height + 1):
             current.append(".")
         env_map.append(current)
 
@@ -321,17 +334,18 @@ def convex_hull_difficulty(
     """
     rob_pos = robot.get_position().to_int()
     goal_pos = robot.get_goal_position().to_int()
-    eps = 1
-    if if_there_is_a_path(
+    valid_path, div_x, _ = if_there_is_a_path(
         obstacles,
         width,
         height,
         rob_pos,
         goal_pos,
-    ):
+    )
+    if not valid_path:
         return INF, max(0, len(obstacles.obstacles_list) - 4)
     # Harmonic represents the number of expansions
-    harmonic = 1
+    harmonic: int = 2 * div_x
+    eps: float = 0.5
     while True:
         coords = get_region_coordinates(
             harmonic, eps, [rob_pos.x, rob_pos.y, goal_pos.x, goal_pos.y]
