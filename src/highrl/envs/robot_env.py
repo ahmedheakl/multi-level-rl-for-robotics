@@ -18,10 +18,10 @@ from pose2d import apply_tf_to_vel, inverse_pose2d, apply_tf_to_pose
 
 from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.utils.action import ActionXY
-from highrl.utils.calculations import point_to_point_distance
 from highrl.agents.robot import Robot
 from highrl.obstacle.obstacles import Obstacles
-from highrl.utils.general import Position, configure_robot
+from highrl.utils import Position
+from highrl.utils.general import configure_robot
 from highrl.configs import colors
 from highrl.utils.robot_utils import RobotOpt
 
@@ -84,14 +84,9 @@ class RobotEnv(Env):
 
         new_action = self._to_actionxy_format(action)
 
-        old_distance_to_goal = point_to_point_distance(
-            (self.robot.px, self.robot.py), (self.robot.gx, self.robot.gy)
-        )
+        old_distance_to_goal = self.robot.dist_to_goal()
         self.robot.step(new_action, self.cfg.delta_t)
-        new_distance_to_goal = point_to_point_distance(
-            (self.robot.px, self.robot.py), (self.robot.gx, self.robot.gy)
-        )
-
+        new_distance_to_goal = self.robot.dist_to_goal()
         self.opt.reward = (
             self.__get_reward()
             + (old_distance_to_goal - new_distance_to_goal) * self.cfg.progress_discount
@@ -194,7 +189,7 @@ class RobotEnv(Env):
             dict: robot observation
         """
         robot = self.robot
-        lidar_pos = np.array([robot.px, robot.py, robot.theta], dtype=np.float32)
+        lidar_pos = np.array([robot.x_pos, robot.y_pos, robot.theta], dtype=np.float32)
         ranges = np.ones((self.cfg.n_angles,), dtype=np.float32)
         ranges.fill(25.0)
         angles = (
@@ -210,11 +205,11 @@ class RobotEnv(Env):
         self.opt.lidar_scan = ranges
         self.opt.lidar_angles = angles
 
-        baselink_in_world = np.array([robot.px, robot.py, robot.theta])
+        baselink_in_world = np.array([robot.x_pos, robot.y_pos, robot.theta])
         world_in_baselink = inverse_pose2d(baselink_in_world)
         robotvel_in_world = np.array([robot.vx, robot.vy, 0])
         robotvel_in_baselink = apply_tf_to_vel(robotvel_in_world, world_in_baselink)
-        goal_in_world = np.array([robot.gx, robot.gy, 0])
+        goal_in_world = np.array([robot.gpos.x, robot.gpos.y, 0])
         goal_in_baselink = apply_tf_to_pose(goal_in_world, world_in_baselink)
         robotstate_obs = np.hstack([goal_in_baselink[:2], robotvel_in_baselink])
 
@@ -258,7 +253,7 @@ class RobotEnv(Env):
             self.transform = rendering.Transform()
             self.image_lock = threading.Lock()
 
-        def make_circle(center: Tuple[int, int], radius: int, res=10) -> np.ndarray:
+        def make_circle(center: Tuple[float, float], radius: int, res=10) -> np.ndarray:
             """Create circle points
 
             Args:
@@ -291,8 +286,8 @@ class RobotEnv(Env):
             gl.glVertex3f(0, 0, 0)
             gl.glEnd()
             # Transform
-            rob_x = self.robot.px
-            rob_y = self.robot.py
+            rob_x = self.robot.x_pos
+            rob_y = self.robot.y_pos
             self.transform.enable()  # applies T_sim_in_viewport to below coords (all in sim frame)
             # Map closed obstacles ---
             self.obstacle_vertices = self.opt.contours
@@ -304,8 +299,8 @@ class RobotEnv(Env):
                 gl.glEnd()
             # Agent body
             for idx, agent in enumerate([self.robot]):
-                agent_x = agent.px
-                agent_y = agent.py
+                agent_x = agent.x_pos
+                agent_y = agent.y_pos
                 angle = self.robot.fix(agent.theta + np.pi / 2, 2 * np.pi)
                 agent_r = agent.radius
                 # Agent as Circle
@@ -333,8 +328,8 @@ class RobotEnv(Env):
                 gl.glVertex3f(xleft, yleft, 0)
                 gl.glEnd()
             # Goal
-            xgoal = self.robot.gx
-            ygoal = self.robot.gy
+            xgoal = self.robot.gpos.x
+            ygoal = self.robot.gpos.y
             rgoal = self.robot.goal_radius
             # Goal markers
             gl.glBegin(gl.GL_POLYGON)
