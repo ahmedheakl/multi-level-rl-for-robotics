@@ -16,7 +16,7 @@ Do not forget to specify the output dir for models saving
 
 Version
 ------------------
- - highrl v1.1.0
+ - highrl v1.2.0
 """
 import os
 import argparse
