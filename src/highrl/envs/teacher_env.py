@@ -87,8 +87,8 @@ class TeacherEnv(Env):
         """Calculates and prints training session results indicating how well the robot performed
         during this session. This is done for every robot trainig session created by the teacher.
         """
-        len_results_str = f"length of results: {len(self.opt.results)}"
-        results_str = f"results: {self.opt.results}"
+        len_results_str = f"Length of results: {len(self.opt.results)}"
+        results_str = f"Results: {self.opt.results}"
         _LOG.debug(len_results_str)
         _LOG.debug(results_str)
         if len(self.opt.results) <= 0:

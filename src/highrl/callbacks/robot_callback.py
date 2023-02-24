@@ -210,8 +210,10 @@ class RobotEvalCallback(BaseCallback):
                 _LOG.info(stat_message)
             except AttributeError:
                 _LOG.error("Could not save")
+            else:
+                _LOG.error("An error occured while saving the model")
         else:
-            _LOG.error("An error occured while saving the model")
+            _LOG.error("No save path found")
 
 
 def save_logs(training_logs: DataFrame, logpath: Optional[str], verbose: int) -> None:
@@ -302,16 +304,14 @@ def run_n_episodes(
         DataFrame: Logs for evaluation episodes.
     """
     env.opt.episode_statistics["scenario"] = "robot_env_test"
-    i = 0
-    for _ in range(num_eposides):
+    for episode in range(num_eposides):
         obs = env.reset()
         done = False
 
         while not done:
             action, _ = model.predict(obs, deterministic=True)
             obs, _, done, _ = env.step(action)
-            _LOG.debug("test episode %s", i)
-        i += 1
+            _LOG.debug("test episode %i", episode)
         _LOG.debug(env.opt.episode_statistics)
     return env.opt.episode_statistics
 
