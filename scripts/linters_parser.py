@@ -7,6 +7,7 @@ MYPY_STATUS_NAME = "mypy_status.txt"
 COVERAGE_FILE_NAME = "coverage.log"
 COVERAGE_STATUS_NAME = "coverage_status.log"
 LINTERS_FILE_NAME = "linters.txt"
+LIBRARY_NAME = "HighRL"
 
 
 def get_pylint_data() -> str:
@@ -40,6 +41,7 @@ def get_mypy_data() -> None:
         stat_data = mypy_file.readline()
 
     mypy_status: bool = int(stat_data) == 0
+    mypy_data: str = " "
     if mypy_status:
         mypy_data = "* Mypy: ran :ok:"
     else:
@@ -74,7 +76,7 @@ def get_coverage_details() -> str:
 
 def main() -> None:
     """Main script for collecting stats"""
-    linters_data = "#### Linters stats for Hatchi PR\n"
+    linters_data = f"#### Linters stats for {LIBRARY_NAME} PR\n"
     linters_data += get_pylint_data() + "\n\n"
     linters_data += get_mypy_data() + "\n\n"
     linters_data += get_coverage_details()
