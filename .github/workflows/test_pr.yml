@@ -18,11 +18,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest pylint mypy pytest-cov coverage
+          pip install -r requirements.txt
           pip install -e .
 
       - name: Test with pytest
         run: |
-          python3 -m coverage run --branch --source test -m pytest -v
+          pytest --cov=highrl test
           echo "${PIPESTATUS[0]}" |& tee coverage_status.log
           python3 -m coverage report --ignore-errors --show-missing |& tee coverage.log
 
