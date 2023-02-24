@@ -9,9 +9,9 @@ goal_radius = 2
 [timesteps]
 delta_t = 0.2
 # 1e3
-max_episode_steps = 100
+max_episode_steps = 1000
 # 1e5
-max_session_steps = 200
+max_session_steps = 2000
 
 [lidar]
 n_angles = 1080
@@ -82,7 +82,7 @@ n_robot_eval_episodes = 5
 save_model_freq = 1
 
 [timesteps]
-max_sessions = 100
+max_sessions = 30
 """
 
 # ---------------------EVALUATIONS CONFIGURATIONS-----------------#
@@ -107,9 +107,9 @@ n_small = 9
 [timesteps]
 delta_t = 1
 # 1e3
-max_episode_steps = 300
+max_episode_steps = 1000
 # 1e5
-max_session_steps = 300
+max_session_steps = 1000
 
 [lidar]
 n_angles = 1080

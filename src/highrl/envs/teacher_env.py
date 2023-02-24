@@ -246,12 +246,14 @@ class TeacherEnv(Env):
         if self.opt.terminal_state_flag:
             self.done = True
             self.opt.episodes += 1
+            self.opt.residual_steps = self.opt.time_steps
 
         # Flag to advance to next level
         advance_flag = uniform(0, 1) <= self.cfg.advance_probability
-        self.collect_stats()
 
         self.opt.reward = teach_utils.get_reward(self.opt, self.cfg, self.robot_metrics)
+
+        self.collect_stats()
 
         self.robot_metrics.level = (
             self.robot_metrics.level + advance_flag

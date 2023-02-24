@@ -72,11 +72,23 @@ class Position(Generic[T]):
             return self.y < other.y
         return self.x < other.x
 
+    def __le__(self: TPosition, other: TPosition) -> bool:
+        """Overloading less than or equal operator"""
+        if self.x == other.x:
+            return self.y <= other.y
+        return self.x <= other.x
+
     def __gt__(self: TPosition, other: TPosition) -> bool:
         """Overloading greater than operator"""
         if self.x == other.x:
             return self.y > other.y
         return self.x > other.x
+
+    def __ge__(self: TPosition, other: TPosition) -> bool:
+        """Overloading greater than or equal operator"""
+        if self.x == other.x:
+            return self.y >= other.y
+        return self.x >= other.x
 
     def to_int(self):
         """Convert current position instance to int"""
