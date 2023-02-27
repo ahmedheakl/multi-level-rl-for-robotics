@@ -6,7 +6,7 @@ from prettytable import PrettyTable
 
 from highrl.utils.general import TeacherConfigs
 from highrl.utils.training_utils import TeacherMetrics, RobotMetrics
-from highrl.utils.teacher_checker import convex_hull_difficulty
+from highrl.utils.teacher_checker import compute_difficulty as convex_difficulty
 from highrl.obstacle import SingleObstacle
 from highrl.utils.calculations import neg_exp
 from highrl.utils import Position
@@ -39,7 +39,7 @@ def compute_difficulty(
         is_passed_inf_diff = True
 
     else:
-        opt.difficulty_area, opt.difficulty_obs = convex_hull_difficulty(
+        opt.difficulty_area, opt.difficulty_obs = convex_difficulty(
             opt.robot_env.obstacles,
             opt.robot_env.robot,
             opt.width,
