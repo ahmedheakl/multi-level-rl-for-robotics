@@ -9,9 +9,9 @@ goal_radius = 2
 [timesteps]
 delta_t = 0.2
 # 1e3
-max_episode_steps = 1000
+max_episode_steps = 100
 # 1e5
-max_session_steps = 2000
+max_session_steps = 200
 
 [lidar]
 n_angles = 1080
@@ -82,34 +82,33 @@ n_robot_eval_episodes = 5
 save_model_freq = 1
 
 [timesteps]
-max_sessions = 30
+max_sessions = 10
 """
 
 # ---------------------EVALUATIONS CONFIGURATIONS-----------------#
 eval_config_str = """
+[eval]
+n_eval_episodes = 4
+robot_init_x_pos = 10
+robot_init_y_pos = 10
+goal_x_pos = 50
+goal_y_pos = 100
+big_obs_count = 2
+med_obs_count = 3
+sml_obs_count = 5
+
 [dimensions]
 width = 256
 height = 256
 robot_radius = 5
 goal_radius = 2
 
-[positions]
-robot_initial_px = 50
-robot_initial_py = 50
-robot_goal_px = 900
-robot_goal_py = 700
-
-[obstacles]
-n_hard = 5
-n_,medium = 7
-n_small = 9
-
 [timesteps]
-delta_t = 1
+delta_t = 0.2
 # 1e3
-max_episode_steps = 1000
+max_episode_steps = 100
 # 1e5
-max_session_steps = 1000
+max_session_steps = 200
 
 [lidar]
 n_angles = 1080

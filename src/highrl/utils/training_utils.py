@@ -120,14 +120,23 @@ def start_robot_session(
     robot_max_steps_callback = robot_callback.RobotMaxStepsCallback(
         max_steps=cfg.max_session_timesteps, verbose=0
     )
+    # eval_callback = robot_callback.RobotEvalCallback(
+    #     eval_env=opt.eval_env,
+    #     n_eval_episodes=cfg.n_robot_eval_episodes,
+    #     logpath=eval_logpath,
+    #     savepath=eval_model_save_path,
+    #     eval_frequency=cfg.max_session_timesteps,
+    #     verbose=1,
+    #     render=cfg.render_eval,
+    # )
     eval_callback = robot_callback.RobotEvalCallback(
         eval_env=opt.eval_env,
-        n_eval_episodes=cfg.n_robot_eval_episodes,
+        n_eval_episodes=opt.eval_env.cfg.n_eval_episodes,
         logpath=eval_logpath,
         savepath=eval_model_save_path,
         eval_frequency=cfg.max_session_timesteps,
         verbose=1,
-        render=cfg.render_eval,
+        render=1,
     )
     successes_callback = robot_callback.RobotSuccessesCallback(
         num_successes=cfg.compute_success(opt.episodes)
