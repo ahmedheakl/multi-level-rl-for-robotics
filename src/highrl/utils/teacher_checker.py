@@ -369,8 +369,10 @@ def convex_hull_difficulty(
 
                 return robot.dist_to_goal(), 0
             return get_area_of_convex_polygen(convex_polygen), num_overlap_obstacles
-        max_x, max_y = np.max(np.array(coords), axis=0)
-        min_x, min_y = np.min(np.array(coords), axis=0)
+        max_x = np.max(np.array(coords.x), axis=0)
+        max_y = np.max(np.array(coords.y), axis=0)
+        min_x = np.min(np.array(coords.x), axis=0)
+        min_y = np.min(np.array(coords.y), axis=0)
         harmonic += 1
         if max_x <= 0 or max_y <= 0:
             break
