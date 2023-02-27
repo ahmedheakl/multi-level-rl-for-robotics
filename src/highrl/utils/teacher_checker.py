@@ -153,7 +153,9 @@ def get_area_of_convex_polygen(points: List[Position[int]]) -> int:
 
 
 def sample_line_points(
-    left_pos: Position, right_pos: Position, spacer: int = 1
+    left_pos: Position,
+    right_pos: Position,
+    spacer: int = 1,
 ) -> List[Position]:
     """Sample points from a line provided only two points defining the line
 
@@ -168,7 +170,7 @@ def sample_line_points(
     """
     assert isinstance(spacer, int), "Spacer must be an integer"
     sampled_points: List[Position[int]] = []
-    slope = (right_pos.y - left_pos.y) / (right_pos.x - left_pos.x)
+    slope = (right_pos.y - left_pos.y) / (right_pos.x - left_pos.x + 1e-3)
     intercept = right_pos.y - slope * right_pos.x
     min_x = min(left_pos.x, right_pos.x)
     max_x = max(left_pos.x, right_pos.x)

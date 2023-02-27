@@ -1,6 +1,7 @@
 """Utilties implementation for training the teacher agent"""
 from typing import Tuple, List
 import math
+import time
 import logging
 from prettytable import PrettyTable
 
@@ -39,12 +40,15 @@ def compute_difficulty(
         is_passed_inf_diff = True
 
     else:
+        _LOG.warning("Computing difficulty")
+        first_time = time.time()
         opt.difficulty_area, opt.difficulty_obs = convex_difficulty(
             opt.robot_env.obstacles,
             opt.robot_env.robot,
             opt.width,
             opt.height,
         )
+        _LOG.warning("Computed difficulty in %i seconds", time.time() - first_time)
         is_passed_inf_diff = opt.difficulty_area >= infinite_difficulty
 
     _LOG.info("Goal/robot overlap obstacles: %s", is_goal_or_robot_overlap_obstacles)

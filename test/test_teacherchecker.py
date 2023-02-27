@@ -2,9 +2,14 @@
 from typing import List
 import unittest
 
-from highrl.utils.teacher_checker import convex_hull_compute, get_path_bfs
+from highrl.utils.teacher_checker import (
+    convex_hull_compute,
+    get_path_bfs,
+    compute_difficulty,
+)
 from highrl.utils import Position
 from highrl.obstacle import SingleObstacle, Obstacles
+from highrl.agents.robot import Robot
 
 
 class TeacherCheckerTest(unittest.TestCase):
@@ -58,3 +63,13 @@ class TeacherCheckerTest(unittest.TestCase):
             self.assertEqual(
                 expected[i], val, msg=f"\nExpected:\n{expected}\nFound:\n{value}"
             )
+
+    def test_zero_div_in_slop_calc(self) -> None:
+        """Testing for the zero division error in calculating the difficulty"""
+        obstacles = Obstacles()
+        rpos = Position[int](2, 2)
+        gpos = Position[int](2, 3)
+        robot = Robot(rpos, gpos)
+
+        diff, _ = compute_difficulty(obstacles, robot, 5, 5)
+        self.assertIsNot(diff, None)
