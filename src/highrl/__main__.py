@@ -52,7 +52,7 @@ def train_teacher(args: argparse.Namespace) -> None:
         robot_config.set("render", "render_each", value=args.render_each)
 
     if args.render_each_eval > -1:
-        robot_config.set("render", "render_each_eval", value=args.render_each_eval)
+        eval_config.set("render", "render_each", value=args.render_each_eval)
 
     if args.lidar_mode != "none":
         teacher_config.set("env", "lidar_mode", value=str(args.lidar_mode))

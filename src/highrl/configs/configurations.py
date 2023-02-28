@@ -91,11 +91,14 @@ eval_config_str = """
 n_eval_episodes = 4
 robot_init_x_pos = 10
 robot_init_y_pos = 10
-goal_x_pos = 50
-goal_y_pos = 100
+goal_x_pos = 240
+goal_y_pos = 240
 big_obs_count = 2
-med_obs_count = 3
-sml_obs_count = 5
+med_obs_count = 4
+sml_obs_count = 4
+big_obs_dim = 40
+med_obs_dim = 25
+sml_obs_dim = 10
 
 [dimensions]
 width = 256

@@ -27,43 +27,67 @@ class RobotEvalEnv(RobotEnv):
         med_obs_count = config.getint("eval", "med_obs_count")
         sml_obs_count = config.getint("eval", "sml_obs_count")
 
-        big_obs_pos = config.get("eval", "big_obs_pos")
-        med_obs_pos = config.get("eval", "med_obs_pos")
-        sml_obs_pos = config.get("eval", "sml_obs_pos")
+        # big_obs_pos = config.get("eval", "big_obs_pos")
+        # med_obs_pos = config.get("eval", "med_obs_pos")
+        # sml_obs_pos = config.get("eval", "sml_obs_pos")
 
-        obstacles = self.generate_eval_obstacles()
+        big_obs_pos = [(180, 180), (125, 125)]
+        med_obs_pos = [(125, 70), (70, 125), (200, 50), (150, 30)]
+        sml_obs_pos = [(30, 10), (10, 50), (100, 80), (20, 170)]
+
+        big_obs_dim = config.getint("eval", "big_obs_dim")
+        med_obs_dim = config.getint("eval", "med_obs_dim")
+        sml_obs_dim = config.getint("eval", "sml_obs_dim")
+
+        obstacles = self.generate_eval_obstacles(
+            big_obs_count,
+            med_obs_count,
+            sml_obs_count,
+            big_obs_pos,
+            med_obs_pos,
+            sml_obs_pos,
+            big_obs_dim,
+            med_obs_dim,
+            sml_obs_dim,
+        )
 
         for obstacle in obstacles:
             self.obstacles.obstacles_list.append(obstacle)
 
-        def generate_eval_obstacles(self):
-            obstacles = []
-            for big_obs_index in range(big_obs_count):
-                obs_x = big_obs_pos[big_obs_index][0]
-                obs_y = big_obs_pos[big_obs_index][1]
-                obs_w = big_obs_dim
-                obs_h = big_obs_dim
-                obstacles.append(SingleObstacle(obs_x, obs_y, obs_w, obs_h))
+    def generate_eval_obstacles(
+        self,
+        big_obs_count,
+        med_obs_count,
+        sml_obs_count,
+        big_obs_pos,
+        med_obs_pos,
+        sml_obs_pos,
+        big_obs_dim,
+        med_obs_dim,
+        sml_obs_dim,
+    ):
+        obstacles = []
+        for big_obs_index in range(big_obs_count):
+            obs_x = big_obs_pos[big_obs_index][0]
+            obs_y = big_obs_pos[big_obs_index][1]
+            obs_w = big_obs_dim
+            obs_h = big_obs_dim
+            obstacles.append(SingleObstacle(obs_x, obs_y, obs_w, obs_h))
 
-            for med_obs_index in range(med_obs_count):
-                obs_x = med_obs_pos(med_obs_index).x
-                obs_y = med_obs_pos(med_obs_index).y
-                obs_w = med_obs_dim
-                obs_h = med_obs_dim
-                obstacles.append(SingleObstacle(obs_x, obs_y, obs_w, obs_h))
+        for med_obs_index in range(med_obs_count):
+            obs_x = med_obs_pos[med_obs_index][0]
+            obs_y = med_obs_pos[med_obs_index][1]
+            obs_w = med_obs_dim
+            obs_h = med_obs_dim
+            obstacles.append(SingleObstacle(obs_x, obs_y, obs_w, obs_h))
 
-            for sml_obs_index in range(sml_obs_count):
-                obs_x = sml_obs_pos(sml_obs_index).x
-                obs_y = sml_obs_pos(sml_obs_index).y
-                obs_w = sml_obs_dim
-                obs_h = sml_obs_dim
-                obstacles.append(SingleObstacle(obs_x, obs_y, obs_w, obs_h))
-
-                x_func = x_func // opt.width
-                w_func = w_func // opt.width
-                y_func = y_func // opt.height
-                h_func = h_func // opt.height
-            return obstacles
+        for sml_obs_index in range(sml_obs_count):
+            obs_x = sml_obs_pos[sml_obs_index][0]
+            obs_y = sml_obs_pos[sml_obs_index][1]
+            obs_w = sml_obs_dim
+            obs_h = sml_obs_dim
+            obstacles.append(SingleObstacle(obs_x, obs_y, obs_w, obs_h))
+        return obstacles
 
 
 # class RobotEvalEnv(RobotEnv):
