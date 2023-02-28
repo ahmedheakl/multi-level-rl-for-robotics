@@ -68,6 +68,7 @@ class RobotEnv(Env):
         self.opt = RobotOpt()
         self.opt.set_tb_writer(self.tensorboard_dir)
         self.robot.set_radius(self.cfg.robot_radius, self.cfg.goal_radius)
+        self.add_border_obstacles()
 
     def step(self, action: np.ndarray) -> Tuple:
         """Step into a new state using an action given by the robot model
@@ -172,7 +173,7 @@ class RobotEnv(Env):
         self.robot.set_position(robot_pos)
         self.robot.set_goal_position(goal_pos)
 
-    def add_boarder_obstacles(self) -> None:
+    def add_border_obstacles(self) -> None:
         """Creates border obstacles to limit the allowable navigation area"""
         # fmt: off
         self.obstacles = Obstacles([
