@@ -1,5 +1,18 @@
 """Configurations for training and inference"""
 robot_config_str = """
+[eval]
+n_eval_episodes = 4
+robot_init_x_pos = 10
+robot_init_y_pos = 10
+goal_x_pos = 240
+goal_y_pos = 240
+eval_big_obs_count = 2
+eval_med_obs_count = 4
+eval_sml_obs_count = 4
+eval_big_obs_dim = 40
+eval_med_obs_dim = 25
+eval_sml_obs_dim = 10
+
 [dimensions]
 width = 256
 height = 256
@@ -9,9 +22,9 @@ goal_radius = 2
 [timesteps]
 delta_t = 0.2
 # 1e3
-max_episode_steps = 1000
+max_episode_steps = 100
 # 1e5
-max_session_steps = 2000
+max_session_steps = 200
 
 [lidar]
 n_angles = 1080
@@ -30,7 +43,7 @@ alpha = 0.4
 progress_discount = 0.4
 
 [render]
-render_each = 1
+render_each = 10
 save_to_file = False
 
 [env]
@@ -40,6 +53,7 @@ epsilon = 1
 collect_statistics = True
 scenario = train
 """
+
 
 # ---------------------TEAHCER CONFIGURATIONS-----------------#
 teacher_config_str = """
@@ -82,34 +96,36 @@ n_robot_eval_episodes = 5
 save_model_freq = 1
 
 [timesteps]
-max_sessions = 30
+max_sessions = 10
 """
 
 # ---------------------EVALUATIONS CONFIGURATIONS-----------------#
 eval_config_str = """
+[eval]
+n_eval_episodes = 4
+robot_init_x_pos = 10
+robot_init_y_pos = 10
+goal_x_pos = 240
+goal_y_pos = 240
+eval_big_obs_count = 2
+eval_med_obs_count = 4
+eval_sml_obs_count = 4
+eval_big_obs_dim = 40
+eval_med_obs_dim = 25
+eval_sml_obs_dim = 10
+
 [dimensions]
 width = 256
 height = 256
 robot_radius = 5
 goal_radius = 2
 
-[positions]
-robot_initial_px = 50
-robot_initial_py = 50
-robot_goal_px = 900
-robot_goal_py = 700
-
-[obstacles]
-n_hard = 5
-n_,medium = 7
-n_small = 9
-
 [timesteps]
-delta_t = 1
+delta_t = 0.2
 # 1e3
-max_episode_steps = 1000
+max_episode_steps = 100
 # 1e5
-max_session_steps = 1000
+max_session_steps = 200
 
 [lidar]
 n_angles = 1080
@@ -128,7 +144,7 @@ alpha = 0.4
 progress_discount = 0.4
 
 [render]
-render_each = 1
+render_each = 10
 save_to_file = False
 
 [env]
