@@ -149,11 +149,7 @@ def get_reward(
     cfg: TeacherConfigs,
     robot_metrics: RobotMetrics,
 ) -> float:
-    """Calculate current reward
-
-    Returns:
-        float: current reward
-    """
+    """Calculate teacher reward"""
     dfc_fact = opt.difficulty_area / opt.desired_difficulty
     rwd_fact = robot_metrics.avg_reward / cfg.max_robot_episode_reward
 

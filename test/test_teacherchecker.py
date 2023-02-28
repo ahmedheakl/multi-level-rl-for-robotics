@@ -1,5 +1,6 @@
 """Tests for teacher checker"""
 from typing import List
+import time
 import unittest
 
 from highrl.utils.teacher_checker import (
@@ -73,3 +74,54 @@ class TeacherCheckerTest(unittest.TestCase):
 
         diff, _ = compute_difficulty(obstacles, robot, 5, 5)
         self.assertIsNot(diff, None)
+
+    def test_execution_time(self) -> None:
+        """Testing the time that the checker function has to run.
+        Since this module is called > 400 time during the training,
+        it should be as fast as possible. Hence, we need to make sure
+        that this function does not take more than x-seconds per run."""
+
+        max_expected_time = 25.0  # Measure in seconds
+        env_size = 256
+        obstacles = Obstacles(
+            [SingleObstacle(30, 30, 100, 100), SingleObstacle(130, 130, 100, 100)]
+        )
+        robot = Robot(Position[float](0.2, 0.2), Position[float](253.8, 254.7))
+
+        prev_time = time.time()
+        diff, _ = compute_difficulty(obstacles, robot, env_size, env_size)
+        total_time = time.time() - prev_time
+        self.assertLess(
+            diff,
+            env_size * env_size,
+            msg="Difficulty should not be maximum",
+        )
+        self.assertLess(
+            total_time,
+            max_expected_time,
+            msg="Time limit exceeded in difficulty checker\n"
+            + f"Expected {max_expected_time}, Found: {total_time:.2f}",
+        )
+
+    def test_execution_time_no_path(self) -> None:
+        """Testing the time that the checker function has to run
+        if the provided environment does not have a valid path."""
+        max_expected_time = 25.0  # Measure in seconds
+        env_size = 256
+        obstacles = Obstacles([SingleObstacle(0, 0, env_size, env_size)])
+        robot = Robot(Position[float](0.2, 0.2), Position[float](253.8, 254.7))
+
+        prev_time = time.time()
+        diff, _ = compute_difficulty(obstacles, robot, env_size, env_size)
+        total_time = time.time() - prev_time
+        self.assertEqual(
+            diff,
+            env_size * env_size,
+            msg="Difficulty should be maximum",
+        )
+        self.assertLess(
+            total_time,
+            max_expected_time,
+            msg="Time limit exceeded in difficulty checker\n"
+            + f"Expected {max_expected_time}, Found: {total_time:.2f}",
+        )
