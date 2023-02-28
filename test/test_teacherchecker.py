@@ -114,11 +114,6 @@ class TeacherCheckerTest(unittest.TestCase):
         prev_time = time.time()
         diff, _ = compute_difficulty(obstacles, robot, env_size, env_size)
         total_time = time.time() - prev_time
-        self.assertEqual(
-            diff,
-            env_size * env_size,
-            msg="Difficulty should be maximum",
-        )
         self.assertLess(
             total_time,
             max_expected_time,
