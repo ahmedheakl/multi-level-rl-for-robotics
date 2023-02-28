@@ -45,9 +45,9 @@ class RobotEvalEnv(RobotEnv):
         big_obs_count: int,
         med_obs_count: int,
         sml_obs_count: int,
-        big_obs_pos: List[Tuple(int)],
-        med_obs_pos: List[Tuple(int)],
-        sml_obs_pos: List[Tuple(int)],
+        big_obs_pos: List[Tuple[int, int]],
+        med_obs_pos: List[Tuple[int, int]],
+        sml_obs_pos: List[Tuple[int, int]],
         big_obs_dim: int,
         med_obs_dim: int,
         sml_obs_dim: int,
@@ -58,9 +58,9 @@ class RobotEvalEnv(RobotEnv):
             big_obs_count (int): number of big type obstacles
             med_obs_count (int): number of medium type obstacles
             sml_obs_count (int): number of small type obstacles
-            big_obs_pos (List[Tuple(int)]): List cotaining a tuple of x and y positions for every big typed obstacles
-            med_obs_pos (List[Tuple(int)]): List cotaining a tuple of x and y positions for every medium typed obstacles
-            sml_obs_pos (List[Tuple(int)]): List cotaining a tuple of x and y positions for every small typed obstacles
+            big_obs_pos (List[Tuple[int, int]]): List cotaining a tuple of x and y positions for every big typed obstacles
+            med_obs_pos (List[Tuple[int, int]]): List cotaining a tuple of x and y positions for every medium typed obstacles
+            sml_obs_pos (List[Tuple[int, int]]): List cotaining a tuple of x and y positions for every small typed obstacles
             big_obs_dim (int): size of big obstacles
             med_obs_dim (int): size of medium obstacles
             sml_obs_dim (int): size of small obstacles
