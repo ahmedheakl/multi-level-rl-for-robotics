@@ -108,3 +108,7 @@ class Position(Generic[T]):
     def __repr__(self) -> str:
         """Overloading string dunder method"""
         return f"Position(x={self.x}, y={self.y})"
+
+    def __ne__(self: TPosition, other: TPosition) -> bool:
+        """Overloading not equal operator"""
+        return self.x != other.x or self.y != other.y
