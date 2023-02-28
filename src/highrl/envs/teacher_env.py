@@ -191,8 +191,6 @@ class TeacherEnv(Env):
             position_action, self.opt, self.action_space_names
         )
 
-        self.opt.robot_env.add_boarder_obstacles()
-
         obstacles = teach_utils.get_obstacles_from_action(action, self.opt, self.cfg)
         for obstacle in obstacles:
             self.opt.robot_env.obstacles.obstacles_list.append(obstacle)

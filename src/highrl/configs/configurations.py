@@ -1,5 +1,18 @@
 """Configurations for training and inference"""
 robot_config_str = """
+[eval]
+n_eval_episodes = 4
+robot_init_x_pos = 10
+robot_init_y_pos = 10
+goal_x_pos = 240
+goal_y_pos = 240
+eval_big_obs_count = 2
+eval_med_obs_count = 4
+eval_sml_obs_count = 4
+eval_big_obs_dim = 40
+eval_med_obs_dim = 25
+eval_sml_obs_dim = 10
+
 [dimensions]
 width = 256
 height = 256
@@ -30,7 +43,7 @@ alpha = 0.4
 progress_discount = 0.4
 
 [render]
-render_each = 1
+render_each = 10
 save_to_file = False
 
 [env]
@@ -40,6 +53,7 @@ epsilon = 1
 collect_statistics = True
 scenario = train
 """
+
 
 # ---------------------TEAHCER CONFIGURATIONS-----------------#
 teacher_config_str = """
@@ -93,12 +107,12 @@ robot_init_x_pos = 10
 robot_init_y_pos = 10
 goal_x_pos = 240
 goal_y_pos = 240
-big_obs_count = 2
-med_obs_count = 4
-sml_obs_count = 4
-big_obs_dim = 40
-med_obs_dim = 25
-sml_obs_dim = 10
+eval_big_obs_count = 2
+eval_med_obs_count = 4
+eval_sml_obs_count = 4
+eval_big_obs_dim = 40
+eval_med_obs_dim = 25
+eval_sml_obs_dim = 10
 
 [dimensions]
 width = 256
@@ -130,7 +144,7 @@ alpha = 0.4
 progress_discount = 0.4
 
 [render]
-render_each = 1
+render_each = 10
 save_to_file = False
 
 [env]
