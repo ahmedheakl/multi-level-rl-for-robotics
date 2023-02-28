@@ -155,27 +155,27 @@ def get_area_of_convex_polygen(points: List[Position[int]]) -> int:
 def sample_line_points(
     left_pos: Position,
     right_pos: Position,
-    spacer: int = 1,
+    step_size: int = 1,
 ) -> List[Position]:
     """Sample points from a line provided only two points defining the line
 
     Args:
         left_pos (Position): First point on the line
         right_pos (Position): Second point on the line
-        spacer (int): Space between two consecutive samples on the x-axis.
+        step_size (int): Space between two consecutive samples on the x-axis.
         Defaults to 1.
 
     Returns:
         List[Position]: Sampled points for the line
     """
-    assert isinstance(spacer, int), "Spacer must be an integer"
+    assert isinstance(step_size, int), "step_size must be an integer"
     sampled_points: List[Position[int]] = []
     slope = (right_pos.y - left_pos.y) / (right_pos.x - left_pos.x + 1e-3)
     intercept = right_pos.y - slope * right_pos.x
     min_x = min(left_pos.x, right_pos.x)
     max_x = max(left_pos.x, right_pos.x)
 
-    for sample_x in range(min_x, max_x + 1, spacer):
+    for sample_x in range(min_x, max_x + 1, step_size):
         sample_y = int(slope * sample_x + intercept)
         sampled_points.append(Position[int](sample_x, sample_y))
 
@@ -210,7 +210,9 @@ def compute_difficulty(
     if not is_valid:
         return INF, max(0, len(obstacles.obstacles_list) - 4)
 
-    robot_to_goal_points = sample_line_points(rob_pos, goal_pos, spacer=1)
+    robot_to_goal_points = sample_line_points(rob_pos, goal_pos, step_size=1)
+
+    # Add points sampled from the line between the goal and robot to the path
     path.extend(robot_to_goal_points)
 
     convex_hull_points = convex_hull_compute(path)
