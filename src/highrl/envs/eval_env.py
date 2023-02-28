@@ -37,8 +37,7 @@ class RobotEvalEnv(RobotEnv):
             self.cfg.eval_sml_obs_dim,
         )
 
-        for obstacle in obstacles:
-            self.obstacles.obstacles_list.append(obstacle)
+        self.obstacles.add_obstacles(obstacles)
 
     def generate_eval_obstacles(
         self,
