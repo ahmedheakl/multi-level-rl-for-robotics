@@ -4,6 +4,8 @@ from typing import List, Tuple
 import threading
 import time
 import argparse
+import logging
+import pandas as pd
 from configparser import RawConfigParser
 from os import path, mkdir
 import numpy as np
@@ -16,12 +18,15 @@ from pose2d import apply_tf_to_vel, inverse_pose2d, apply_tf_to_pose
 
 from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.utils.action import ActionXY
-from highrl.utils.calculations import point_to_point_distance
 from highrl.agents.robot import Robot
 from highrl.obstacle.obstacles import Obstacles
-from highrl.utils.utils import Position, configure_robot
+from highrl.utils import Position
+from highrl.utils.general import configure_robot
 from highrl.configs import colors
 from highrl.utils.robot_utils import RobotOpt
+
+
+_LOG = logging.getLogger(__name__)
 
 
 class RobotEnv(Env):
@@ -79,14 +84,9 @@ class RobotEnv(Env):
 
         new_action = self._to_actionxy_format(action)
 
-        old_distance_to_goal = point_to_point_distance(
-            (self.robot.px, self.robot.py), (self.robot.gx, self.robot.gy)
-        )
+        old_distance_to_goal = self.robot.dist_to_goal()
         self.robot.step(new_action, self.cfg.delta_t)
-        new_distance_to_goal = point_to_point_distance(
-            (self.robot.px, self.robot.py), (self.robot.gx, self.robot.gy)
-        )
-
+        new_distance_to_goal = self.robot.dist_to_goal()
         self.opt.reward = (
             self.__get_reward()
             + (old_distance_to_goal - new_distance_to_goal) * self.cfg.progress_discount
@@ -108,19 +108,18 @@ class RobotEnv(Env):
             self.render(save_to_file=self.cfg.save_to_file)
 
         if self.cfg.collect_statistics:
-            self.opt.episode_statistics.append(
-                [
-                    self.opt.total_steps,
-                    self.opt.episode_steps,
-                    "robot_env_" + self.cfg.scenario,
-                    100 if self.detect_collison() else 0,
-                    self.robot.reached_destination(),
-                    self.opt.total_reward,
-                    self.opt.episode_reward,
-                    self.opt.reward,
-                    time.time(),
-                ]
-            )
+            self.opt.episode_statistics.loc[len(self.opt.episode_statistics)] = [  # type: ignore
+                self.opt.total_steps,
+                self.opt.episode_steps,
+                "robot_env_" + self.cfg.scenario,
+                100 if self.detect_collison() else 0,
+                self.robot.reached_destination(),
+                self.opt.total_reward,
+                self.opt.episode_reward,
+                self.opt.reward,
+                time.time(),
+            ]
+
         # log data
         if self.done:
             self.opt.num_successes += self.opt.success_flag
@@ -141,7 +140,7 @@ class RobotEnv(Env):
         """
         reward = 0.0
         if self.detect_collison():
-            print("|--collision detected--|")
+            _LOG.warning("COLLISION DETECTED")
             reward += self.cfg.collision_score
             self.done = True
             self.opt.success_flag = False
@@ -190,7 +189,7 @@ class RobotEnv(Env):
             dict: robot observation
         """
         robot = self.robot
-        lidar_pos = np.array([robot.px, robot.py, robot.theta], dtype=np.float32)
+        lidar_pos = np.array([robot.x_pos, robot.y_pos, robot.theta], dtype=np.float32)
         ranges = np.ones((self.cfg.n_angles,), dtype=np.float32)
         ranges.fill(25.0)
         angles = (
@@ -206,11 +205,11 @@ class RobotEnv(Env):
         self.opt.lidar_scan = ranges
         self.opt.lidar_angles = angles
 
-        baselink_in_world = np.array([robot.px, robot.py, robot.theta])
+        baselink_in_world = np.array([robot.x_pos, robot.y_pos, robot.theta])
         world_in_baselink = inverse_pose2d(baselink_in_world)
         robotvel_in_world = np.array([robot.vx, robot.vy, 0])
         robotvel_in_baselink = apply_tf_to_vel(robotvel_in_world, world_in_baselink)
-        goal_in_world = np.array([robot.gx, robot.gy, 0])
+        goal_in_world = np.array([robot.gpos.x, robot.gpos.y, 0])
         goal_in_baselink = apply_tf_to_pose(goal_in_world, world_in_baselink)
         robotstate_obs = np.hstack([goal_in_baselink[:2], robotvel_in_baselink])
 
@@ -254,7 +253,7 @@ class RobotEnv(Env):
             self.transform = rendering.Transform()
             self.image_lock = threading.Lock()
 
-        def make_circle(center: Tuple[int, int], radius: int, res=10) -> np.ndarray:
+        def make_circle(center: Tuple[float, float], radius: int, res=10) -> np.ndarray:
             """Create circle points
 
             Args:
@@ -287,8 +286,8 @@ class RobotEnv(Env):
             gl.glVertex3f(0, 0, 0)
             gl.glEnd()
             # Transform
-            rob_x = self.robot.px
-            rob_y = self.robot.py
+            rob_x = self.robot.x_pos
+            rob_y = self.robot.y_pos
             self.transform.enable()  # applies T_sim_in_viewport to below coords (all in sim frame)
             # Map closed obstacles ---
             self.obstacle_vertices = self.opt.contours
@@ -300,8 +299,8 @@ class RobotEnv(Env):
                 gl.glEnd()
             # Agent body
             for idx, agent in enumerate([self.robot]):
-                agent_x = agent.px
-                agent_y = agent.py
+                agent_x = agent.x_pos
+                agent_y = agent.y_pos
                 angle = self.robot.fix(agent.theta + np.pi / 2, 2 * np.pi)
                 agent_r = agent.radius
                 # Agent as Circle
@@ -329,8 +328,8 @@ class RobotEnv(Env):
                 gl.glVertex3f(xleft, yleft, 0)
                 gl.glEnd()
             # Goal
-            xgoal = self.robot.gx
-            ygoal = self.robot.gy
+            xgoal = self.robot.gpos.x
+            ygoal = self.robot.gpos.y
             rgoal = self.robot.goal_radius
             # Goal markers
             gl.glBegin(gl.GL_POLYGON)
@@ -382,7 +381,7 @@ class RobotEnv(Env):
             dict: observation of the current environment state
         """
         if self.done or self.opt.is_initial_state:
-            print("reseting robot env ...")
+            _LOG.info("Reseting robot env ...")
             self.robot.set_position(self.opt.robot_init_pos)
             self.robot.set_goal_position(self.opt.goal_init_pos)
             self.opt.total_reward += self.opt.episode_reward

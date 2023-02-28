@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
-from highrl.utils.utils import Position
+from highrl.utils import Position
 
 
 @dataclass
@@ -19,8 +19,8 @@ class RobotOpt:
     success_flag: bool = False
     num_successes: int = 0
 
-    robot_init_pos: Position = Position()
-    goal_init_pos: Position = Position()
+    robot_init_pos = Position[float](0.0, 0.0)
+    goal_init_pos = Position[float](0.0, 0.0)
 
     is_initial_state: bool = True
 

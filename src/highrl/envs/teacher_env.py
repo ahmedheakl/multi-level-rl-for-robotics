@@ -1,22 +1,26 @@
 """Implementation of Teacher Environment"""
 from typing import List, Tuple
 import argparse
+import logging
 from random import uniform
+import pandas as pd
 from configparser import RawConfigParser
 from gym import Env, spaces
 import numpy as np
 from prettytable import PrettyTable
 
 from highrl.envs import env_encoders as env_enc
-from highrl.utils.utils import configure_teacher
+from highrl.utils.general import configure_teacher
 from highrl.utils import training_utils as train_utils
 from highrl.utils import teacher_utils as teach_utils
+
+_LOG = logging.getLogger(__name__)
 
 
 class TeacherEnv(Env):
     """Environment for training the teacher agent"""
 
-    infinite_difficulty: int = 256 * 256  # w * h
+    infinite_difficulty: int = 1080 * 720  # w * h
     tensorboard_dir: str = "runs/teacher"
     rob_avg_rwrd_grph_name: str = "robot_avg_reward"
     rob_avg_eps_steps_grph_name: str = "robot_avg_episode_steps"
@@ -83,6 +87,10 @@ class TeacherEnv(Env):
         """Calculates and prints training session results indicating how well the robot performed
         during this session. This is done for every robot trainig session created by the teacher.
         """
+        len_results_str = f"Length of results: {len(self.opt.results)}"
+        results_str = f"Results: {self.opt.results}"
+        _LOG.debug(len_results_str)
+        _LOG.debug(results_str)
         if len(self.opt.results) <= 0:
             return
 
@@ -96,10 +104,11 @@ class TeacherEnv(Env):
             total_steps += episode_steps
             num_success += success_flag
         self.robot_metrics.success_flag = num_success > 0
+
         self.robot_metrics.avg_reward = total_reward / len(self.opt.results)
         self.robot_metrics.avg_episode_steps = total_steps / len(self.opt.results)
         self.robot_metrics.success_rate = num_success / len(self.opt.results)
-        print(f"======== Session {self.opt.time_steps} Results ========")
+        _LOG.info("Session %i Results", self.opt.time_steps)
         results_table = PrettyTable(
             field_names=["avg_reward", "avg_ep_steps", "success_rate"]
         )
@@ -110,7 +119,6 @@ class TeacherEnv(Env):
                 f"{self.robot_metrics.success_rate:0.2f}",
             ]
         )
-        print(results_table)
 
         self.opt.tb_writer.add_scalar(
             self.rob_avg_rwrd_grph_name,
@@ -127,7 +135,7 @@ class TeacherEnv(Env):
             self.robot_metrics.success_rate,
             self.opt.time_steps,
         )
-        print(results_table)
+        _LOG.info(results_table)
 
     def render(self, mode):
         """Idle render"""
@@ -137,7 +145,7 @@ class TeacherEnv(Env):
         """Collect statistics and tensorboard data"""
         if not self.cfg.collect_statistics:
             return
-        stats = [
+        self.opt.session_statistics.loc[len(self.opt.session_statistics)] = [
             self.robot_metrics.iid,
             self.opt.reward,
             self.opt.robot_env.opt.episode_reward,
@@ -146,7 +154,7 @@ class TeacherEnv(Env):
             self.robot_metrics.level,
             self.opt.robot_env.opt.num_successes,
         ]
-        self.opt.session_statistics.append(stats)
+
         self.opt.tb_writer.add_scalar(
             self.techr_rwrd_grph_name,
             self.opt.reward,
@@ -222,17 +230,6 @@ class TeacherEnv(Env):
             * (self.cfg.diff_increase_factor) ** self.opt.episodes
         )
 
-        # Calculating statistics and rewards
-        self._get_robot_metrics()
-        self.opt.terminal_state_flag = self.robot_metrics.success_flag and (
-            self.opt.difficulty_area >= self.opt.desired_difficulty
-        )
-        self.opt.reward = teach_utils.get_reward(self.opt, self.cfg, self.robot_metrics)
-
-        if self.opt.terminal_state_flag:
-            self.done = True
-            self.opt.episodes += 1
-
         train_utils.start_robot_session(
             args=self.args,
             cfg=self.cfg,
@@ -240,14 +237,29 @@ class TeacherEnv(Env):
             opt=self.opt,
         )
 
+        # Calculating statistics and rewards
+        self._get_robot_metrics()
+        self.opt.terminal_state_flag = self.robot_metrics.success_flag and (
+            self.opt.difficulty_area >= self.opt.desired_difficulty
+        )
+
+        if self.opt.terminal_state_flag:
+            self.done = True
+            self.opt.episodes += 1
+            self.opt.residual_steps = self.opt.time_steps
+
         # Flag to advance to next level
         advance_flag = uniform(0, 1) <= self.cfg.advance_probability
+
+        self.opt.reward = teach_utils.get_reward(self.opt, self.cfg, self.robot_metrics)
+
         self.collect_stats()
 
         self.robot_metrics.level = (
             self.robot_metrics.level + advance_flag
         ) * advance_flag
         self.opt.robot_env.opt.num_successes = 0
+
         return (
             self._make_obs(),
             self.opt.reward,

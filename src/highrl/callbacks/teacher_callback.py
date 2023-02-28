@@ -8,10 +8,13 @@ Contains the following classes:
 """
 from typing import Optional
 import os
+import logging
 import gym
 from pandas import DataFrame, concat
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env.base_vec_env import VecEnv
+
+_LOG = logging.getLogger(__name__)
 
 
 class TeacherMaxStepsCallback(BaseCallback):
@@ -185,4 +188,4 @@ def save_log(
         return
     session.to_csv(logpath)
     if verbose > 1:
-        print(f"log saved to {logpath}.")
+        _LOG.info("Log saved to %s", logpath)
