@@ -83,10 +83,14 @@ def get_path_bfs(
     num_dirs = 8
 
     # Intializing empty map
-    # "." represents an empty space in the map
+    # False represents an empty space in the map
     first_time = time.time()
     default_pos = Position[int](-1, -1)
     env_map = np.full((env_size + 1, env_size + 1), False)
+    
+    # Parent position stores the parent cell for each cell in the map
+    # All of its values are initialized as (-1, -1) to ensure that each
+    # point in the generated path MUST have a parent position.
     parent_pos = [
         [default_pos for _ in range(env_size + 1)] for _ in range(env_size + 1)
     ]
