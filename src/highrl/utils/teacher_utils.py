@@ -166,7 +166,7 @@ def get_reward(
 
     too_close_to_goal_penality = (
         cfg.too_close_to_goal_penality
-        * opt.robot_env.robot.is_robot_close_to_goal(min_dist=1000)
+        * opt.robot_env.robot.is_robot_close_to_goal(min_dist=15)
     )
 
     return reward + too_close_to_goal_penality

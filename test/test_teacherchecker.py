@@ -112,7 +112,7 @@ class TeacherCheckerTest(unittest.TestCase):
         robot = Robot(Position[float](0.2, 0.2), Position[float](253.8, 254.7))
 
         prev_time = time.time()
-        diff, _ = compute_difficulty(obstacles, robot, env_size, env_size)
+        _ = compute_difficulty(obstacles, robot, env_size, env_size)
         total_time = time.time() - prev_time
         self.assertLess(
             total_time,
