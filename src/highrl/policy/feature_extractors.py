@@ -2,16 +2,16 @@
 Implementation of features exctractors for both the teacher and the robot
 """
 from typing import Optional
-import gym
+from gym import spaces
 import torch.nn as nn
 import torch as th
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 
 class LSTMFeatureExtractor(BaseFeaturesExtractor):
-    """_summary_"""
+    """Input"""
 
-    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 6):  # type: ignore
+    def __init__(self, observation_space: spaces.Box, features_dim: int = 6):  # type: ignore
         super().__init__(observation_space, features_dim)
         self.LSTM = nn.LSTM(input_size=features_dim, hidden_size=16, num_layers=1)
 
@@ -22,11 +22,81 @@ class LSTMFeatureExtractor(BaseFeaturesExtractor):
         return self.LSTM_output + self.LSTM_hidden[0] + self.LSTM_hidden[1]
 
 
-class Robot2DFeatureExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.spaces.Dict, features_dim: int = 37):
-        super().__init__(
-            observation_space=observation_space, features_dim=features_dim
+class TeacherFeatureExtractor(BaseFeaturesExtractor):
+    """Feature extractor for the teacher implemented using LSTM.
+
+    The model takes in for each step:
+        (1) Number of sucesses for the last robot session
+        (2) Robot average reward for the last robot session
+        (3) Average number of steps per episode for the last robot session
+        (4) Robot level of the upcoming session
+
+    and produces the difficulty for the upcoming session.
+    """
+
+    # pylint: disable=too-many-arguments
+    def __init__(
+        self,
+        observation_space: spaces.Box,
+        features_dim: int = 4,
+        hidden_size: int = 8,
+        num_layers: int = 1,
+        device: str = "cuda",
+        batch_size: int = 1,
+    ) -> None:
+        super().__init__(observation_space, features_dim)
+        self.lstm = nn.LSTM(
+            input_size=features_dim,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
         )
+        self.hidden_size = hidden_size
+        self.device = device
+        self.batch_size = batch_size
+        self.num_layers = num_layers
+        self._init_hidden()
+
+    def _init_hidden(self) -> None:
+        """Initialized hidden tensor. This method should be called whenever
+        the level of the robot resets to 0."""
+
+        # Dim = [num_layers, batch_size, hidden_size]
+        self.hidden = th.zeros(
+            self.num_layers,
+            self.batch_size,
+            self.hidden_size,
+            device=self.device,
+        )
+
+        # Dim = [num_layers, batch_size, hidden_size]
+        self.cell = th.zeros(
+            self.num_layers,
+            self.batch_size,
+            self.hidden_size,
+            device=self.device,
+        )
+
+    def forward(self, observations: th.Tensor) -> th.Tensor:
+        """Forward pass through the feature extractor"""
+
+        # Re-initialize hidden state if the robot level is reset
+        if observations[3] < 2:
+            self._init_hidden()
+
+        # Dim = [seq_len, batch_size, input_size]
+        # Here is seq_len=1, since we generating a new environment
+        # for every single observation.
+        observations = observations.to(self.device)
+        output_tensor, (self.hidden, self.cell) = self.lstm(
+            observations,
+            (self.hidden, self.cell_gate),
+        )
+        return output_tensor
+
+
+class Robot2DFeatureExtractor(BaseFeaturesExtractor):
+    def __init__(self, observation_space: spaces.Dict, features_dim: int = 37):
+        super().__init__(observation_space=observation_space, features_dim=features_dim)
 
         n_input_channels = 1
         self.cnn = nn.Sequential(
@@ -50,10 +120,8 @@ class Robot2DFeatureExtractor(BaseFeaturesExtractor):
 
 
 class Robot1DFeatureExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.spaces.Dict, features_dim: int = 37):
-        super().__init__(
-            observation_space=observation_space, features_dim=features_dim
-        )
+    def __init__(self, observation_space: spaces.Dict, features_dim: int = 37):
+        super().__init__(observation_space=observation_space, features_dim=features_dim)
 
         n_input_channels = 1
         self.cnn = nn.Sequential(
@@ -77,7 +145,7 @@ class Robot1DFeatureExtractor(BaseFeaturesExtractor):
 
 
 class CustomCombinedExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.spaces.Dict):
+    def __init__(self, observation_space: spaces.Dict):
         # We do not know features-dim here before going over all the items,
         # so put something dummy for now. PyTorch requires calling
         # nn.Module.__init__ before adding modules
@@ -97,7 +165,7 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
                 total_concat_size += subspace.shape[1] // 4 * subspace.shape[2] // 4
             elif key == "vector":
                 # Run through a simple MLP
-                extractors[key] = extractors[key]= nn.Linear(subspace.shape[0], 16)
+                extractors[key] = extractors[key] = nn.Linear(subspace.shape[0], 16)
                 total_concat_size += 16
 
         self.extractors = nn.ModuleDict(extractors)
