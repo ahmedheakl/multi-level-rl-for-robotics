@@ -149,11 +149,7 @@ def get_reward(
     cfg: TeacherConfigs,
     robot_metrics: RobotMetrics,
 ) -> float:
-    """Calculate current reward
-
-    Returns:
-        float: current reward
-    """
+    """Calculate teacher reward"""
     dfc_fact = opt.difficulty_area / opt.desired_difficulty
     rwd_fact = robot_metrics.avg_reward / cfg.max_robot_episode_reward
 
@@ -170,7 +166,7 @@ def get_reward(
 
     too_close_to_goal_penality = (
         cfg.too_close_to_goal_penality
-        * opt.robot_env.robot.is_robot_close_to_goal(min_dist=1000)
+        * opt.robot_env.robot.is_robot_close_to_goal(min_dist=15)
     )
 
     return reward + too_close_to_goal_penality
