@@ -1,11 +1,13 @@
 """
 Implementation of features exctractors for both the teacher and the robot
 """
-from typing import Optional
+import logging
 from gym import spaces
-import torch.nn as nn
+from torch import nn
 import torch as th
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+
+_LOG = logging.getLogger(__name__)
 
 
 class LSTMFeatureExtractor(BaseFeaturesExtractor):
@@ -39,7 +41,7 @@ class TeacherFeatureExtractor(BaseFeaturesExtractor):
         self,
         observation_space: spaces.Box,
         features_dim: int = 4,
-        hidden_size: int = 8,
+        hidden_size: int = 16,
         num_layers: int = 1,
         device: str = "cuda",
         batch_size: int = 1,
@@ -54,12 +56,6 @@ class TeacherFeatureExtractor(BaseFeaturesExtractor):
         self.device = device
         self.batch_size = batch_size
         self.num_layers = num_layers
-        self._init_hidden()
-
-    def _init_hidden(self) -> None:
-        """Initialized hidden tensor. This method should be called whenever
-        the level of the robot resets to 0."""
-
         # Dim = [num_layers, batch_size, hidden_size]
         self.hidden = th.zeros(
             self.num_layers,
@@ -77,11 +73,33 @@ class TeacherFeatureExtractor(BaseFeaturesExtractor):
         )
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
-        """Forward pass through the feature extractor"""
+        """Forward pass through the feature extractor
 
+        Observations dim = [batch_size, features_dim]
+        """
         # Re-initialize hidden state if the robot level is reset
-        if observations[3] < 2:
-            self._init_hidden()
+        for batch_idx, observ in enumerate(observations):
+            if observ[-1] >= 1.0:
+                continue
+
+            self.hidden[:, batch_idx, :] = th.zeros(
+                self.num_layers,
+                self.hidden_size,
+                device=self.device,
+            )
+            self.cell[:, batch_idx, :] = th.zeros(
+                self.num_layers,
+                self.hidden_size,
+                device=self.device,
+            )
+
+        # Adding sequence length dimension
+        # Dim = [seq_len, batch_size, features_dim]
+        observations = observations.unsqueeze(0)
+
+        _LOG.debug("Observation size: %s", observations.shape)
+        _LOG.debug("Hidden size: %s", self.hidden.shape)
+        _LOG.debug("Cell size: %s", self.cell.shape)
 
         # Dim = [seq_len, batch_size, input_size]
         # Here is seq_len=1, since we generating a new environment
@@ -89,8 +107,14 @@ class TeacherFeatureExtractor(BaseFeaturesExtractor):
         observations = observations.to(self.device)
         output_tensor, (self.hidden, self.cell) = self.lstm(
             observations,
-            (self.hidden, self.cell_gate),
+            (self.hidden, self.cell),
         )
+        _LOG.debug("Output teacher features size: %s", output_tensor.shape)
+        assert output_tensor.shape == th.Size([1, self.batch_size, self.hidden_size])
+
+        output_tensor: th.Tensor = output_tensor.squeeze(0)
+
+        # Return shape = [batch_size, hidden_size]
         return output_tensor
 
 
@@ -142,42 +166,3 @@ class Robot1DFeatureExtractor(BaseFeaturesExtractor):
         rs_obs = observations["robot"]  # type: ignore
         lidar_obs = th.unsqueeze(lidar_obs, dim=1)
         return th.cat((self.cnn(lidar_obs), rs_obs), axis=1)  # type: ignore
-
-
-class CustomCombinedExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: spaces.Dict):
-        # We do not know features-dim here before going over all the items,
-        # so put something dummy for now. PyTorch requires calling
-        # nn.Module.__init__ before adding modules
-        super(CustomCombinedExtractor, self).__init__(observation_space, features_dim=1)
-
-        extractors = {}
-
-        total_concat_size = 0
-        chosen_model: Optional[nn.Module] = None
-        # We need to know size of the output of this extractor,
-        # so go over all the spaces and compute output feature sizes
-        for key, subspace in observation_space.spaces.items():  # type: ignore
-            if key == "image":
-                # We will just downsample one channel of the image by 4x4 and flatten.
-                # Assume the image is single-channel (subspace.shape[0] == 0)
-                extractors[key] = nn.Sequential(nn.MaxPool2d(4), nn.Flatten())
-                total_concat_size += subspace.shape[1] // 4 * subspace.shape[2] // 4
-            elif key == "vector":
-                # Run through a simple MLP
-                extractors[key] = extractors[key] = nn.Linear(subspace.shape[0], 16)
-                total_concat_size += 16
-
-        self.extractors = nn.ModuleDict(extractors)
-
-        # Update the features dim manually
-        self._features_dim = total_concat_size
-
-    def forward(self, observations) -> th.Tensor:
-        encoded_tensor_list = []
-
-        # self.extractors contain nn.Modules that do all the processing.
-        for key, extractor in self.extractors.items():
-            encoded_tensor_list.append(extractor(observations[key]))  # type: ignore
-        # Return a (B, self._features_dim) PyTorch tensor, where B is batch dimension.
-        return th.cat(encoded_tensor_list, dim=1)

@@ -5,9 +5,8 @@ import threading
 import time
 import argparse
 import logging
-import pandas as pd
-from configparser import RawConfigParser
 from os import path, mkdir
+from configparser import RawConfigParser
 import numpy as np
 from CMap2D import render_contours_in_lidar  # pylint: disable=no-name-in-module
 from gym import Env, spaces

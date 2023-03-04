@@ -25,14 +25,14 @@ import logging
 from stable_baselines3.ppo.ppo import PPO
 from stable_baselines3.common.callbacks import CallbackList
 
-from highrl.policy.feature_extractors import LSTMFeatureExtractor
-from highrl.policy.policy_networks import LinearActorCriticPolicy
+from highrl.policy.feature_extractors import TeacherFeatureExtractor
+from highrl.policy.policy_networks import TeacherActorCriticPolicy
 from highrl.utils.parser import parse_args, generate_agents_config, handle_output_dir
 from highrl.callbacks import teacher_callback as t_callback
 from highrl.envs.teacher_env import TeacherEnv
 from highrl.utils.logger import init_logger
 
-init_logger()
+init_logger(debug=True)
 _LOG = logging.getLogger(__name__)
 
 
@@ -74,10 +74,7 @@ def train_teacher(args: argparse.Namespace) -> None:
         eval_config=eval_config,
         args=args,
     )
-    policy_kwargs = {
-        "features_extractor_class": LSTMFeatureExtractor,
-        "features_extractor_kwargs": {"features_dim": 6},
-    }
+
     logpath = os.path.join(args.teacher_logs_path, "teacher_logs.csv")
     save_model_path = os.path.join(args.teacher_models_path, "during_training")
     if not os.path.isdir(save_model_path):
@@ -103,6 +100,17 @@ def train_teacher(args: argparse.Namespace) -> None:
             teacher_save_model_callback,
         ]
     )
+    batch_size = 1
+    features_dim = 4
+    learning_rate = 0.0001
+    policy_kwargs = {
+        "features_extractor_class": TeacherFeatureExtractor,
+        "features_extractor_kwargs": {
+            "features_dim": features_dim,
+            "device": args.device,
+            "batch_size": batch_size,
+        },
+    }
     if args.initial_teacher_model != "none":
         teacher_model = args.initial_teacher_model
         model = PPO.load(
@@ -112,12 +120,11 @@ def train_teacher(args: argparse.Namespace) -> None:
         )
     else:
         model = PPO(
-            LinearActorCriticPolicy,
+            TeacherActorCriticPolicy,
             teacher_env,
             verbose=1,
             policy_kwargs=policy_kwargs,
-            learning_rate=0.0001,
-            batch_size=16,
+            learning_rate=learning_rate,
             device=args.device,
         )
     model.learn(total_timesteps=int(1e7), callback=callback)
