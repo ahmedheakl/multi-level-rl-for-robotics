@@ -2,6 +2,8 @@
 from typing import List
 import numpy as np
 
+from highrl.utils import Position
+
 
 class SingleObstacle:
     """Representation of a single obstacle"""
@@ -43,6 +45,13 @@ class SingleObstacle:
     def overlap(self, obstacle):
         """Check overlap with another obstacle"""
         raise NotImplementedError
+
+    def overlap_point(self, pos: Position) -> bool:
+        """Check whether the obstacle overlaps with the provided position"""
+
+        is_x_overlap = pos.x >= self.px and pos.x <= self.px + self.width
+        is_y_overlap = pos.y >= self.py and pos.y <= self.py + self.height
+        return is_x_overlap and is_y_overlap
 
     def get_grid_points(self) -> np.ndarray:
         """Get all the points inside an obstacle"""
