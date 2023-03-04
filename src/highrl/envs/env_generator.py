@@ -28,7 +28,7 @@ class EnvGeneratorPolicy(nn.Module):
     def __init__(
         self,
         feature_dim: int = 1,
-        last_layer_dim_pi: int = 4,
+        last_layer_dim_pi: int = 40,
         last_layer_dim_vf: int = 32,
     ) -> None:
         super().__init__()
@@ -41,11 +41,20 @@ class EnvGeneratorPolicy(nn.Module):
             nn.Linear(feature_dim, last_layer_dim_vf),
             nn.ReLU(),
         )
-        # This linear layer will be used to map from the hidden dimension
-        # to the output dimension.
-        self.out = nn.Linear(self.hidden_size, last_layer_dim_pi)
 
-        self.lstm = nn.LSTM(last_layer_dim_pi, self.hidden_size)
+        self.policy_net = nn.Sequential(
+            nn.Linear(feature_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, last_layer_dim_pi),
+            nn.Sigmoid(),
+        )
+        # # This linear layer will be used to map from the hidden dimension
+        # # to the output dimension.
+        # self.out = nn.Linear(self.hidden_size, last_layer_dim_pi)
+
+        # self.lstm = nn.LSTM(last_layer_dim_pi, self.hidden_size)
 
     def forward(self, features: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward pass through the value network and policy network"""
@@ -64,31 +73,36 @@ class EnvGeneratorPolicy(nn.Module):
 
     def forward_actor(self, features: torch.Tensor) -> torch.Tensor:
         """Forward pass through the actor network"""
+        return self.policy_net(features)
 
-        # Features dim = [batch_size, features_dim]
-        # NOTE: WE ASSUME THAT THE BATCH_SIZE=1
+    # def forward_actor(self, features: torch.Tensor) -> torch.Tensor:
+    #     """Forward pass through the actor network"""
 
-        # Here we are assuming that the model will build any environment
-        # with 4 basic components: robot/goal, hard obstacles, medium obstacles,
-        # and small obstacles.
-        num_outputs = 1 + self.hard_obs + self.med_obs + self.small_obs
-        outputs = []
-        batch_size = features.size(0)
-        hidden, cell = self._init_hidden(batch_size)
+    #     # Features dim = [batch_size, features_dim]
+    #     # NOTE: WE ASSUME THAT THE BATCH_SIZE=1
 
-        # Repeating the difficulty value to match the output dimension
-        # Output Dim = [1, batch_size, output_size]
-        output = features.repeat(batch_size, self.latent_dim_pi).unsqueeze(0)
-        for _ in range(num_outputs):
-            output, (hidden, cell) = self.lstm(output, (hidden, cell))
-            output = self.out(output)
-            # Output dim = [1, 4]
-            outputs.append(output)
+    #     # Here we are assuming that the model will build any environment
+    #     # with 4 basic components: robot/goal, hard obstacles, medium obstacles,
+    #     # and small obstacles.
+    #     num_outputs = 1 + self.hard_obs + self.med_obs + self.small_obs
+    #     outputs = []
+    #     batch_size = features.size(0)
+    #     hidden, cell = self._init_hidden(batch_size)
 
-        # Action dim = [batch_size, 4 * (num_outputs+1)]
-        out_features = torch.concat(outputs, dim=1).view(batch_size, -1)
-        print(out_features.shape)
-        return out_features
+    #     # Repeating the difficulty value to match the output dimension
+    #     # Output Dim = [1, batch_size, output_size]
+    #     output = features.repeat(batch_size, self.latent_dim_pi).unsqueeze(0)
+    #     for _ in range(num_outputs):
+    #         print("output:", output.shape, "hidden:", hidden.shape, "cell:", cell.shape)
+    #         output, (hidden, cell) = self.lstm(output, (hidden, cell))
+    #         output = self.out(output.view(batch))
+    #         # Output dim = [1, 4]
+    #         outputs.append(output.)
+
+    #     # Action dim = [batch_size, 4 * (num_outputs+1)]
+    #     out_features = torch.concat(outputs, dim=1).view(batch_size, -1)
+    #     print(out_features.shape)
+    #     return out_features
 
     def forward_critic(self, features: torch.Tensor) -> torch.Tensor:
         """Forward pass through the value network"""
@@ -145,7 +159,7 @@ class GeneratorEnv(Env):
 
     def step(self, action: torch.Tensor) -> Tuple[List[int], np.float32, bool, dict]:
         """Step through the environment and return the next observation"""
-        print(action.shape)
+        print("ACTION", action.shape)
         return self._make_obs(), np.float32(0.0), False, {}
 
     def _make_obs(self) -> List[int]:
