@@ -1,5 +1,8 @@
 """Difficulty computation implementation for the teacher"""
 from typing import Tuple, List
+import logging
+import time
+from collections import deque
 import numpy as np
 
 from highrl.obstacle.obstacles import Obstacles
@@ -8,20 +11,49 @@ from highrl.agents.robot import Robot
 
 
 INF = 256 * 256  # w * h
+_LOG = logging.getLogger(__name__)
 
 
 def check_valid_point(point: np.ndarray, env_size: int) -> bool:
     """check if input point is within input constraints
-    Note that that environment width and height are supposed to
+    Note that that environment width and height are assumed to
     be equal.
+
     Args:
-        p (np.ndarray): Input point coordinates
+        point (np.ndarray): Input point coordinates
         env_size (int): Environment size
+
     Returns:
-        bool: flag whether point satisfies constraints
+        bool: Flag whether point satisfies constraints
     """
     is_valid = (point < env_size).all() and (point >= 0).all()
     return is_valid.item()
+
+
+def check_point_overlap(
+    obstacles: Obstacles,
+    pos: Position[int],
+    omit_first_four: bool = True,
+) -> bool:
+    """Check if the provided point is not overlapping with any of the obstacles
+
+    Args:
+        obstacles (Obstacles): Obstacles in the environemnt. Those might include
+        border obstacles.
+        pos (Position[int]): Position of the object to be checked for overlapping
+        omit_first_four (bool, optional): Whether to ignore the first 4 obstacles
+        which are assumed to be the border obstacles. Defaults to True.
+
+    Returns:
+        bool: Whether the provided point satisfies the overlapping contraints
+    """
+    for idx, obstacle in enumerate(obstacles):
+        if idx < 4 and omit_first_four:
+            continue
+
+        if obstacle.overlap_point(pos):
+            return False
+    return True
 
 
 def get_path_bfs(
@@ -34,53 +66,45 @@ def get_path_bfs(
     """Check if there is a valid path in the input segment
 
     Args:
-        obstacles (Obstacles): Obstacles object
-        coords (List[List[int]]): Coordinates defining the segment
-        width (int): Width of the env
-        height (int): Height of the env
+        obstacles (Obstacles): Obstacles in the environemnt
+        env_size (int): Environment size. Note that the environment is
+        assumed to be a square here.
         robot_pos (List[int]): Robot position
         goal_pos (List[int]): Goal position
         omit_first_four (bool): Whether to ignore the first four obstacles which usually
-        represent the boarder of the env
+        represent the boarder of the env. Defaults to True.
 
     Returns:
-        bool: flag whether there exists a path
+        Tuple[bool, List[Position[int]]]: Flag whether there exists a path, The points along the
+        generated path.
     """
     delta_x = [-1, -1, -1, 0, 0, 1, 1, 1]
     delta_y = [-1, 0, 1, -1, 1, -1, 0, 1]
     num_dirs = 8
 
     # Intializing empty map
-    # "." represents an empty space in the map
-    env_map = []
-    parent_pos = []
-    for x_pos in range(env_size + 1):
-        current = []
-        current_parents = []
-        for y_pos in range(env_size + 1):
-            current.append(".")
-            current_parents.append(Position[int](-1, -1))
-        env_map.append(current)
-        parent_pos.append(current_parents)
+    # False represents an empty space in the map
+    first_time = time.time()
+    default_pos = Position[int](-1, -1)
+    env_map = np.full((env_size + 1, env_size + 1), False)
+    
+    # Parent position stores the parent cell for each cell in the map
+    # All of its values are initialized as (-1, -1) to ensure that each
+    # point in the generated path MUST have a parent position.
+    parent_pos = [
+        [default_pos for _ in range(env_size + 1)] for _ in range(env_size + 1)
+    ]
+    _LOG.warning("Initialized map in %.2f seconds", time.time() - first_time)
 
-    # Filling obstacles spaces with "X" as means
-    # of representing occupancy in the map
-    for i, obstacle in enumerate(obstacles):
-        if omit_first_four and i < 4:
-            continue
-        points = obstacle.get_grid_points()
-        for point in points:
-            x_pos, y_pos = point
-            env_map[x_pos][y_pos] = "X"
     # Breadth first search till you either find the
     # goal or you stop (aka. no valid in this map)
     # Intializing the queue with the robot position
-    queue = [robot_pos]
-    env_map[robot_pos.x][robot_pos.y] = "X"
+    queue = deque([robot_pos], maxlen=env_size)
+    env_map[robot_pos.x][robot_pos.y] = True
 
     # Loop till you are out of non-visited points
     while len(queue) > 0:
-        pos = queue.pop(0)
+        pos = queue.popleft()
 
         # If goal is found, STOP
         if pos == goal_pos:
@@ -95,12 +119,13 @@ def get_path_bfs(
             new_pos = Position[int](pos.x + delta_x[idx], pos.y + delta_y[idx])
             if (
                 check_valid_point(new_pos.get_coords(), env_size)
-                and env_map[new_pos.x][new_pos.y] == "."
+                and check_point_overlap(obstacles, new_pos, omit_first_four)
+                and not env_map[new_pos.x][new_pos.y]
             ):
                 # If the new point is inside the rectangle (between robot and goal),
                 # it's within the boundaries of the env, and it's not occupied, add it
                 # to the list of points to be explored.
-                env_map[new_pos.x][new_pos.y] = "X"
+                env_map[new_pos.x][new_pos.y] = True
                 queue.append(new_pos)
                 parent_pos[new_pos.x][new_pos.y] = pos
 
@@ -146,7 +171,7 @@ def get_area_of_convex_polygen(points: List[Position[int]]) -> int:
     assert len(points), "Empty points list"
     num = len(points)
     points.append(points[0])
-    area = 0
+    area: int = 0
     for i in range(num):
         area += points[i].inner_cross(points[i + 1])
     return abs(area)
@@ -199,23 +224,33 @@ def compute_difficulty(
     Returns:
         Tuple[float, int]: env area difficulty, env obstacles difficulty
     """
+    # Convert robot/goal position to integer for correct operations
     rob_pos = robot.get_position().to_int()
     goal_pos = robot.get_goal_position().to_int()
+
+    # Run BFS to find a path from goal to robot
     is_valid, path = get_path_bfs(
         obstacles,
         width,
         rob_pos,
         goal_pos,
     )
+
+    # If there is no valid path, return infinite difficulty
     if not is_valid:
         return INF, max(0, len(obstacles.obstacles_list) - 4)
 
+    # Sample points on the line between the robot and the goal
     robot_to_goal_points = sample_line_points(rob_pos, goal_pos, step_size=1)
 
     # Add points sampled from the line between the goal and robot to the path
     path.extend(robot_to_goal_points)
 
+    # Get the points representing the convex polygon
     convex_hull_points = convex_hull_compute(path)
+
+    # Compute the area of the convex polygon
     difficulty_area = get_area_of_convex_polygen(convex_hull_points)
 
+    # Note that "2" here is just a constant, its value would not matter.
     return difficulty_area, 2
