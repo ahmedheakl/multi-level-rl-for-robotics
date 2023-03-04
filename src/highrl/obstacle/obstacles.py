@@ -44,3 +44,7 @@ class Obstacles:
             ret += f"{obstacle}\n"
         ret += "]"
         return ret
+
+    def add_obstacles(self, obstacles_list: List[SingleObstacle]) -> None:
+        """Add new obstacles to the current obstacles list"""
+        self.obstacles_list.extend(obstacles_list)

@@ -1,12 +1,13 @@
 """Utilties implementation for training the teacher agent"""
 from typing import Tuple, List
 import math
+import time
 import logging
 from prettytable import PrettyTable
 
 from highrl.utils.general import TeacherConfigs
 from highrl.utils.training_utils import TeacherMetrics, RobotMetrics
-from highrl.utils.teacher_checker import convex_hull_difficulty
+from highrl.utils.teacher_checker import compute_difficulty as convex_difficulty
 from highrl.obstacle import SingleObstacle
 from highrl.utils.calculations import neg_exp
 from highrl.utils import Position
@@ -39,12 +40,15 @@ def compute_difficulty(
         is_passed_inf_diff = True
 
     else:
-        opt.difficulty_area, opt.difficulty_obs = convex_hull_difficulty(
+        _LOG.warning("Computing difficulty")
+        first_time = time.time()
+        opt.difficulty_area, opt.difficulty_obs = convex_difficulty(
             opt.robot_env.obstacles,
             opt.robot_env.robot,
             opt.width,
             opt.height,
         )
+        _LOG.warning("Computed difficulty in %i seconds", time.time() - first_time)
         is_passed_inf_diff = opt.difficulty_area >= infinite_difficulty
 
     _LOG.info("Goal/robot overlap obstacles: %s", is_goal_or_robot_overlap_obstacles)
@@ -145,11 +149,7 @@ def get_reward(
     cfg: TeacherConfigs,
     robot_metrics: RobotMetrics,
 ) -> float:
-    """Calculate current reward
-
-    Returns:
-        float: current reward
-    """
+    """Calculate teacher reward"""
     dfc_fact = opt.difficulty_area / opt.desired_difficulty
     rwd_fact = robot_metrics.avg_reward / cfg.max_robot_episode_reward
 
@@ -166,7 +166,7 @@ def get_reward(
 
     too_close_to_goal_penality = (
         cfg.too_close_to_goal_penality
-        * opt.robot_env.robot.is_robot_close_to_goal(min_dist=1000)
+        * opt.robot_env.robot.is_robot_close_to_goal(min_dist=15)
     )
 
     return reward + too_close_to_goal_penality

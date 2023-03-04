@@ -1,88 +1,39 @@
 """Tests for teacher checker"""
 from typing import List
+import time
 import unittest
 
 from highrl.utils.teacher_checker import (
-    get_region_coordinates,
-    check_valid_path_existance,
-    is_point_inside_polygen,
     convex_hull_compute,
+    get_path_bfs,
+    compute_difficulty,
 )
-from highrl.obstacle.obstacles import Obstacles
-from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.utils import Position
+from highrl.obstacle import SingleObstacle, Obstacles
+from highrl.agents.robot import Robot
 
 
 class TeacherCheckerTest(unittest.TestCase):
     """Testing for teacher checker methods"""
 
-    def test_region_coords_easy(self) -> None:
-        """Testing computing the region coordinates"""
-        value = sorted(
-            get_region_coordinates(
-                harmonic_number=1, eps=1, robot_goal_coords=[2, 3, 4, 5]
-            )
-        )
-        expected = sorted([[3, 5], [4, 4], [1, 3], [2, 2]])
-        for idx, expect in enumerate(expected):
-            self.assertEqual(
-                Position[int](expect[0], expect[1]),
-                value[idx],
-                msg=f"\nExpected:\n{expect}\nFound:\n{value[idx]}",
-            )
-
-    def test_region_coords_hard(self) -> None:
-        """Testing computing the region coordinates"""
-        value = get_region_coordinates(
-            harmonic_number=1, eps=1, robot_goal_coords=[2, 3, 4, 7]
-        )
-        expected = [[3, 7], [4, 6], [2, 2], [1, 3]]
-        for idx, expect in enumerate(expected):
-            pos = Position[int](expect[0], expect[1])
-            self.assertEqual(
-                pos,
-                value[idx],
-                msg=f"\nExpected:\n{pos}\nFound:\n{value[idx]}",
-            )
-
-    def test_check_if_point_inside(self):
-        """Testing for points inside a polygen checker"""
-        coords = get_region_coordinates(
-            harmonic_number=1, eps=1, robot_goal_coords=[2, 3, 4, 7]
-        )
-        points: List[List[int]] = [
-            [3, 5],
-            [2, 3],
-            [4, 7],
-            [3, 6],
-            [4, 6],
-            [5, 10],
-            [2, 1],
-        ]
-        value = [
-            is_point_inside_polygen(Position[int](p[0], p[1]), coords) for p in points
-        ]
-        expected = [True] * 2 + [False] + [True] * 2 + [False] * 2
-        self.assertListEqual(
-            expected, value, msg=f"\nExpected:\n{expected}\nFound:\n{value}"
-        )
-
     def test_valid_path_existance_false(self):
         """Testing for valid path checker"""
-        coords = get_region_coordinates(
-            harmonic_number=1, eps=1, robot_goal_coords=[2, 3, 4, 7]
-        )
-
+        env_size = 6
         obstacles = Obstacles([SingleObstacle(1, 4, 3, 1)])
-        pos = Position[int](2, 3)
+        rpos = Position[int](2, 3)
         gpos = Position[int](4, 7)
-        value = check_valid_path_existance(
-            obstacles, coords, 6, 8, pos, gpos, omit_first_four=False
+        value = get_path_bfs(
+            obstacles=obstacles,
+            env_size=env_size,
+            robot_pos=rpos,
+            goal_pos=gpos,
         )
         expected = False
         self.assertEqual(
-            expected, value, msg=f"\nExpected: {expected} || Found: {value}"
+            expected, value[0], msg=f"\nExpected: {expected} || Found: {value}"
         )
+
+        self.assertListEqual([], value[1], msg=f"{value[1]} should be empty")
 
     def test_convex_polygen_compute_easy(self):
         """Testing convex hull main problem.
@@ -113,3 +64,59 @@ class TeacherCheckerTest(unittest.TestCase):
             self.assertEqual(
                 expected[i], val, msg=f"\nExpected:\n{expected}\nFound:\n{value}"
             )
+
+    def test_zero_div_in_slop_calc(self) -> None:
+        """Testing for the zero division error in calculating the difficulty"""
+        obstacles = Obstacles()
+        rpos = Position[int](2, 2)
+        gpos = Position[int](2, 3)
+        robot = Robot(rpos, gpos)
+
+        diff, _ = compute_difficulty(obstacles, robot, 5, 5)
+        self.assertIsNot(diff, None)
+
+    def test_execution_time(self) -> None:
+        """Testing the time that the checker function has to run.
+        Since this module is called > 400 time during the training,
+        it should be as fast as possible. Hence, we need to make sure
+        that this function does not take more than x-seconds per run."""
+
+        max_expected_time = 25.0  # Measure in seconds
+        env_size = 256
+        obstacles = Obstacles(
+            [SingleObstacle(30, 30, 100, 100), SingleObstacle(130, 130, 100, 100)]
+        )
+        robot = Robot(Position[float](0.2, 0.2), Position[float](253.8, 254.7))
+
+        prev_time = time.time()
+        diff, _ = compute_difficulty(obstacles, robot, env_size, env_size)
+        total_time = time.time() - prev_time
+        self.assertLess(
+            diff,
+            env_size * env_size,
+            msg="Difficulty should not be maximum",
+        )
+        self.assertLess(
+            total_time,
+            max_expected_time,
+            msg="Time limit exceeded in difficulty checker\n"
+            + f"Expected {max_expected_time}, Found: {total_time:.2f}",
+        )
+
+    def test_execution_time_no_path(self) -> None:
+        """Testing the time that the checker function has to run
+        if the provided environment does not have a valid path."""
+        max_expected_time = 25.0  # Measure in seconds
+        env_size = 256
+        obstacles = Obstacles([SingleObstacle(0, 0, env_size, env_size)])
+        robot = Robot(Position[float](0.2, 0.2), Position[float](253.8, 254.7))
+
+        prev_time = time.time()
+        _ = compute_difficulty(obstacles, robot, env_size, env_size)
+        total_time = time.time() - prev_time
+        self.assertLess(
+            total_time,
+            max_expected_time,
+            msg="Time limit exceeded in difficulty checker\n"
+            + f"Expected {max_expected_time}, Found: {total_time:.2f}",
+        )

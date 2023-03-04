@@ -8,7 +8,7 @@ from configparser import RawConfigParser
 from gym import Env, spaces
 import numpy as np
 from prettytable import PrettyTable
-
+from highrl.utils.abstract import Position
 from highrl.envs import env_encoders as env_enc
 from highrl.utils.general import configure_teacher
 from highrl.utils import training_utils as train_utils
@@ -190,8 +190,6 @@ class TeacherEnv(Env):
         robot_pos, goal_pos = teach_utils.get_robot_position_from_action(
             position_action, self.opt, self.action_space_names
         )
-
-        self.opt.robot_env.add_boarder_obstacles()
 
         obstacles = teach_utils.get_obstacles_from_action(action, self.opt, self.cfg)
         for obstacle in obstacles:

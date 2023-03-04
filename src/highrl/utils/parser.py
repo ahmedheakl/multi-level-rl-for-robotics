@@ -88,6 +88,15 @@ def parse_args() -> argparse.Namespace:
         dest="render_each",
         help="the frequency of rendering for robot environment (default: %(default)s)",
     )
+
+    parser.add_argument(
+        "--render-each-eval",
+        type=int,
+        default=-1,
+        dest="render_each_eval",
+        help="the frequency of rendering for robot eval environment (default: %(default)s)",
+    )
+
     parser.add_argument(
         "--output-dir",
         type=str,

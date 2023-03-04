@@ -113,6 +113,19 @@ class RobotConfigs:
     robot_radius: int
     goal_radius: int
 
+    robot_init_x_pos: int
+    robot_init_y_pos: int
+    goal_x_pos: int
+    goal_y_pos: int
+
+    eval_big_obs_count: int
+    eval_med_obs_count: int
+    eval_sml_obs_count: int
+
+    eval_big_obs_dim: int
+    eval_med_obs_dim: int
+    eval_sml_obs_dim: int
+
     delta_t: float
     max_episode_steps: int
 
@@ -171,4 +184,14 @@ def configure_robot(config: RawConfigParser, env_render_path: str) -> RobotConfi
         collect_statistics=config.getboolean("statistics", "collect_statistics"),
         scenario=config.get("statistics", "scenario"),
         env_render_path=env_render_path,
+        robot_init_x_pos=config.getint("eval", "robot_init_x_pos"),
+        robot_init_y_pos=config.getint("eval", "robot_init_y_pos"),
+        goal_x_pos=config.getint("eval", "goal_x_pos"),
+        goal_y_pos=config.getint("eval", "goal_y_pos"),
+        eval_big_obs_count=config.getint("eval", "eval_big_obs_count"),
+        eval_med_obs_count=config.getint("eval", "eval_med_obs_count"),
+        eval_sml_obs_count=config.getint("eval", "eval_sml_obs_count"),
+        eval_big_obs_dim=config.getint("eval", "eval_big_obs_dim"),
+        eval_med_obs_dim=config.getint("eval", "eval_med_obs_dim"),
+        eval_sml_obs_dim=config.getint("eval", "eval_sml_obs_dim"),
     )
