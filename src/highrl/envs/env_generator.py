@@ -92,8 +92,11 @@ class EnvGeneratorPolicy(nn.Module):
         sigmoid = nn.Sigmoid()
 
         # Repeating the difficulty value to match the output dimension
-        # Output Dim = [1, batch_size, output_size]
+        # Output Dim = [batch_size, output_size]
         output = features.repeat(batch_size, self.output_size)
+
+        # Filling initial input as follows [difficulty, -1, -1, -1]
+        # so that the model would know that this the initial value
         for batch, _ in enumerate(output):
             for value_idx in range(1, 4):
                 output[batch][value_idx] = -1
@@ -104,6 +107,8 @@ class EnvGeneratorPolicy(nn.Module):
 
             # Dim = [batch_size, output_size]
             output = self.out(output.squeeze(0))
+
+            # Running through sigmoid activation for output in range [0, 1]
             outputs.append(sigmoid(output))
 
         # Action dim = [batch_size, 4 * (num_outputs+1)]
