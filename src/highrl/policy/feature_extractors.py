@@ -10,19 +10,6 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 _LOG = logging.getLogger(__name__)
 
 
-class LSTMFeatureExtractor(BaseFeaturesExtractor):
-    """Input"""
-
-    def __init__(self, observation_space: spaces.Box, features_dim: int = 6):  # type: ignore
-        super().__init__(observation_space, features_dim)
-        self.LSTM = nn.LSTM(input_size=features_dim, hidden_size=16, num_layers=1)
-
-    def forward(self, observations: th.Tensor) -> th.Tensor:
-        # th.tensor(observations)
-        observations.clone().detach()
-        self.LSTM_output, self.LSTM_hidden = self.LSTM(observations)
-        return self.LSTM_output + self.LSTM_hidden[0] + self.LSTM_hidden[1]
-
 
 class TeacherFeatureExtractor(BaseFeaturesExtractor):
     """Feature extractor for the teacher implemented using LSTM.

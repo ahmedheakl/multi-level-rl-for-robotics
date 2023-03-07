@@ -38,11 +38,13 @@ class EnvGeneratorPolicy(nn.Module):
     device = "cuda"
     output_size = 4
 
+    # last_layer_dim_pi = (1 + num_obs) * output_size
     def __init__(
         self,
         feature_dim: int = 1,
         last_layer_dim_pi: int = 40,
         last_layer_dim_vf: int = 32,
+        num_layers: int = 1,
     ) -> None:
         super().__init__()
         # IMPORTANT:
@@ -59,21 +61,23 @@ class EnvGeneratorPolicy(nn.Module):
         # to the output dimension.
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
-        self.lstm = nn.LSTM(self.output_size, self.hidden_size)
+        self.lstm = nn.LSTM(self.output_size, self.hidden_size, num_layers=num_layers)
+
+        self.num_layers = num_layers
 
     def forward(self, features: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward pass through the value network and policy network"""
         return self.forward_actor(features), self.forward_critic(features)
 
     def _init_hidden(self, batch_size: int = 1) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Initialize the hidden and cell gate tensors for the LSTM layer
-
-        Note here we are assuming that the `num_layers` and `batch_size`
-        are equal to one.
-        """
+        """Initialize the hidden and cell gate tensors for the LSTM layer"""
         return (
-            torch.zeros(1, batch_size, self.hidden_size, device=self.device),
-            torch.zeros(1, batch_size, self.hidden_size, device=self.device),
+            torch.zeros(
+                self.num_layers, batch_size, self.hidden_size, device=self.device
+            ),
+            torch.zeros(
+                self.num_layers, batch_size, self.hidden_size, device=self.device
+            ),
         )
 
     def forward_actor(self, features: torch.Tensor) -> torch.Tensor:
