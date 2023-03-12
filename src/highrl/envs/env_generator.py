@@ -18,8 +18,6 @@ from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from torch import nn
 from stable_baselines3 import PPO  # type: ignore
 from stable_baselines3.common.policies import ActorCriticPolicy
-from stable_baselines3.common.callbacks import CallbackList
-from highrl.callbacks import teacher_callback as t_callback
 from highrl.obstacle.obstacles import Obstacles
 from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.agents.robot import Robot
@@ -246,13 +244,7 @@ def main() -> None:
     small_obs = EnvGeneratorPolicy.small_obs
     env = GeneratorEnv(hard_obs + med_obs + small_obs + 1)
     model = PPO(EnvGeneratorActorCritic, env, verbose=1, device="cuda")
-    teacher_save_model_callback = t_callback.TeacherSaveModelCallback(
-        train_env=env,
-        save_path=f"model_{time}",
-        save_freq=100,
-    )
-    callback = CallbackList([teacher_save_model_callback])
-    model.learn(total_timesteps=10000, callback=callback)
+    model.learn(total_timesteps=10000)
     model.save("generator_model")
 
 
