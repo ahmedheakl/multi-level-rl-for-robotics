@@ -12,11 +12,14 @@ import logging
 import random
 from gym import Env, spaces
 import numpy as np
+import pandas as pd
 import torch
+from torch.utils.data import Dataset, DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from torch import nn
 from stable_baselines3 import PPO  # type: ignore
 from stable_baselines3.common.policies import ActorCriticPolicy
+from tqdm import tqdm
 
 from highrl.obstacle.obstacles import Obstacles
 from highrl.obstacle.single_obstacle import SingleObstacle
@@ -28,68 +31,67 @@ from highrl.utils.logger import init_logger
 _LOG = logging.getLogger(__name__)
 
 
-class EnvGeneratorPolicy(nn.Module):
-    """Implementation for the environment generator model"""
+HARD_OBS = 2
+MED_OBS = 3
+SMALL_OBS = 4
+OBS_CNT = HARD_OBS + MED_OBS + SMALL_OBS
+HARD_SIZE = 50
+MED_SIZE = 40
+SMALL_SIZE = 30
+OUTPUT_SIZE = 4
+ENV_SIZE = 256
+MAX_DIFFICULTY = ENV_SIZE * ENV_SIZE
+NUM_POINTS: int = OUTPUT_SIZE * (OBS_CNT + 1)
+DEVICE = "cuda"
 
-    hidden_size = 16
-    hard_obs = 2
-    med_obs = 3
-    small_obs = 4
-    device = "cuda"
-    output_size = 4
 
-    # last_layer_dim_pi = (1 + num_obs) * output_size
+class EnvGeneratorModelLSTM(nn.Module):
+    """Enviroment generator model using LSTM seq2seq architecture"""
+
     def __init__(
         self,
-        feature_dim: int = 1,
-        last_layer_dim_pi: int = 40,
-        last_layer_dim_vf: int = 32,
-        num_layers: int = 1,
+        hidden_size: int,
+        num_layers: int,
+        use_sigmoid: bool = True,
     ) -> None:
         super().__init__()
-        # IMPORTANT:
-        # Save output dimensions, used to create the distributions
-        self.latent_dim_pi = last_layer_dim_pi
-        self.latent_dim_vf = last_layer_dim_vf
-
-        self.value_net = nn.Sequential(
-            nn.Linear(feature_dim, last_layer_dim_vf),
-            nn.ReLU(),
-        )
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
 
         # This linear layer will be used to map from the hidden dimension
         # to the output dimension.
-        self.out = nn.Linear(self.hidden_size, self.output_size)
+        self.out = nn.Linear(hidden_size, OUTPUT_SIZE)
 
-        self.lstm = nn.LSTM(self.output_size, self.hidden_size, num_layers=num_layers)
-
-        self.num_layers = num_layers
-
-    def forward(self, features: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Forward pass through the value network and policy network"""
-        return self.forward_actor(features), self.forward_critic(features)
+        self.lstm = nn.LSTM(OUTPUT_SIZE, hidden_size, num_layers=num_layers)
+        self.input = nn.Linear(1, OUTPUT_SIZE)
+        self.use_sigmoid = use_sigmoid
 
     def _init_hidden(self, batch_size: int = 1) -> Tuple[torch.Tensor, torch.Tensor]:
         """Initialize the hidden and cell gate tensors for the LSTM layer"""
         return (
             torch.zeros(
-                self.num_layers, batch_size, self.hidden_size, device=self.device
+                self.num_layers,
+                batch_size,
+                self.hidden_size,
+                device=DEVICE,
             ),
             torch.zeros(
-                self.num_layers, batch_size, self.hidden_size, device=self.device
+                self.num_layers,
+                batch_size,
+                self.hidden_size,
+                device=DEVICE,
             ),
         )
 
-    def forward_actor(self, features: torch.Tensor) -> torch.Tensor:
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
         """Forward pass through the actor network"""
 
         # Features dim = [batch_size, features_dim]
-        # NOTE: WE ASSUME THAT THE BATCH_SIZE=1
 
         # Here we are assuming that the model will build any environment
         # with 4 basic components: robot/goal, hard obstacles, medium obstacles,
         # and small obstacles.
-        num_outputs = 1 + self.hard_obs + self.med_obs + self.small_obs
+        num_outputs = 1 + OBS_CNT
         outputs = []
         batch_size = features.size(0)
         hidden, cell = self._init_hidden(batch_size)
@@ -97,13 +99,7 @@ class EnvGeneratorPolicy(nn.Module):
 
         # Repeating the difficulty value to match the output dimension
         # Output Dim = [batch_size, output_size]
-        output = features.repeat(batch_size, self.output_size)
-
-        # Filling initial input as follows [difficulty, -1, -1, -1]
-        # so that the model would know that this the initial value
-        for batch, _ in enumerate(output):
-            for value_idx in range(1, 4):
-                output[batch][value_idx] = -1
+        output = self.input(features)
 
         for _ in range(num_outputs):
             # Output Dim = [1, batch_size, hidden_size]
@@ -113,11 +109,49 @@ class EnvGeneratorPolicy(nn.Module):
             output = self.out(output.squeeze(0))
 
             # Running through sigmoid activation for output in range [0, 1]
-            outputs.append(sigmoid(output))
+            if self.use_sigmoid:
+                output = sigmoid(output)
 
-        # Action dim = [batch_size, 4 * (num_outputs+1)]
+            outputs.append(output)
+
+        # Action dim = [batch_size, 4 * num_outputs]
         out_features = torch.concat(outputs, dim=1)
         return out_features
+
+
+class EnvGeneratorPolicyLSTM(nn.Module):
+    """Implementation for the environment generator model"""
+
+    num_layers = 1
+
+    def __init__(
+        self,
+        feature_dim: int = 1,
+        last_layer_dim_pi: int = 40,
+        last_layer_dim_vf: int = 32,
+        hidden_size: int = 16,
+    ) -> None:
+        super().__init__()
+        # IMPORTANT:
+        # Save output dimensions, used to create the distributions
+        self.latent_dim_pi = last_layer_dim_pi
+        self.latent_dim_vf = last_layer_dim_vf
+        self.hidden_size = hidden_size
+
+        self.value_net = nn.Sequential(
+            nn.Linear(feature_dim, last_layer_dim_vf),
+            nn.ReLU(),
+        )
+
+        self.policy_net = EnvGeneratorModelLSTM(self.hidden_size, self.num_layers)
+
+    def forward(self, features: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Forward pass through the value network and policy network"""
+        return self.forward_actor(features), self.forward_critic(features)
+
+    def forward_actor(self, features: torch.Tensor) -> torch.Tensor:
+        """Forward pass through the actor network"""
+        return self.policy_net(features)
 
     def forward_critic(self, features: torch.Tensor) -> torch.Tensor:
         """Forward pass through the value network"""
@@ -127,10 +161,6 @@ class EnvGeneratorPolicy(nn.Module):
 class EnvGeneratorActorCritic(ActorCriticPolicy):
     """Actor critic architecture implementation for the environment
     generation model"""
-
-    hard_size = 50
-    med_size = 40
-    small_size = 30
 
     def __init__(
         self,
@@ -153,15 +183,11 @@ class EnvGeneratorActorCritic(ActorCriticPolicy):
 
     def _build_mlp_extractor(self) -> None:
         # pylint: disable=attribute-defined-outside-init
-        self.mlp_extractor = EnvGeneratorPolicy()
+        self.mlp_extractor = EnvGeneratorPolicyLSTM()
 
 
 class GeneratorEnv(Env):
     """Gym environment implementation to train the environment generator model"""
-
-    width = 256
-    height = 256
-    max_difficulty = width * height  # width * height
 
     def __init__(self, max_obstacles: int = 10):
         super().__init__()
@@ -173,7 +199,7 @@ class GeneratorEnv(Env):
         )
         self.observation_space = spaces.Box(
             low=0,
-            high=self.max_difficulty,
+            high=MAX_DIFFICULTY,
             shape=(1,),
             dtype=np.float32,
         )
@@ -187,16 +213,16 @@ class GeneratorEnv(Env):
         Action shape = (40, ). All values are between [0, 1]
         """
         robot_pos = action[:4]
-        rob_x = robot_pos[0] * self.width
-        rob_y = robot_pos[1] * self.height
-        goal_x = robot_pos[2] * self.width
-        goal_y = robot_pos[3] * self.height
+        rob_x = robot_pos[0] * ENV_SIZE
+        rob_y = robot_pos[1] * ENV_SIZE
+        goal_x = robot_pos[2] * ENV_SIZE
+        goal_y = robot_pos[3] * ENV_SIZE
         robot = Robot(Position[float](rob_x, rob_y), Position[float](goal_x, goal_y))
         obstacles_ls = []
 
         # Convert obstacles position/dimension from [0, 1] to [0, width]
         for idx in range(4, 40, 4):
-            dims = [action[idx + dim_i] * self.width for dim_i in range(4)]
+            dims = [action[idx + dim_i] * ENV_SIZE for dim_i in range(4)]
             obstacles_ls.append(SingleObstacle(*dims))
         obstacles = Obstacles(obstacles_ls)
 
@@ -205,8 +231,8 @@ class GeneratorEnv(Env):
         self.difficulty, _ = compute_difficulty(
             obstacles,
             robot,
-            self.width,
-            self.height,
+            ENV_SIZE,
+            ENV_SIZE,
         )
         reward: float = -abs(self.difficulty - old_difficulty)
         self.tb_writer.add_scalar("generator_reward", reward, self.time_step)
@@ -222,7 +248,7 @@ class GeneratorEnv(Env):
         """Create observations for the environment"""
 
         # Generating a new random difficulty value as an observation for the model
-        self.difficulty = random.random() * self.max_difficulty
+        self.difficulty = random.random() * MAX_DIFFICULTY
         return [self.difficulty]
 
     def reset(self):
@@ -233,20 +259,147 @@ class GeneratorEnv(Env):
     def render(self):
         """Overriding render method"""
         return super().render()
+    
+class EnvPointsDataset(Dataset):
+    """Environment dataset implementation for pytorch dataset interface"""
+    def __init__(self, dataset: pd.DataFrame) -> None:
+        self.dataset = dataset
+    
+    def __len__(self) -> int:
+        return len(self.dataset)
+    
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        record = self.dataset.loc[index].to_list()
+        difficulty = record[-1]
+        points = record[:-1]
+        
+        return torch.Tensor([difficulty]), torch.Tensor(points)
+        
 
-
-def main() -> None:
+def train_rl() -> None:
     """Main method for starting the training for the envirioment
     generator model"""
-    init_logger()
-    hard_obs = EnvGeneratorPolicy.hard_obs
-    med_obs = EnvGeneratorPolicy.med_obs
-    small_obs = EnvGeneratorPolicy.small_obs
-    env = GeneratorEnv(hard_obs + med_obs + small_obs + 1)
-    model = PPO(EnvGeneratorActorCritic, env, verbose=1, device="cuda")
+    env = GeneratorEnv(OBS_CNT + 1)
+    model = PPO(EnvGeneratorActorCritic, env, verbose=1, device=DEVICE)
     model.learn(5000)
     model.save("generator_model/")
 
 
+def obstacle_level_gen(obs_cnt: int, obs_size: int) -> List[float]:
+    """Random obstacles generator based on a certain count and size
+
+    Note that generated obstacles are in the shape of rectangles.
+
+    Args:
+        obs_cnt (int): Number of obstacles to be generated
+        obs_size (int): Maximum size of each generated obstacle
+
+    Returns:
+        List[SingleObstacle]: List of generated obstacles
+    """
+    obstacles: List[float] = []
+    for _ in range(obs_cnt):
+        obs_x = random.random() * ENV_SIZE
+        obs_y = random.random() * ENV_SIZE
+        obs_w = random.random() * obs_size
+        obs_h = random.random() * obs_size
+
+        obstacles.extend([obs_x, obs_y, obs_w, obs_h])
+
+    return obstacles
+
+
+def convert_from_points_to_objects(
+    entries_points: List[float],
+) -> Tuple[Robot, Obstacles]:
+    """Convert from a list of floats representation to objects which are the robot and
+    a list a of obstacles.
+    """
+    rob_x, rob_y, goal_x, goal_y = entries_points[:4]
+    robot = Robot(Position[float](rob_x, rob_y), Position[float](goal_x, goal_y))
+    obstacles_ls: List[SingleObstacle] = []
+    for obs_j in range(4, NUM_POINTS, OUTPUT_SIZE):
+        dims: List[int] = []
+        for dim in range(OUTPUT_SIZE):
+            dims.append(int(entries_points[obs_j + dim]))
+
+        obstacles_ls.append
+    obstacles = Obstacles(obstacles_ls)
+    return robot, obstacles
+
+
+def random_env_generator() -> Tuple[float, List[float]]:
+    """Random environment generator"""
+    env_points = [random.random() * ENV_SIZE for _ in range(4)]
+    env_points.extend(obstacle_level_gen(HARD_OBS, HARD_SIZE))
+    env_points.extend(obstacle_level_gen(MED_OBS, MED_SIZE))
+    env_points.extend(obstacle_level_gen(SMALL_OBS, SMALL_SIZE))
+
+    robot, obstacles = convert_from_points_to_objects(env_points)
+
+    difficulty, _ = compute_difficulty(obstacles, robot, ENV_SIZE, ENV_SIZE)
+
+    return difficulty, env_points
+
+
+def generate_dataset(file_name: str, dataset_points: int) -> None:
+    """Generate enviornments dataset.
+
+    Input is difficulty value, label is a set of points representing
+    the environment.
+    record = [points, difficulty]
+    """
+    dataset_df = pd.DataFrame(np.zeros((dataset_points, 1 + NUM_POINTS)))
+
+    _LOG.warning("Generating %i dataset points", dataset_points)
+    for point_j in range(dataset_points):
+        difficulty, env_points = random_env_generator()
+        env_points.append(difficulty)
+        dataset_df.loc[point_j] = env_points  # type: ignore
+
+        if point_j % 10 == 0:
+            _LOG.info("Generated %i points", point_j)
+
+    dataset_df.to_csv(file_name)
+
+
+def train_supervised(dataset_df: pd.DataFrame) -> None:
+    """Main method for training the environment generator using supervised learning"""
+    learning_rate = 1e-3
+    hidden_size = 16
+    num_layers = 1
+    batch_size = 16
+    # num_test_steps = 5
+    # test_each = 1000
+    use_sigmoid = False
+
+    _LOG.info("Initializing model")
+    model = EnvGeneratorModelLSTM(hidden_size, num_layers, use_sigmoid).to(DEVICE)
+    optimizer = torch.optim.Adam(model.parameters(), learning_rate)
+    criterion = nn.MSELoss()
+    tb_writer = SummaryWriter("runs")
+    dataset = EnvPointsDataset(dataset_df)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    step = 0
+    _LOG.warning("Training started")
+    for difficulty, points in tqdm(dataloader):
+        optimizer.zero_grad()
+        difficulty = difficulty.to(DEVICE)
+        points = points.to(DEVICE)
+
+        outputs = model(difficulty)
+        loss = criterion(points, outputs)
+        loss.backward()
+        optimizer.step()
+
+        tb_writer.add_scalar("Loss", loss.item(), step)
+        _LOG.info("Step [%i] Loss %f", step, loss.item())
+
+
 if __name__ == "__main__":
-    main()
+    init_logger()
+    DATASET_NAME = "env_points.csv"
+    DATASET_POINTS = 10000
+    generate_dataset(DATASET_NAME, DATASET_POINTS)
+    # dataset_df = pd.read_csv(DATASET_NAME)
+    # train_supervised(dataset_df)
