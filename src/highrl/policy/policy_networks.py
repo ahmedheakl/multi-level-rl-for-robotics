@@ -23,7 +23,7 @@ class TeacherPolicyNetwork(nn.Module):
 
     def __init__(
         self,
-        feature_dim: int = 4,
+        feature_dim: int = 16,
         last_layer_dim_pi: int = 1,
         last_layer_dim_vf: int = 8,
     ):
@@ -103,7 +103,6 @@ class TeacherActorCriticPolicy(ActorCriticPolicy):
         )
         # Disable orthogonal initialization
         self.ortho_init = False
-        self.mlp_extractor = None
 
     def _build_mlp_extractor(self) -> None:
         self.mlp_extractor = TeacherPolicyNetwork()

@@ -38,6 +38,7 @@ class TeacherConfigs:
     teacher_save_model_freq: int
     n_robot_eval_episodes: int
     render_eval: bool
+    generator_path: str
 
     def compute_success(self, episodes: int) -> int:
         """Calculate the number of success"""
@@ -100,6 +101,7 @@ def configure_teacher(config: RawConfigParser) -> TeacherConfigs:
         teacher_save_model_freq=config.getint("statistics", "save_model_freq"),
         n_robot_eval_episodes=config.getint("statistics", "n_robot_eval_episodes"),
         render_eval=config.getboolean("render", "render_eval"),
+        generator_path=config.get("generator", "generator_path"),
     )
     return cfg
 

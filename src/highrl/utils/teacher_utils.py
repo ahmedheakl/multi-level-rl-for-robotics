@@ -4,7 +4,7 @@ import math
 import time
 import logging
 from prettytable import PrettyTable
-
+from highrl.obstacle import Obstacles
 from highrl.utils.general import TeacherConfigs
 from highrl.utils.training_utils import TeacherMetrics, RobotMetrics
 from highrl.utils.teacher_checker import compute_difficulty as convex_difficulty
@@ -64,7 +64,6 @@ def compute_difficulty(
 def get_obstacles_from_action(
     action: List,
     opt: TeacherMetrics,
-    cfg: TeacherConfigs,
 ) -> List[SingleObstacle]:
     """Convert action from index-format to function-format.
     The output of the planner is treated as a list of functions,
@@ -88,27 +87,13 @@ def get_obstacles_from_action(
     Returns:
         List[SingleObstalce: list of obtained obstacles
     """
-    x_func, y_func, w_func, h_func = action[4], action[5], action[6], action[7]
-    x_max = opt.width**cfg.max_obstacles_count
-    y_max = opt.height**cfg.max_obstacles_count
+    obstacles_ls = []
 
-    x_func = math.ceil(x_func * x_max)
-    w_func = math.ceil(w_func * x_max)
-    y_func = math.ceil(y_func * y_max)
-    h_func = math.ceil(h_func * y_max)
-
-    obstacles = []
-    for _ in range(cfg.max_obstacles_count):
-        obs_x = x_func % opt.width
-        obs_y = y_func % opt.height
-        obs_w = min(w_func % opt.width, opt.width - obs_x)
-        obs_h = min(h_func % opt.height, opt.height - obs_y)
-        obstacles.append(SingleObstacle(obs_x, obs_y, obs_w, obs_h))
-
-        x_func = x_func // opt.width
-        w_func = w_func // opt.width
-        y_func = y_func // opt.height
-        h_func = h_func // opt.height
+    # Convert obstacles position/dimension from [0, 1] to [0, width]
+    for idx in range(4, 40, 4):
+        dims = [action[idx + dim_i] * opt.width for dim_i in range(4)]
+        obstacles_ls.append(SingleObstacle(*dims))
+    obstacles = Obstacles(obstacles_ls)
     return obstacles
 
 

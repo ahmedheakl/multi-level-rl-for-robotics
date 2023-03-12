@@ -8,6 +8,7 @@ from configparser import RawConfigParser
 from gym import Env, spaces
 import numpy as np
 from prettytable import PrettyTable
+from stable_baselines3 import PPO  # type: ignore
 from highrl.utils.abstract import Position
 from highrl.envs import env_encoders as env_enc
 from highrl.utils.general import configure_teacher
@@ -20,7 +21,7 @@ _LOG = logging.getLogger(__name__)
 class TeacherEnv(Env):
     """Environment for training the teacher agent"""
 
-    infinite_difficulty: int = 1080 * 720  # w * h
+    infinite_difficulty: int = 256 * 256  # w * h
     tensorboard_dir: str = "runs/teacher"
     rob_avg_rwrd_grph_name: str = "robot_avg_reward"
     rob_avg_eps_steps_grph_name: str = "robot_avg_episode_steps"
@@ -41,7 +42,7 @@ class TeacherEnv(Env):
         self.action_space = spaces.Box(
             low=0.01,
             high=0.99,
-            shape=(8,),
+            shape=(1,),
             dtype=np.float32,
         )
         # [time_steps, robot_level, robot_reward, difficulty_area, difficulty_obs]
@@ -55,6 +56,7 @@ class TeacherEnv(Env):
         self.done: bool = False
 
         self.cfg = configure_teacher(teacher_config)
+        self.env_generator = PPO.load(self.cfg.generator_path)
         self.robot_metrics = train_utils.RobotMetrics()
 
         self._init_robot_env(robot_config, eval_config)
@@ -175,23 +177,33 @@ class TeacherEnv(Env):
         """Step into the new state using an action given by the teacher model
 
         Args:
-            action (List): action to take
+            action (List): action to take (decided difficulty by the teacher model)
+                            which will be used by the env generator to create the robot environment
+                            for the coming robot training session
 
         Returns:
             Tuple: observation, reward, done, info
         """
         self.opt.time_steps += 1
         self.opt.reward = 0.0
-
+        action = action * self.infinite_difficulty
+        ########### Generate Robot Env based on decided difficulty ##############
+        generator_action, _ = self.env_generator.predict(action)
         ######################### Initiate Robot Env ############################
 
-        position_action = [action[0], action[1], action[2], action[3]]
+        position_action = [
+            generator_action[0],
+            generator_action[1],
+            generator_action[2],
+            generator_action[3],
+        ]
 
         robot_pos, goal_pos = teach_utils.get_robot_position_from_action(
             position_action, self.opt, self.action_space_names
         )
 
-        obstacles = teach_utils.get_obstacles_from_action(action, self.opt, self.cfg)
+        obstacles = teach_utils.get_obstacles_from_action(generator_action, self.opt)
+
         for obstacle in obstacles:
             self.opt.robot_env.obstacles.obstacles_list.append(obstacle)
 

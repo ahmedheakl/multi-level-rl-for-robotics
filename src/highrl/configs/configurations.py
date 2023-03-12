@@ -74,8 +74,8 @@ num_successes_increase_factor = 1.2
 [env]
 advance_probability = 0.9
 max_hard_obstacles_count = 2
-max_medium_obstacles_count = 5
-max_small_obstacles_count = 7
+max_medium_obstacles_count = 3
+max_small_obstacles_count = 4
 hard_obstacles_max_dim = 10
 hard_obstacles_min_dim = 9
 medium_obstacles_max_dim = 5
@@ -96,7 +96,10 @@ n_robot_eval_episodes = 5
 save_model_freq = 1
 
 [timesteps]
-max_sessions = 10
+max_sessions = 10000
+
+[generator]
+generator_path = generator_model
 """
 
 # ---------------------EVALUATIONS CONFIGURATIONS-----------------#

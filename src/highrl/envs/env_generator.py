@@ -10,6 +10,7 @@ environments that abide by a certain difficulty.
 from typing import Tuple, Callable, List
 import logging
 import random
+from time import time
 from gym import Env, spaces
 import numpy as np
 import torch
@@ -17,7 +18,8 @@ from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from torch import nn
 from stable_baselines3 import PPO  # type: ignore
 from stable_baselines3.common.policies import ActorCriticPolicy
-
+from stable_baselines3.common.callbacks import CallbackList
+from highrl.callbacks import teacher_callback as t_callback
 from highrl.obstacle.obstacles import Obstacles
 from highrl.obstacle.single_obstacle import SingleObstacle
 from highrl.agents.robot import Robot
@@ -178,7 +180,7 @@ class GeneratorEnv(Env):
             dtype=np.float32,
         )
         self.difficulty: float = 0
-        self.time_step: int = 0
+        self.time_steps: int = 0
         self.tb_writer = SummaryWriter("runs")
 
     def step(self, action: np.ndarray) -> Tuple[List[float], float, bool, dict]:
@@ -209,8 +211,8 @@ class GeneratorEnv(Env):
             self.height,
         )
         reward: float = -abs(self.difficulty - old_difficulty)
-        self.tb_writer.add_scalar("generator_reward", reward, self.time_step)
-        self.time_step += 1
+        self.tb_writer.add_scalar("generator_reward", reward, self.time_steps)
+        self.time_steps += 1
         _LOG.info("Reward %f", reward)
 
         # Notice here we are returning done=True, so that the model would update
@@ -244,8 +246,14 @@ def main() -> None:
     small_obs = EnvGeneratorPolicy.small_obs
     env = GeneratorEnv(hard_obs + med_obs + small_obs + 1)
     model = PPO(EnvGeneratorActorCritic, env, verbose=1, device="cuda")
-    model.learn(5000)
-    model.save("generator_model/")
+    teacher_save_model_callback = t_callback.TeacherSaveModelCallback(
+        train_env=env,
+        save_path=f"model_{time}",
+        save_freq=100,
+    )
+    callback = CallbackList([teacher_save_model_callback])
+    model.learn(total_timesteps=10000, callback=callback)
+    model.save("generator_model")
 
 
 if __name__ == "__main__":
