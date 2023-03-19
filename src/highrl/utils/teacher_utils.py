@@ -4,6 +4,8 @@ import math
 import time
 import logging
 from prettytable import PrettyTable
+import torch as th
+from stable_baselines3 import PPO  # type: ignore
 from highrl.obstacle import Obstacles
 from highrl.utils.general import TeacherConfigs
 from highrl.utils.training_utils import TeacherMetrics, RobotMetrics
@@ -64,9 +66,10 @@ def compute_difficulty(
 def get_obstacles_from_action(
     action: List,
     opt: TeacherMetrics,
+    cfg: TeacherConfigs,
 ) -> List[SingleObstacle]:
     """Convert action from index-format to function-format.
-    The output of the planner is treated as a list of functions,
+    The output of the teacher is treated as a list of functions,
     each with valuable points in the domain from x -> [0, max_obs].
 
     The index is convert into the function by converting the base of the index
@@ -90,9 +93,24 @@ def get_obstacles_from_action(
     obstacles_ls = []
 
     # Convert obstacles position/dimension from [0, 1] to [0, width]
-    for idx in range(4, 40, 4):
-        dims = [action[idx + dim_i] * opt.width for dim_i in range(4)]
+    max_big_obs = cfg.max_big_obstacles_count
+    max_med_obs = cfg.max_med_obstacles_count
+    max_small_obs = cfg.max_small_obstacles_count
+    max_big_dim = cfg.big_obstacles_max_dim
+    max_med_dim = cfg.med_obstacles_max_dim
+    max_small_dim = cfg.small_obstacles_max_dim
+    for idx in range(4, (4 * max_big_obs), 4):
+        dims = [action[idx + dim_i] * max_big_dim for dim_i in range(4)]
         obstacles_ls.append(SingleObstacle(*dims))
+
+    for idx in range((4 + 4 * max_big_obs), (4 * max_big_obs + 4 * max_med_obs), 4):
+        dims = [action[idx + dim_i] * max_med_dim for dim_i in range(4)]
+        obstacles_ls.append(SingleObstacle(*dims))
+
+    for idx in range((4 + 4 * max_big_obs + 4 * max_med_obs), 40, 4):
+        dims = [action[idx + dim_i] * max_small_dim for dim_i in range(4)]
+        obstacles_ls.append(SingleObstacle(*dims))
+
     obstacles = Obstacles(obstacles_ls)
     return obstacles
 
@@ -155,3 +173,12 @@ def get_reward(
     )
 
     return reward + too_close_to_goal_penality
+
+
+def load_env_generator(model_type: str, cfg):
+    if model_type == "RL":
+        model = PPO.load(cfg.generator_path)
+        return model
+
+    elif model_type == "SL":
+        model = th.load(cfg.generator_path)

@@ -14,6 +14,7 @@ from highrl.envs import env_encoders as env_enc
 from highrl.utils.general import configure_teacher
 from highrl.utils import training_utils as train_utils
 from highrl.utils import teacher_utils as teach_utils
+from highrl.utils.teacher_utils import load_env_generator
 
 _LOG = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ class TeacherEnv(Env):
         self.done: bool = False
 
         self.cfg = configure_teacher(teacher_config)
-        self.env_generator = PPO.load(self.cfg.generator_path)
+        self.env_generator = load_env_generator(model_type="RL", cfg=self.cfg)
         self.robot_metrics = train_utils.RobotMetrics()
 
         self._init_robot_env(robot_config, eval_config)
@@ -188,21 +189,22 @@ class TeacherEnv(Env):
         self.opt.reward = 0.0
         action = action * self.infinite_difficulty
         ########### Generate Robot Env based on decided difficulty ##############
-        generator_action, _ = self.env_generator.predict(action)
+        env_features, _ = self.env_generator.predict(action)
+        # The env generator takes the desired difficulty and returns env_features that
+        # correspond to that difficulty
+        # Those features dims are (40,1) which are basically (10,4):
+        # 1) The first 4 points correspond to the robot and goal x and y positions
+        # 2) Each following 4 points correspond to the (x,y,width,height) of one of the obstacles for
+        # a total of 9 obstacles
         ######################### Initiate Robot Env ############################
 
-        position_action = [
-            generator_action[0],
-            generator_action[1],
-            generator_action[2],
-            generator_action[3],
-        ]
+        position_action = [env_features[:4]]
 
         robot_pos, goal_pos = teach_utils.get_robot_position_from_action(
             position_action, self.opt, self.action_space_names
         )
 
-        obstacles = teach_utils.get_obstacles_from_action(generator_action, self.opt)
+        obstacles = teach_utils.get_obstacles_from_action(env_features, self.opt)
 
         for obstacle in obstacles:
             self.opt.robot_env.obstacles.obstacles_list.append(obstacle)

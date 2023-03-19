@@ -24,6 +24,7 @@ from highrl.agents.robot import Robot
 from highrl.utils import Position
 from highrl.utils.teacher_checker import compute_difficulty
 from highrl.utils.logger import init_logger
+from highrl.utils.parser import parse_args, generate_agents_config
 
 _LOG = logging.getLogger(__name__)
 
@@ -239,13 +240,21 @@ def main() -> None:
     """Main method for starting the training for the envirioment
     generator model"""
     init_logger()
+    args = parse_args()
+    _, teacher_config, _ = generate_agents_config(
+        args.robot_config_path,
+        args.teacher_config_path,
+        args.eval_config_path,
+    )  # returns robot_config, teacher_config and eval_config
     hard_obs = EnvGeneratorPolicy.hard_obs
     med_obs = EnvGeneratorPolicy.med_obs
     small_obs = EnvGeneratorPolicy.small_obs
     env = GeneratorEnv(hard_obs + med_obs + small_obs + 1)
     model = PPO(EnvGeneratorActorCritic, env, verbose=1, device="cuda")
+    generator_path = teacher_config.get("generator", "generator_path")
     model.learn(total_timesteps=10000)
-    model.save("generator_model")
+
+    model.save(generator_path)
 
 
 if __name__ == "__main__":
