@@ -197,14 +197,13 @@ class TeacherEnv(Env):
         # 2) Each following 4 points correspond to the (x,y,width,height) of one of the obstacles for
         # a total of 9 obstacles
         ######################### Initiate Robot Env ############################
-
-        position_action = [env_features[:4]]
+        position_action = env_features[:4]
 
         robot_pos, goal_pos = teach_utils.get_robot_position_from_action(
             position_action, self.opt, self.action_space_names
         )
 
-        obstacles = teach_utils.get_obstacles_from_action(env_features, self.opt)
+        obstacles = teach_utils.get_obstacles_from_action(env_features, self.cfg)
 
         for obstacle in obstacles:
             self.opt.robot_env.obstacles.obstacles_list.append(obstacle)

@@ -65,7 +65,6 @@ def compute_difficulty(
 
 def get_obstacles_from_action(
     action: List,
-    opt: TeacherMetrics,
     cfg: TeacherConfigs,
 ) -> List[SingleObstacle]:
     """Convert action from index-format to function-format.
@@ -132,6 +131,7 @@ def get_robot_position_from_action(
     names = ["px", "py", "gx", "gy"]
     action_table = PrettyTable()
     for idx, action_val in enumerate(action):
+        print(action_val, "\n")
         action_val = min(max(action_val, 0.1), 0.9)
         planner_output[action_names[idx]] = action_val
         action_table.add_column(fieldname=names[idx], column=[action_val])
