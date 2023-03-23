@@ -241,7 +241,24 @@ class GeneratorEnv(Env):
         return super().render()
 
 
-def main() -> None:
+class EnvPointsDataset(Dataset):
+    """Environment dataset implementation for pytorch dataset interface"""
+
+    def __init__(self, dataset: pd.DataFrame) -> None:
+        self.dataset = dataset
+
+    def __len__(self) -> int:
+        return len(self.dataset)
+
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        record = self.dataset.loc[index].to_list()
+        difficulty = record[-1]
+        points = record[:-1]
+
+        return torch.Tensor([difficulty]), torch.Tensor(points)
+
+
+def train_rl() -> None:
     """Main method for starting the training for the envirioment
     generator model"""
     init_logger()
