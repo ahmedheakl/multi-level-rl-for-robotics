@@ -14,6 +14,8 @@ from time import time
 from gym import Env, spaces
 import numpy as np
 import torch
+import pandas as pd
+from torch.utils.data import Dataset, DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from torch import nn
 from stable_baselines3 import PPO  # type: ignore
@@ -258,7 +260,7 @@ class EnvPointsDataset(Dataset):
         return torch.Tensor([difficulty]), torch.Tensor(points)
 
 
-def train_rl() -> None:
+def main() -> None:
     """Main method for starting the training for the envirioment
     generator model"""
     init_logger()
