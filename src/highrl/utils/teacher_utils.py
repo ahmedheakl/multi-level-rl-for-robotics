@@ -182,3 +182,4 @@ def load_env_generator(model_type: str, cfg):
 
     elif model_type == "SL":
         model = th.load(cfg.generator_path)
+        return model
