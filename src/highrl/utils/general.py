@@ -26,11 +26,8 @@ class TeacherConfigs:
     max_med_obstacles_count: int
     max_small_obstacles_count: int
     big_obstacles_max_dim: int
-    big_obstacles_min_dim: int
     med_obstacles_max_dim: int
-    med_obstacles_min_dim: int
     small_obstacles_max_dim: int
-    small_obstacles_min_dim: int
     lidar_mode: str
     collect_statistics: bool
     scenario: str
@@ -38,6 +35,7 @@ class TeacherConfigs:
     teacher_save_model_freq: int
     n_robot_eval_episodes: int
     render_eval: bool
+    generator_path: str
 
     def compute_success(self, episodes: int) -> int:
         """Calculate the number of success"""
@@ -87,11 +85,8 @@ def configure_teacher(config: RawConfigParser) -> TeacherConfigs:
         max_big_obstacles_count=config.getint("env", "max_hard_obstacles_count"),
         max_med_obstacles_count=config.getint("env", "max_medium_obstacles_count"),
         max_small_obstacles_count=config.getint("env", "max_small_obstacles_count"),
-        big_obstacles_min_dim=config.getint("env", "hard_obstacles_min_dim"),
         big_obstacles_max_dim=config.getint("env", "hard_obstacles_max_dim"),
-        med_obstacles_min_dim=config.getint("env", "medium_obstacles_min_dim"),
         med_obstacles_max_dim=config.getint("env", "medium_obstacles_max_dim"),
-        small_obstacles_min_dim=config.getint("env", "small_obstacles_min_dim"),
         small_obstacles_max_dim=config.getint("env", "small_obstacles_max_dim"),
         lidar_mode=config.get("env", "lidar_mode"),
         collect_statistics=config.getboolean("statistics", "collect_statistics"),
@@ -100,6 +95,7 @@ def configure_teacher(config: RawConfigParser) -> TeacherConfigs:
         teacher_save_model_freq=config.getint("statistics", "save_model_freq"),
         n_robot_eval_episodes=config.getint("statistics", "n_robot_eval_episodes"),
         render_eval=config.getboolean("render", "render_eval"),
+        generator_path=config.get("generator", "generator_path"),
     )
     return cfg
 

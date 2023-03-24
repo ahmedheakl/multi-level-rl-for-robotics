@@ -10,7 +10,6 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 _LOG = logging.getLogger(__name__)
 
 
-
 class TeacherFeatureExtractor(BaseFeaturesExtractor):
     """Feature extractor for the teacher implemented using LSTM.
 
@@ -100,7 +99,6 @@ class TeacherFeatureExtractor(BaseFeaturesExtractor):
         assert output_tensor.shape == th.Size([1, self.batch_size, self.hidden_size])
 
         output_tensor: th.Tensor = output_tensor.squeeze(0)
-
         # Return shape = [batch_size, hidden_size]
         return output_tensor
 

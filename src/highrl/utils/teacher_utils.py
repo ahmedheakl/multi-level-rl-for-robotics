@@ -4,7 +4,9 @@ import math
 import time
 import logging
 from prettytable import PrettyTable
-
+import torch as th
+from stable_baselines3 import PPO  # type: ignore
+from highrl.obstacle import Obstacles
 from highrl.utils.general import TeacherConfigs
 from highrl.utils.training_utils import TeacherMetrics, RobotMetrics
 from highrl.utils.teacher_checker import compute_difficulty as convex_difficulty
@@ -63,11 +65,10 @@ def compute_difficulty(
 
 def get_obstacles_from_action(
     action: List,
-    opt: TeacherMetrics,
     cfg: TeacherConfigs,
 ) -> List[SingleObstacle]:
     """Convert action from index-format to function-format.
-    The output of the planner is treated as a list of functions,
+    The output of the teacher is treated as a list of functions,
     each with valuable points in the domain from x -> [0, max_obs].
 
     The index is convert into the function by converting the base of the index
@@ -88,27 +89,28 @@ def get_obstacles_from_action(
     Returns:
         List[SingleObstalce: list of obtained obstacles
     """
-    x_func, y_func, w_func, h_func = action[4], action[5], action[6], action[7]
-    x_max = opt.width**cfg.max_obstacles_count
-    y_max = opt.height**cfg.max_obstacles_count
+    obstacles_ls = []
 
-    x_func = math.ceil(x_func * x_max)
-    w_func = math.ceil(w_func * x_max)
-    y_func = math.ceil(y_func * y_max)
-    h_func = math.ceil(h_func * y_max)
+    # Convert obstacles position/dimension from [0, 1] to [0, width]
+    max_big_obs = cfg.max_big_obstacles_count
+    max_med_obs = cfg.max_med_obstacles_count
+    max_small_obs = cfg.max_small_obstacles_count
+    max_big_dim = cfg.big_obstacles_max_dim
+    max_med_dim = cfg.med_obstacles_max_dim
+    max_small_dim = cfg.small_obstacles_max_dim
+    for idx in range(4, (4 * max_big_obs), 4):
+        dims = [action[idx + dim_i] * max_big_dim for dim_i in range(4)]
+        obstacles_ls.append(SingleObstacle(*dims))
 
-    obstacles = []
-    for _ in range(cfg.max_obstacles_count):
-        obs_x = x_func % opt.width
-        obs_y = y_func % opt.height
-        obs_w = min(w_func % opt.width, opt.width - obs_x)
-        obs_h = min(h_func % opt.height, opt.height - obs_y)
-        obstacles.append(SingleObstacle(obs_x, obs_y, obs_w, obs_h))
+    for idx in range((4 + 4 * max_big_obs), (4 * max_big_obs + 4 * max_med_obs), 4):
+        dims = [action[idx + dim_i] * max_med_dim for dim_i in range(4)]
+        obstacles_ls.append(SingleObstacle(*dims))
 
-        x_func = x_func // opt.width
-        w_func = w_func // opt.width
-        y_func = y_func // opt.height
-        h_func = h_func // opt.height
+    for idx in range((4 + 4 * max_big_obs + 4 * max_med_obs), 40, 4):
+        dims = [action[idx + dim_i] * max_small_dim for dim_i in range(4)]
+        obstacles_ls.append(SingleObstacle(*dims))
+
+    obstacles = Obstacles(obstacles_ls)
     return obstacles
 
 
@@ -129,6 +131,7 @@ def get_robot_position_from_action(
     names = ["px", "py", "gx", "gy"]
     action_table = PrettyTable()
     for idx, action_val in enumerate(action):
+        print(action_val, "\n")
         action_val = min(max(action_val, 0.1), 0.9)
         planner_output[action_names[idx]] = action_val
         action_table.add_column(fieldname=names[idx], column=[action_val])
@@ -170,3 +173,13 @@ def get_reward(
     )
 
     return reward + too_close_to_goal_penality
+
+
+def load_env_generator(model_type: str, cfg):
+    if model_type == "RL":
+        model = PPO.load(cfg.generator_path)
+        return model
+
+    elif model_type == "SL":
+        model = th.load(cfg.generator_path)
+        return model
