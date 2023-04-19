@@ -211,6 +211,8 @@ class GeneratorEvalEnv(Env):
 class EnvGeneratorModelLSTM(nn.Module):
     """Enviroment generator model using LSTM seq2seq architecture"""
 
+    teacher_forcing_ratio: float = 0.6
+
     def __init__(
         self,
         hidden_size: int,
@@ -246,7 +248,11 @@ class EnvGeneratorModelLSTM(nn.Module):
             ),
         )
 
-    def forward(self, features: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        features: torch.Tensor,
+        target: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         """Forward pass through the actor network"""
 
         # Features dim = [batch_size, features_dim]
@@ -264,7 +270,7 @@ class EnvGeneratorModelLSTM(nn.Module):
         # Output Dim = [batch_size, output_size]
         output = self.input(features)
 
-        for _ in range(num_outputs):
+        for idx in range(num_outputs):
             # Output Dim = [1, batch_size, hidden_size]
             output, (hidden, cell) = self.lstm(output.unsqueeze(0), (hidden, cell))
 
@@ -275,11 +281,16 @@ class EnvGeneratorModelLSTM(nn.Module):
             if self.use_sigmoid:
                 output = sigmoid(output)
 
+            if target and random.random() < self.teacher_forcing_ratio:
+                output = target[:, idx * OUTPUT_SIZE : (idx + 1) * OUTPUT_SIZE]
+
             outputs.append(output)
 
         # Action dim = [batch_size, 4 * num_outputs]
         out_features = torch.concat(outputs, dim=1)
-        self.extend_obstacles_range(out_features)
+
+        if self.use_sigmoid:
+            self.extend_obstacles_range(out_features)
 
         return out_features
 
@@ -297,7 +308,10 @@ class EnvGeneratorModelLSTM(nn.Module):
             points[batch][idx + 2] *= obs_size
             points[batch][idx + 3] *= obs_size
 
-    def extend_obstacles_range(self, points: torch.Tensor):
+    def extend_obstacles_range(self, points: torch.Tensor) -> None:
+        """Extend the range of the obstacles to the actual size of the
+        environment.
+        """
         batches = points.size(0)
         for batch in range(batches):
             j = 0
