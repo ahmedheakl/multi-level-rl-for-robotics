@@ -48,7 +48,7 @@ class TeacherEnv(Env):
         self.observation_space = spaces.Box(
             low=-1000,
             high=1000,
-            shape=(6,),
+            shape=(4,),
             dtype=np.float32,
         )
         self.args = args
@@ -145,7 +145,7 @@ class TeacherEnv(Env):
         """Collect statistics and tensorboard data"""
         if not self.cfg.collect_statistics:
             return
-        self.opt.session_statistics.loc[len(self.opt.session_statistics)] = [
+        self.opt.session_statistics.loc[len(self.opt.session_statistics)] = [  # type: ignore
             self.robot_metrics.iid,
             self.opt.reward,
             self.opt.robot_env.opt.episode_reward,
@@ -271,12 +271,10 @@ class TeacherEnv(Env):
             List: observation vector
         """
         return [
-            self.robot_metrics.level,
-            self.robot_metrics.avg_reward,
-            self.opt.difficulty_area,
-            self.opt.difficulty_obs,
-            self.robot_metrics.avg_episode_steps,
             self.robot_metrics.success_rate,
+            self.robot_metrics.avg_reward,
+            self.robot_metrics.avg_episode_steps,
+            self.robot_metrics.level,
         ]
 
     def get_time_steps(self) -> int:

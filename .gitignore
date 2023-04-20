@@ -80,4 +80,6 @@ robot_logs.csv
 runs/
 .mypy_cache/
 coloredlogs
-
+env_points.csv
+env_gen
+test.py
