@@ -359,23 +359,55 @@ class EnvPointsDataset(Dataset):
         return torch.Tensor([difficulty]), torch.Tensor(points)
 
 
+class EarlyStoppingCallback:
+    """Early stopping callback for training"""
+
+    def __init__(self, patience: int = 10, delta: float = 10.0) -> None:
+        self.patience = patience
+        self.delta = delta
+        self.best_loss = np.inf
+        self.counter: int = 0
+        self.early_stop = False
+
+    def __call__(self, loss: torch.Tensor) -> bool:
+        loss_val: float = loss.item()
+        if loss_val < self.best_loss - self.delta:
+            self.best_loss = loss_val
+            self.counter = 0
+
+        else:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+
+        return self.early_stop
+
+
 def train_supervised(args: argparse.Namespace) -> None:
     """Main method for training the environment generator using supervised learning"""
     # num_test_steps = 5
     # test_each = 1000
-    use_sigmoid = True
+    use_sigmoid = False
 
     _LOG.info("Initializing model")
     model = EnvGeneratorModelLSTM(args.hidden_size, args.num_layers, use_sigmoid)
-    model = model.to(DEVICE)
-    optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10000, gamma=0.6)
-    criterion = nn.MSELoss()
-    tb_writer = SummaryWriter("runs")
     dataset_df = collect_dataset(args.dataset_path)
     dataset = EnvPointsDataset(dataset_df)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+    model = model.to(DEVICE)
+    optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
+    total_steps = len(dataloader) * args.num_epochs
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer,
+        T_max=total_steps // 10000,
+        eta_min=1e-6,
+    )
+    criterion = nn.MSELoss()
+    tb_writer = SummaryWriter("runs")
+
+    early_stopping = EarlyStoppingCallback(patience=10, delta=args.delta)
     step = 0
+    stop = False
     _LOG.warning("You have %i datapoints", dataset_df.shape[0])
     _LOG.warning("Training started")
     for _ in range(args.num_epochs):
@@ -396,7 +428,15 @@ def train_supervised(args: argparse.Namespace) -> None:
                 _LOG.info("Step [%i] Loss %f", step, loss.item())
                 scheduler.step()
 
+            if early_stopping(loss):
+                _LOG.info("Early stopping at step %i", step)
+                stop = True
+                break
+
             step += 1
+
+        if stop:
+            break
 
     torch.save(model.state_dict(), ENV_GEN_WEIGHTS)
 
@@ -467,6 +507,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     parser.add_argument("-d", "--dataset-path", default="env_gen", type=str)
     parser.add_argument("-lr", "--learning-rate", default=1e-3, type=float)
     parser.add_argument("-ly", "--num-layers", default=1, type=int)
+    parser.add_argument("-dlt", "--delta", default=5.0, type=float)
     args = parser.parse_args(argv)
 
     train_supervised(args)
